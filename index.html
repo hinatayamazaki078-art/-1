@@ -236,16 +236,24 @@
     bgImage.src = 'ChatGPT Image 2026年7月15日 00_45_17.png';
     let bgOffset = 0;
 
+    // プレイヤー画像の設定
+    const playerImgWalk = new Image();
+    playerImgWalk.src = 'si1.png';
+    const playerImgJump = new Image();
+    playerImgJump.src = 'si2.png';
+    let playerFacingRight = true; // プレイヤーの向き（true=右, false=左）
+
     // ゲーム状態
     let gameState = 'TITLE';
     let animationId;
     let distance = 0;
     
+    // キャラクターのサイズを少し大きく調整
     const player = {
         x: 50,
         y: 200,
-        width: 30,
-        height: 30,
+        width: 60,   // 30 -> 60に変更
+        height: 50,  // 30 -> 50に変更
         vx: 0,
         vy: 0,
         speed: 6,
@@ -261,13 +269,14 @@
         platforms = [];
         enemies = [];
         distance = 0;
-        bgOffset = 0; // 背景スクロールのリセット
+        bgOffset = 0; 
         player.x = 50;
         player.y = 100;
         player.vx = 0;
         player.vy = 0;
         keys.left = false;
         keys.right = false;
+        playerFacingRight = true; // 初期は右向き
         
         platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
     }
@@ -328,8 +337,10 @@
 
         if (keys.left) {
             player.vx = -player.speed;
+            playerFacingRight = false; // 左を向く
         } else if (keys.right) {
             player.vx = player.speed;
+            playerFacingRight = true;  // 右を向く
         } else {
             player.vx = 0;
         }
@@ -374,7 +385,6 @@
             platforms.forEach(p => p.x -= offset);
             enemies.forEach(e => e.x -= offset);
 
-            // 背景のパララックススクロール（キャラクター移動の半分の速度）
             bgOffset += offset * 0.5;
         }
 
@@ -383,11 +393,13 @@
 
         generateMap();
 
+        // 敵との当たり判定（少し甘くする：画像の透明部分を考慮）
         enemies.forEach(e => {
-            if (player.x < e.x + e.width &&
-                player.x + player.width > e.x &&
-                player.y < e.y + e.height &&
-                player.y + player.height > e.y) {
+            const hitboxMargin = 10; // 当たり判定を10px内側に
+            if (player.x + hitboxMargin < e.x + e.width &&
+                player.x + player.width - hitboxMargin > e.x &&
+                player.y + hitboxMargin < e.y + e.height &&
+                player.y + player.height - hitboxMargin > e.y) {
                 gameOver();
             }
         });
@@ -404,7 +416,6 @@
             const scaledWidth = bgImage.width * scale;
             const xOffset = bgOffset % scaledWidth;
             
-            // 継ぎ目が見えないように描画（2〜3枚並べる）
             ctx.drawImage(bgImage, -xOffset, 0, scaledWidth, canvas.height);
             ctx.drawImage(bgImage, -xOffset + scaledWidth, 0, scaledWidth, canvas.height);
             if (scaledWidth - xOffset < canvas.width) {
@@ -433,9 +444,30 @@
             ctx.fillStyle = 'red';
         });
 
-        // --- プレイヤーの描画 ---
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(player.x, player.y, player.width, player.height);
+        // --- プレイヤーの描画（変更点） ---
+        // 地面にいるかどうかで画像を切り替える
+        let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
+
+        if (currentImg.complete && currentImg.width > 0) {
+            ctx.save(); // 現在の描画状態を保存
+
+            if (playerFacingRight) {
+                // 右向き（そのまま描画）
+                ctx.drawImage(currentImg, player.x, player.y, player.width, player.height);
+            } else {
+                // 左向き（反転して描画）
+                // 画像の中心を基準に反転させる
+                ctx.translate(player.x + player.width / 2, player.y + player.height / 2); 
+                ctx.scale(-1, 1); // 左右反転
+                ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
+            }
+
+            ctx.restore(); // 描画状態を元に戻す
+        } else {
+            // 画像が読み込まれるまでは青い四角を表示
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
     }
 
     function loop() {
