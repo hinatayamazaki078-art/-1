@@ -10,7 +10,7 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #87CEEB; /* 空の水色 */
+            background-color: #87CEEB;
             overflow: hidden;
             font-family: sans-serif;
             user-select: none;
@@ -33,7 +33,6 @@
             object-fit: cover;
         }
 
-        /* UI画面の共通スタイル */
         .screen {
             position: absolute;
             top: 0;
@@ -88,7 +87,6 @@
             z-index: 5;
         }
 
-        /* ゲームパッド（操作ボタン） */
         #game-pad {
             position: absolute;
             bottom: 20px;
@@ -98,7 +96,7 @@
             padding: 0 20px;
             box-sizing: border-box;
             z-index: 5;
-            pointer-events: none; /* ボタン以外はタッチ通過 */
+            pointer-events: none;
         }
 
         .pad-group {
@@ -120,14 +118,13 @@
             align-items: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             cursor: pointer;
-            touch-action: none; /* ズームなどのデフォルト動作防止 */
+            touch-action: none;
         }
         
         .action-btn:active {
             background-color: rgba(255, 255, 255, 0.4);
         }
 
-        /* 縦画面のときの警告 */
         @media screen and (orientation: portrait) {
             #portrait-warning {
                 display: flex;
@@ -145,10 +142,8 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
-    <!-- プレイ中の距離表示 -->
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
 
-    <!-- 操作ボタン（プレイ中のみ表示） -->
     <div id="game-pad" class="hidden">
         <div class="pad-group">
             <div id="btn-left" class="action-btn">◀</div>
@@ -159,7 +154,6 @@
         </div>
     </div>
 
-    <!-- タイトル画面 -->
     <div id="title-screen" class="screen">
         <h1>アクションラン</h1>
         <button id="btn-start" class="menu-btn">冒険開始</button>
@@ -167,14 +161,12 @@
         <button id="btn-avatar" class="menu-btn" onclick="alert('アバター設定画面\n（将来実装予定）')">アバター設定</button>
     </div>
 
-    <!-- ゲームオーバー画面 -->
     <div id="game-over-screen" class="screen hidden">
         <h1 style="color: #ff4d4d;">GAME OVER</h1>
         <p style="font-size: 5vw; margin-bottom: 20px;">記録: <span id="final-distance">0</span>m</p>
         <button id="btn-restart" class="menu-btn">タイトルへ戻る</button>
     </div>
 
-    <!-- 縦画面警告 -->
     <div id="portrait-warning" class="screen">
         <h2>スマホを横向きにしてください</h2>
     </div>
@@ -199,7 +191,6 @@
     // キー入力とボタン状態
     const keys = { left: false, right: false };
     
-    // キーボード操作設定
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') keys.left = true;
         if (e.key === 'ArrowRight') keys.right = true;
@@ -210,7 +201,6 @@
         if (e.key === 'ArrowRight') keys.right = false;
     });
 
-    // スマホ用ボタン操作設定
     const setupButton = (id, action) => {
         const btn = document.getElementById(id);
         const startAction = (e) => { e.preventDefault(); if(action === 'jump') doJump(); else keys[action] = true; };
@@ -234,7 +224,6 @@
         }
     }
 
-    // キャンバスサイズを画面に合わせる
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -242,12 +231,16 @@
     window.addEventListener('resize', resize);
     resize();
 
+    // 背景画像の設定
+    const bgImage = new Image();
+    bgImage.src = 'ChatGPT Image 2026年7月15日 00_45_17.png';
+    let bgOffset = 0;
+
     // ゲーム状態
-    let gameState = 'TITLE'; // TITLE, PLAYING, GAMEOVER
+    let gameState = 'TITLE';
     let animationId;
     let distance = 0;
     
-    // プレイヤー設定
     const player = {
         x: 50,
         y: 200,
@@ -255,21 +248,20 @@
         height: 30,
         vx: 0,
         vy: 0,
-        speed: 6,      // 左右の移動速度
+        speed: 6,
         gravity: 0.8,
         jumpPower: -13,
         isGrounded: false
     };
 
-    // マップ要素（地面と敵）
     let platforms = [];
     let enemies = [];
 
-    // ゲーム初期化
     function initMap() {
         platforms = [];
         enemies = [];
         distance = 0;
+        bgOffset = 0; // 背景スクロールのリセット
         player.x = 50;
         player.y = 100;
         player.vx = 0;
@@ -277,7 +269,6 @@
         keys.left = false;
         keys.right = false;
         
-        // 最初の足場
         platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
     }
 
@@ -285,7 +276,7 @@
         titleScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
-        gamePad.classList.remove('hidden'); // ボタンを表示
+        gamePad.classList.remove('hidden');
         gameState = 'PLAYING';
         initMap();
         loop();
@@ -301,12 +292,11 @@
         gameState = 'GAMEOVER';
         cancelAnimationFrame(animationId);
         scoreDisplay.classList.add('hidden');
-        gamePad.classList.add('hidden'); // ボタンを隠す
+        gamePad.classList.add('hidden');
         gameOverScreen.classList.remove('hidden');
         finalDistanceEl.innerText = Math.floor(distance);
     }
 
-    // マップの自動生成
     function generateMap() {
         const lastPlatform = platforms[platforms.length - 1];
         
@@ -322,7 +312,6 @@
             const newX = lastPlatform.x + lastPlatform.width + gap;
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
-            // 敵の生成
             if (Math.random() < 0.5) {
                 enemies.push({
                     x: newX + width / 2,
@@ -337,7 +326,6 @@
     function update() {
         if (gameState !== 'PLAYING') return;
 
-        // --- 1. 左右の移動処理 ---
         if (keys.left) {
             player.vx = -player.speed;
         } else if (keys.right) {
@@ -347,63 +335,54 @@
         }
 
         player.x += player.vx;
-
-        // 画面左端から外に出ないようにする
         if (player.x < 0) player.x = 0;
 
-        // 横方向の衝突判定（壁のめり込み防止）
         platforms.forEach(p => {
             if (player.x < p.x + p.width && player.x + player.width > p.x &&
                 player.y < p.y + p.height && player.y + player.height > p.y) {
-                if (player.vx > 0) player.x = p.x - player.width; // 右へ移動中にぶつかった
-                else if (player.vx < 0) player.x = p.x + p.width; // 左へ移動中にぶつかった
+                if (player.vx > 0) player.x = p.x - player.width;
+                else if (player.vx < 0) player.x = p.x + p.width;
             }
         });
 
-        // --- 2. 縦の移動処理（重力） ---
         player.vy += player.gravity;
         player.y += player.vy;
         player.isGrounded = false;
 
-        // 縦方向の衝突判定（着地）
         platforms.forEach(p => {
             if (player.x < p.x + p.width && player.x + player.width > p.x &&
                 player.y < p.y + p.height && player.y + player.height > p.y) {
-                if (player.vy > 0) { // 落下中
+                if (player.vy > 0) {
                     player.isGrounded = true;
                     player.vy = 0;
                     player.y = p.y - player.height;
-                } else if (player.vy < 0) { // 上昇中（頭をぶつけた）
+                } else if (player.vy < 0) {
                     player.vy = 0;
                     player.y = p.y + p.height;
                 }
             }
         });
 
-        // --- 3. カメラのスクロール処理 ---
-        // プレイヤーが画面の中央を越えようとしたら、プレイヤーを固定してマップを動かす
         const scrollThreshold = canvas.width / 2;
         if (player.x > scrollThreshold) {
             const offset = player.x - scrollThreshold;
-            player.x = scrollThreshold; // プレイヤーの位置を中央に戻す
+            player.x = scrollThreshold;
             
-            // スクロールした分だけ距離（スコア）を追加
             distance += offset * 0.05;
             distanceEl.innerText = Math.floor(distance);
 
-            // マップ要素を左へずらす
             platforms.forEach(p => p.x -= offset);
             enemies.forEach(e => e.x -= offset);
+
+            // 背景のパララックススクロール（キャラクター移動の半分の速度）
+            bgOffset += offset * 0.5;
         }
 
-        // --- 4. その他の判定 ---
-        // 不要になった要素の削除
         if (platforms[0].x + platforms[0].width < -100) platforms.shift();
         if (enemies.length > 0 && enemies[0].x + enemies[0].width < -100) enemies.shift();
 
         generateMap();
 
-        // 敵との当たり判定
         enemies.forEach(e => {
             if (player.x < e.x + e.width &&
                 player.x + player.width > e.x &&
@@ -413,16 +392,29 @@
             }
         });
 
-        // 落下判定
         if (player.y > canvas.height) {
             gameOver();
         }
     }
 
     function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // --- 背景の描画 ---
+        if (bgImage.complete && bgImage.width > 0) {
+            const scale = canvas.height / bgImage.height;
+            const scaledWidth = bgImage.width * scale;
+            const xOffset = bgOffset % scaledWidth;
+            
+            // 継ぎ目が見えないように描画（2〜3枚並べる）
+            ctx.drawImage(bgImage, -xOffset, 0, scaledWidth, canvas.height);
+            ctx.drawImage(bgImage, -xOffset + scaledWidth, 0, scaledWidth, canvas.height);
+            if (scaledWidth - xOffset < canvas.width) {
+                ctx.drawImage(bgImage, -xOffset + scaledWidth * 2, 0, scaledWidth, canvas.height);
+            }
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
 
-        // 地面の描画
+        // --- 地面の描画 ---
         ctx.fillStyle = '#8B4513';
         platforms.forEach(p => {
             ctx.fillRect(p.x, p.y, p.width, p.height);
@@ -431,7 +423,7 @@
             ctx.fillStyle = '#8B4513';
         });
 
-        // 敵の描画
+        // --- 敵の描画 ---
         ctx.fillStyle = 'red';
         enemies.forEach(e => {
             ctx.fillRect(e.x, e.y, e.width, e.height);
@@ -441,7 +433,7 @@
             ctx.fillStyle = 'red';
         });
 
-        // プレイヤーの描画
+        // --- プレイヤーの描画 ---
         ctx.fillStyle = 'blue';
         ctx.fillRect(player.x, player.y, player.width, player.height);
     }
