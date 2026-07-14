@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <!-- スマホでの拡大縮小を無効化し、フルスクリーン風にする -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>エンドレスアクション</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #87CEEB; /* 空の水色 */
+            overflow: hidden;
+            font-family: sans-serif;
+            user-select: none; /* テキスト選択防止 */
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* UI画面の共通スタイル */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 8vw;
+            margin-bottom: 20px;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        button {
+            background-color: #ff4500;
+            color: white;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-size: 4vw;
+            margin: 10px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(2px);
+        }
+
+        #score-display {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 5vw;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 2px black;
+            z-index: 5;
+        }
+
+        /* 縦画面のときの警告 */
+        @media screen and (orientation: portrait) {
+            #portrait-warning {
+                display: flex;
+            }
+        }
+        @media screen and (orientation: landscape) {
+            #portrait-warning {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- プレイ中の距離表示 -->
+    <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
+
+    <!-- タイトル画面 -->
+    <div id="title-screen" class="screen">
+        <h1>エンドレスラン</h1>
+        <button id="btn-start">冒険開始</button>
+        <button id="btn-ranking" onclick="alert('ランキングサーバーは未接続です\n（将来実装予定）')">ランキング</button>
+        <button id="btn-avatar" onclick="alert('アバター設定画面\n（将来実装予定）')">アバター設定</button>
+    </div>
+
+    <!-- ゲームオーバー画面 -->
+    <div id="game-over-screen" class="screen hidden">
+        <h1 style="color: #ff4d4d;">GAME OVER</h1>
+        <p style="font-size: 5vw; margin-bottom: 20px;">記録: <span id="final-distance">0</span>m</p>
+        <button id="btn-restart">タイトルへ戻る</button>
+    </div>
+
+    <!-- 縦画面警告 -->
+    <div id="portrait-warning" class="screen">
+        <h2>スマホを横向きにしてください</h2>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI要素
+    const titleScreen = document.getElementById('title-screen');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const scoreDisplay = document.getElementById('score-display');
+    const distanceEl = document.getElementById('distance');
+    const finalDistanceEl = document.getElementById('final-distance');
+
+    // ボタン
+    document.getElementById('btn-start').addEventListener('click', startGame);
+    document.getElementById('btn-restart').addEventListener('click', showTitle);
+
+    // キャンバスサイズを画面に合わせる
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ゲーム状態
+    let gameState = 'TITLE'; // TITLE, PLAYING, GAMEOVER
+    let animationId;
+    let distance = 0;
+    let gameSpeed = 5; // スクロール速度
+
+    // プレイヤー設定
+    const player = {
+        x: 50,
+        y: 200,
+        width: 30,
+        height: 30,
+        vy: 0,
+        gravity: 0.8,
+        jumpPower: -12,
+        isGrounded: false
+    };
+
+    // マップ要素（地面と敵）
+    let platforms = [];
+    let enemies = [];
+
+    // ゲーム初期化
+    function initMap() {
+        platforms = [];
+        enemies = [];
+        distance = 0;
+        gameSpeed = 5;
+        player.y = 100;
+        player.vy = 0;
+        
+        // 最初の足場（絶対に落ちない長さ）
+        platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
+    }
+
+    // 画面タップでジャンプ
+    function jump(e) {
+        // ボタン等のUIクリック時は反応させない
+        if (e.target.tagName === 'BUTTON' || gameState !== 'PLAYING') return;
+        
+        if (player.isGrounded) {
+            player.vy = player.jumpPower;
+            player.isGrounded = false;
+        }
+    }
+    window.addEventListener('touchstart', jump);
+    window.addEventListener('mousedown', jump); // PCのクリックでも動くように
+
+    function startGame() {
+        titleScreen.classList.add('hidden');
+        scoreDisplay.classList.remove('hidden');
+        gameOverScreen.classList.add('hidden');
+        gameState = 'PLAYING';
+        initMap();
+        loop();
+    }
+
+    function showTitle() {
+        gameOverScreen.classList.add('hidden');
+        titleScreen.classList.remove('hidden');
+        gameState = 'TITLE';
+    }
+
+    function gameOver() {
+        gameState = 'GAMEOVER';
+        cancelAnimationFrame(animationId);
+        scoreDisplay.classList.add('hidden');
+        gameOverScreen.classList.remove('hidden');
+        finalDistanceEl.innerText = Math.floor(distance);
+    }
+
+    // マップの自動生成
+    function generateMap() {
+        const lastPlatform = platforms[platforms.length - 1];
+        
+        // 最後の足場が画面内に入ってきたら次を生成
+        if (lastPlatform.x + lastPlatform.width < canvas.width + 200) {
+            // ランダムな隙間と幅
+            const gap = Math.random() * 150 + 50; 
+            const width = Math.random() * 300 + 200;
+            // 高さのばらつき
+            const yOffset = (Math.random() - 0.5) * 100;
+            let newY = lastPlatform.y + yOffset;
+            
+            // 画面外に行かないように制限
+            if (newY > canvas.height - 50) newY = canvas.height - 50;
+            if (newY < canvas.height - 250) newY = canvas.height - 250;
+
+            const newX = lastPlatform.x + lastPlatform.width + gap;
+            platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
+
+            // 敵の生成（確率で足場の上に配置）
+            if (Math.random() < 0.5) {
+                enemies.push({
+                    x: newX + width / 2,
+                    y: newY - 30, // 足場の上に乗せる
+                    width: 30,
+                    height: 30
+                });
+            }
+        }
+    }
+
+    function update() {
+        if (gameState !== 'PLAYING') return;
+
+        // 距離とスピードの更新（進むにつれて少しずつ速くなる）
+        distance += gameSpeed * 0.05;
+        distanceEl.innerText = Math.floor(distance);
+        gameSpeed += 0.001; 
+
+        // プレイヤーの物理演算
+        player.vy += player.gravity;
+        player.y += player.vy;
+        player.isGrounded = false;
+
+        // 地面と敵の移動
+        platforms.forEach(p => p.x -= gameSpeed);
+        enemies.forEach(e => e.x -= gameSpeed);
+
+        // 不要になった要素の削除（メモリ節約）
+        if (platforms[0].x + platforms[0].width < -100) platforms.shift();
+        if (enemies.length > 0 && enemies[0].x + enemies[0].width < -100) enemies.shift();
+
+        generateMap();
+
+        // 当たり判定：プレイヤーと地面
+        platforms.forEach(p => {
+            // プレイヤーが足場の上にいて、落下中の場合のみ着地判定
+            if (player.x < p.x + p.width &&
+                player.x + player.width > p.x &&
+                player.y + player.height <= p.y + player.vy && // 前のフレームで上にいたか
+                player.y + player.height + player.vy >= p.y) {
+                
+                player.isGrounded = true;
+                player.vy = 0;
+                player.y = p.y - player.height;
+            }
+        });
+
+        // 当たり判定：プレイヤーと敵（当たったら即死）
+        enemies.forEach(e => {
+            if (player.x < e.x + e.width &&
+                player.x + player.width > e.x &&
+                player.y < e.y + e.height &&
+                player.y + player.height > e.y) {
+                gameOver();
+            }
+        });
+
+        // 落下判定（即死）
+        if (player.y > canvas.height) {
+            gameOver();
+        }
+    }
+
+    function draw() {
+        // 背景クリア
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 地面の描画
+        ctx.fillStyle = '#8B4513'; // 茶色
+        platforms.forEach(p => {
+            ctx.fillRect(p.x, p.y, p.width, p.height);
+            // 草の部分
+            ctx.fillStyle = '#228B22'; // 緑色
+            ctx.fillRect(p.x, p.y, p.width, 15);
+            ctx.fillStyle = '#8B4513'; // 色を戻す
+        });
+
+        // 敵の描画（赤いブロック）
+        ctx.fillStyle = 'red';
+        enemies.forEach(e => {
+            ctx.fillRect(e.x, e.y, e.width, e.height);
+            // 敵の目（簡単な装飾）
+            ctx.fillStyle = 'white';
+            ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
+            ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
+            ctx.fillStyle = 'red';
+        });
+
+        // プレイヤーの描画（青いブロック）
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    function loop() {
+        if (gameState === 'PLAYING') {
+            update();
+            draw();
+            animationId = requestAnimationFrame(loop);
+        }
+    }
+</script>
+</body>
+</html>
