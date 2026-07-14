@@ -241,19 +241,23 @@
     playerImgWalk.src = 'si1.png';
     const playerImgJump = new Image();
     playerImgJump.src = 'si2.png';
-    let playerFacingRight = true; // プレイヤーの向き（true=右, false=左）
+    let playerFacingRight = true;
+
+    // 敵画像の設定
+    const enemyImg = new Image();
+    enemyImg.src = 'ku.jpg';
 
     // ゲーム状態
     let gameState = 'TITLE';
     let animationId;
     let distance = 0;
     
-    // キャラクターのサイズを少し大きく調整
+    // キャラクターの設定
     const player = {
         x: 50,
         y: 200,
-        width: 60,   // 30 -> 60に変更
-        height: 50,  // 30 -> 50に変更
+        width: 60,
+        height: 50,
         vx: 0,
         vy: 0,
         speed: 6,
@@ -276,7 +280,7 @@
         player.vy = 0;
         keys.left = false;
         keys.right = false;
-        playerFacingRight = true; // 初期は右向き
+        playerFacingRight = true; 
         
         platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
     }
@@ -322,11 +326,12 @@
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
             if (Math.random() < 0.5) {
+                // 敵の出現（画像に合わせてサイズと位置を調整）
                 enemies.push({
                     x: newX + width / 2,
-                    y: newY - 30,
-                    width: 30,
-                    height: 30
+                    y: newY - 40, // 高さに合わせて少し上げる
+                    width: 60,    // 横幅を広めに
+                    height: 40    // 高さを設定
                 });
             }
         }
@@ -337,10 +342,10 @@
 
         if (keys.left) {
             player.vx = -player.speed;
-            playerFacingRight = false; // 左を向く
+            playerFacingRight = false; 
         } else if (keys.right) {
             player.vx = player.speed;
-            playerFacingRight = true;  // 右を向く
+            playerFacingRight = true;  
         } else {
             player.vx = 0;
         }
@@ -393,9 +398,8 @@
 
         generateMap();
 
-        // 敵との当たり判定（少し甘くする：画像の透明部分を考慮）
         enemies.forEach(e => {
-            const hitboxMargin = 10; // 当たり判定を10px内側に
+            const hitboxMargin = 10; 
             if (player.x + hitboxMargin < e.x + e.width &&
                 player.x + player.width - hitboxMargin > e.x &&
                 player.y + hitboxMargin < e.y + e.height &&
@@ -434,37 +438,36 @@
             ctx.fillStyle = '#8B4513';
         });
 
-        // --- 敵の描画 ---
-        ctx.fillStyle = 'red';
-        enemies.forEach(e => {
-            ctx.fillRect(e.x, e.y, e.width, e.height);
-            ctx.fillStyle = 'white';
-            ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
-            ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
+        // --- 敵の描画（変更点） ---
+        if (enemyImg.complete && enemyImg.width > 0) {
+            enemies.forEach(e => {
+                ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
+            });
+        } else {
+            // 画像が読み込まれるまでは従来の赤い四角
             ctx.fillStyle = 'red';
-        });
+            enemies.forEach(e => {
+                ctx.fillRect(e.x, e.y, e.width, e.height);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
+                ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
+                ctx.fillStyle = 'red';
+            });
+        }
 
-        // --- プレイヤーの描画（変更点） ---
-        // 地面にいるかどうかで画像を切り替える
+        // --- プレイヤーの描画 ---
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
-
         if (currentImg.complete && currentImg.width > 0) {
-            ctx.save(); // 現在の描画状態を保存
-
+            ctx.save();
             if (playerFacingRight) {
-                // 右向き（そのまま描画）
                 ctx.drawImage(currentImg, player.x, player.y, player.width, player.height);
             } else {
-                // 左向き（反転して描画）
-                // 画像の中心を基準に反転させる
                 ctx.translate(player.x + player.width / 2, player.y + player.height / 2); 
-                ctx.scale(-1, 1); // 左右反転
+                ctx.scale(-1, 1); 
                 ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
             }
-
-            ctx.restore(); // 描画状態を元に戻す
+            ctx.restore(); 
         } else {
-            // 画像が読み込まれるまでは青い四角を表示
             ctx.fillStyle = 'blue';
             ctx.fillRect(player.x, player.y, player.width, player.height);
         }
