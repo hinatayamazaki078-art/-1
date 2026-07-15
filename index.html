@@ -24,6 +24,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            background-color: #000; /* フルスクリーン移行時のチラつき防止 */
         }
 
         canvas {
@@ -87,13 +88,14 @@
             z-index: 5;
         }
 
+        /* スマホのセーフエリア（ノッチやホームバー）を考慮した配置 */
         #game-pad {
             position: absolute;
-            bottom: 20px;
+            bottom: calc(20px + env(safe-area-inset-bottom));
             width: 100%;
             display: flex;
             justify-content: space-between;
-            padding: 0 20px;
+            padding: 0 calc(24px + env(safe-area-inset-right)) 0 calc(24px + env(safe-area-inset-left));
             box-sizing: border-box;
             z-index: 5;
             pointer-events: none;
@@ -101,24 +103,27 @@
 
         .pad-group {
             display: flex;
-            gap: 15px;
+            gap: 20px; /* ボタン同士の間隔を広げて誤動作防止 */
             pointer-events: auto;
         }
 
         .action-btn {
-            background-color: rgba(0, 0, 0, 0.4);
+            background-color: rgba(0, 0, 0, 0.5); /* 押しやすいよう背景を少し濃く */
             color: white;
             border: 2px solid rgba(255, 255, 255, 0.6);
             border-radius: 50%;
-            width: 70px;
-            height: 70px;
-            font-size: 24px;
+            width: 85px;  /* 70px から 85px に拡大 */
+            height: 85px; /* 70px から 85px に拡大 */
+            font-size: 28px;
             display: flex;
             justify-content: center;
             align-items: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             cursor: pointer;
             touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none; /* iOSの長押しメニューを防止 */
         }
         
         .action-btn:active {
@@ -229,6 +234,11 @@
         canvas.height = window.innerHeight;
     }
     window.addEventListener('resize', resize);
+    
+    // フルスクリーン切り替え時のチラつき・遅延対策
+    document.addEventListener('fullscreenchange', () => { setTimeout(resize, 100); });
+    document.addEventListener('webkitfullscreenchange', () => { setTimeout(resize, 100); });
+    
     resize();
 
     // ==========================================
@@ -310,7 +320,32 @@
         platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
     }
 
+    // フルスクリーン化と横向きロックの関数
+    function requestFullscreenAndLock(element) {
+        const requestFS = element.requestFullscreen || 
+                          element.webkitRequestFullscreen || 
+                          element.mozRequestFullScreen || 
+                          element.msRequestFullscreen;
+        
+        if (requestFS) {
+            requestFS.call(element).then(() => {
+                // 画面向きを横（landscape）にロック（Androidなどで有効）
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(err => {
+                        console.warn("画面ロックに非対応の環境です（iOS等は手動回転が必要です）:", err);
+                    });
+                }
+            }).catch(err => {
+                console.warn("フルスクリーン化に失敗しました:", err);
+            });
+        }
+    }
+
     function startGame() {
+        // ★ 開始時にコンテナごとフルスクリーン化を実行
+        const container = document.getElementById('game-container');
+        requestFullscreenAndLock(container);
+
         titleScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
