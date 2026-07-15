@@ -232,8 +232,11 @@
     resize();
 
     // 背景画像の設定
-    const bgImage = new Image();
-    bgImage.src = 'ChatGPT Image 2026年7月15日 00_45_17.png';
+    const bgImage1 = new Image();
+    bgImage1.src = 'ChatGPT Image 2026年7月15日 00_45_17.png'; // ステージ1の背景
+    const bgImage2 = new Image();
+    bgImage2.src = 'stage2.png'; // ステージ2(2000m以降)の背景
+    let currentBgImage = bgImage1; // 現在表示する背景
     let bgOffset = 0;
 
     // プレイヤー画像の設定
@@ -273,7 +276,8 @@
         platforms = [];
         enemies = [];
         distance = 0;
-        bgOffset = 0; 
+        bgOffset = 0;
+        currentBgImage = bgImage1;
         player.x = 50;
         player.y = 100;
         player.vx = 0;
@@ -387,6 +391,11 @@
             distance += offset * 0.05;
             distanceEl.innerText = Math.floor(distance);
 
+            // 距離が2000mを超えたら背景画像を切り替え
+            if (distance >= 2000) {
+                currentBgImage = bgImage2;
+            }
+
             platforms.forEach(p => p.x -= offset);
             enemies.forEach(e => e.x -= offset);
 
@@ -415,15 +424,15 @@
 
     function draw() {
         // --- 背景の描画 ---
-        if (bgImage.complete && bgImage.width > 0) {
-            const scale = canvas.height / bgImage.height;
-            const scaledWidth = bgImage.width * scale;
+        if (currentBgImage.complete && currentBgImage.width > 0) {
+            const scale = canvas.height / currentBgImage.height;
+            const scaledWidth = currentBgImage.width * scale;
             const xOffset = bgOffset % scaledWidth;
             
-            ctx.drawImage(bgImage, -xOffset, 0, scaledWidth, canvas.height);
-            ctx.drawImage(bgImage, -xOffset + scaledWidth, 0, scaledWidth, canvas.height);
+            ctx.drawImage(currentBgImage, -xOffset, 0, scaledWidth, canvas.height);
+            ctx.drawImage(currentBgImage, -xOffset + scaledWidth, 0, scaledWidth, canvas.height);
             if (scaledWidth - xOffset < canvas.width) {
-                ctx.drawImage(bgImage, -xOffset + scaledWidth * 2, 0, scaledWidth, canvas.height);
+                ctx.drawImage(currentBgImage, -xOffset + scaledWidth * 2, 0, scaledWidth, canvas.height);
             }
         } else {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
