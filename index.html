@@ -24,7 +24,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #000; /* フルスクリーン移行時のチラつき防止 */
+            background-color: #000;
         }
 
         canvas {
@@ -88,7 +88,6 @@
             z-index: 5;
         }
 
-        /* スマホのセーフエリア（ノッチやホームバー）を考慮した配置 */
         #game-pad {
             position: absolute;
             bottom: calc(20px + env(safe-area-inset-bottom));
@@ -103,17 +102,17 @@
 
         .pad-group {
             display: flex;
-            gap: 20px; /* ボタン同士の間隔を広げて誤動作防止 */
+            gap: 20px;
             pointer-events: auto;
         }
 
         .action-btn {
-            background-color: rgba(0, 0, 0, 0.5); /* 押しやすいよう背景を少し濃く */
+            background-color: rgba(0, 0, 0, 0.5);
             color: white;
             border: 2px solid rgba(255, 255, 255, 0.6);
             border-radius: 50%;
-            width: 85px;  /* 70px から 85px に拡大 */
-            height: 85px; /* 70px から 85px に拡大 */
+            width: 85px;
+            height: 85px;
             font-size: 28px;
             display: flex;
             justify-content: center;
@@ -123,7 +122,7 @@
             touch-action: none;
             -webkit-user-select: none;
             user-select: none;
-            -webkit-touch-callout: none; /* iOSの長押しメニューを防止 */
+            -webkit-touch-callout: none;
         }
         
         .action-btn:active {
@@ -235,7 +234,6 @@
     }
     window.addEventListener('resize', resize);
     
-    // フルスクリーン切り替え時のチラつき・遅延対策
     document.addEventListener('fullscreenchange', () => { setTimeout(resize, 100); });
     document.addEventListener('webkitfullscreenchange', () => { setTimeout(resize, 100); });
     
@@ -251,15 +249,15 @@
 
     // 背景画像の設定
     const bgImage1 = new Image();
-    bgImage1.src = 'ChatGPT Image 2026年7月15日 00_45_17.png'; // 0m〜
+    bgImage1.src = 'ChatGPT Image 2026年7月15日 00_45_17.png';
     const bgImage2 = new Image();
-    bgImage2.src = 'stage2.png'; // 1000m〜
+    bgImage2.src = 'stage2.png';
     const bgImage3 = new Image();
-    bgImage3.src = 'stage3.png'; // 2000m〜（オーロラ雪原）
+    bgImage3.src = 'stage3.png';
     const bgImage4 = new Image();
-    bgImage4.src = 'stage4.png'; // 3000m〜（森）
+    bgImage4.src = 'stage4.png';
     const bgImage5 = new Image();
-    bgImage5.src = 'stage5.png'; // 4000m〜（砂漠遺跡）
+    bgImage5.src = 'stage5.png';
     
     let currentBgImage = bgImage1;
     let bgOffset = 0;
@@ -280,6 +278,12 @@
     hopperGroundImg.src = 'バッタ地上.png';
     const hopperJumpImg = new Image();
     hopperJumpImg.src = 'バッタジャンプ.jpg';
+
+    // ★BGM追加箇所: 音声オブジェクトの作成
+    // ※ファイルの拡張子（.mp3, .wav, .m4aなど）に合わせて適宜変更してください
+    const bgm = new Audio('bgm.mp3'); 
+    bgm.loop = true;          // ループ再生を有効化
+    bgm.volume = 0.5;         // 音量調整（0.0〜1.0の間で設定できます）
 
     // ゲーム状態
     let gameState = 'TITLE';
@@ -320,7 +324,6 @@
         platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
     }
 
-    // フルスクリーン化と横向きロックの関数
     function requestFullscreenAndLock(element) {
         const requestFS = element.requestFullscreen || 
                           element.webkitRequestFullscreen || 
@@ -329,10 +332,9 @@
         
         if (requestFS) {
             requestFS.call(element).then(() => {
-                // 画面向きを横（landscape）にロック（Androidなどで有効）
                 if (screen.orientation && screen.orientation.lock) {
                     screen.orientation.lock('landscape').catch(err => {
-                        console.warn("画面ロックに非対応の環境です（iOS等は手動回転が必要です）:", err);
+                        console.warn("画面ロックに非対応の環境です:", err);
                     });
                 }
             }).catch(err => {
@@ -342,9 +344,14 @@
     }
 
     function startGame() {
-        // ★ 開始時にコンテナごとフルスクリーン化を実行
         const container = document.getElementById('game-container');
         requestFullscreenAndLock(container);
+
+        // ★BGM追加箇所: 冒険開始時にBGMを再生
+        bgm.currentTime = 0; // 曲の最初から再生
+        bgm.play().catch(err => {
+            console.warn("BGMの再生に失敗しました（ブラウザのセキュリティ制限等）:", err);
+        });
 
         titleScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
@@ -364,6 +371,10 @@
     function gameOver() {
         gameState = 'GAMEOVER';
         cancelAnimationFrame(animationId);
+
+        // ★BGM追加箇所: ゲームオーバー時にBGMを一時停止
+        bgm.pause();
+
         scoreDisplay.classList.add('hidden');
         gamePad.classList.add('hidden');
         gameOverScreen.classList.remove('hidden');
@@ -386,7 +397,6 @@
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
             if (Math.random() < 0.5) {
-                // 1000m以降かどうかで敵の種類を切り替える
                 const isStage2OrMore = (distance >= STAGE2_DISTANCE);
                 const enemyType = isStage2OrMore ? 'hopper' : 'normal';
                 
@@ -413,7 +423,6 @@
     function update() {
         if (gameState !== 'PLAYING') return;
 
-        // ★ 距離に応じて背景を切り替える
         if (distance >= STAGE5_DISTANCE) {
             currentBgImage = bgImage5;
         } else if (distance >= STAGE4_DISTANCE) {
@@ -447,12 +456,10 @@
             }
         });
 
-        // 落下速度と位置の更新
         player.vy += player.gravity;
         player.y += player.vy;
         player.isGrounded = false;
 
-        // 敵のタイマーとジャンプ移動の処理
         enemies.forEach(e => {
             if (e.isSquished) {
                 e.squishTimer--;
@@ -479,7 +486,6 @@
             }
         });
 
-        // 敵との衝突判定
         enemies.forEach(e => {
             if (e.isSquished) return;
 
@@ -500,7 +506,6 @@
             }
         });
 
-        // 地面との衝突判定
         platforms.forEach(p => {
             if (player.x < p.x + p.width && player.x + player.width > p.x &&
                 player.y < p.y + p.height && player.y + player.height > p.y) {
@@ -541,7 +546,6 @@
     }
 
     function draw() {
-        // --- 背景の描画 ---
         if (currentBgImage.complete && currentBgImage.width > 0) {
             const scale = canvas.height / currentBgImage.height;
             const scaledWidth = currentBgImage.width * scale;
@@ -556,7 +560,6 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
-        // --- 地面の描画 ---
         ctx.fillStyle = '#8B4513';
         platforms.forEach(p => {
             ctx.fillRect(p.x, p.y, p.width, p.height);
@@ -565,7 +568,6 @@
             ctx.fillStyle = '#8B4513';
         });
 
-        // --- 敵の描画 ---
         enemies.forEach(e => {
             if (e.type === 'hopper') {
                 let currentEnemyImg = e.isGrounded ? hopperGroundImg : hopperJumpImg;
@@ -609,7 +611,6 @@
             }
         });
 
-        // --- プレイヤーの描画 ---
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         if (currentImg.complete && currentImg.width > 0) {
             ctx.save();
