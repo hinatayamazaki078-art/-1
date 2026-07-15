@@ -296,6 +296,9 @@
     let gameState = 'TITLE';
     let animationId;
     let distance = 0;
+    let lastTime = 0;
+    const FPS = 60;
+    const frameInterval = 1000 / FPS;
     
     // キャラクターの設定
     const player = {
@@ -366,7 +369,11 @@
         gamePad.classList.remove('hidden');
         gameState = 'PLAYING';
         initMap();
-        loop();
+        
+        // ▼▼▼ ここを変更 ▼▼▼
+        lastTime = performance.now();
+        animationId = requestAnimationFrame(loop);
+        // ▲▲▲ ここを変更 ▲▲▲
     }
 
     function showTitle() {
@@ -627,7 +634,28 @@
                 ctx.translate(player.x + player.width / 2, player.y + player.height / 2); 
                 ctx.scale(-1, 1); 
                 ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
+            }// ▼▼▼ 変更後の loop() 関数 ▼▼▼
+    function loop(timestamp) {
+        if (gameState === 'PLAYING') {
+            // 次のフレームを要求
+            animationId = requestAnimationFrame(loop);
+
+            // timestampが取得できない場合のフォールバック
+            if (!timestamp) timestamp = performance.now();
+            if (!lastTime) lastTime = timestamp;
+
+            const elapsed = timestamp - lastTime;
+
+            // 1/60秒 (約16.67ms) 以上経過していたら更新と描画を行う
+            if (elapsed >= frameInterval) {
+                // 余剰時間を考慮して次回の基準時間を設定
+                lastTime = timestamp - (elapsed % frameInterval);
+
+                update();
+                draw();
             }
+        }
+    }
             ctx.restore(); 
         } else {
             ctx.fillStyle = 'blue';
@@ -635,13 +663,7 @@
         }
     }
 
-    function loop() {
-        if (gameState === 'PLAYING') {
-            update();
-            draw();
-            animationId = requestAnimationFrame(loop);
-        }
-    }
+    
 </script>
 </body>
 </html>
