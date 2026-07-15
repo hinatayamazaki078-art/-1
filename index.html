@@ -231,11 +231,17 @@
     window.addEventListener('resize', resize);
     resize();
 
+    // ==========================================
+    // ★ 設定：背景や敵が切り替わる距離（m）
+    // ==========================================
+    const STAGE2_DISTANCE = 2000; 
+
     // 背景画像の設定
     const bgImage1 = new Image();
     bgImage1.src = 'ChatGPT Image 2026年7月15日 00_45_17.png'; // ステージ1の背景
     const bgImage2 = new Image();
-    bgImage2.src = 'stage2.png'; // ステージ2(2000m以降)の背景
+    bgImage2.src = 'stage2.png'; // ステージ2の背景
+    
     let currentBgImage = bgImage1; // 現在表示する背景
     let bgOffset = 0;
 
@@ -246,9 +252,15 @@
     playerImgJump.src = 'si2.png';
     let playerFacingRight = true;
 
-    // 敵画像の設定
+    // 通常の敵画像の設定
     const enemyImg = new Image();
     enemyImg.src = 'ku.png';
+
+    // ★ 2000m以降の敵（バッタ）画像の設定
+    const hopperGroundImg = new Image();
+    hopperGroundImg.src = 'バッタ地上.png';
+    const hopperJumpImg = new Image();
+    hopperJumpImg.src = 'バッタジャンプ.jpg';
 
     // ゲーム状態
     let gameState = 'TITLE';
@@ -277,7 +289,7 @@
         enemies = [];
         distance = 0;
         bgOffset = 0;
-        currentBgImage = bgImage1;
+        currentBgImage = bgImage1; // 最初は必ずステージ1の背景にする
         player.x = 50;
         player.y = 100;
         player.vx = 0;
@@ -330,14 +342,26 @@
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
             if (Math.random() < 0.5) {
-                // 敵の出現（画像に合わせてサイズと位置を調整）
+                // 2000m以降（ステージ2）かどうかで敵の種類を切り替える
+                const isStage2 = (distance >= STAGE2_DISTANCE);
+                const enemyType = isStage2 ? 'hopper' : 'normal';
+                
+                // バッタ用のサイズ（横60, 縦50）と通常の敵サイズ（横60, 縦40）
+                const eWidth = 60;
+                const eHeight = (enemyType === 'hopper') ? 50 : 40;
+
                 enemies.push({
+                    type: enemyType,               // 敵のタイプ区分
                     x: newX + width / 2,
-                    y: newY - 40, // 高さに合わせて少し上げる
-                    width: 60,    // 横幅を広めに
-                    height: 40,   // 高さを設定
-                    isSquished: false,  // つぶれ状態フラグ
-                    squishTimer: 0      // つぶれた状態を表示する残りフレーム数
+                    y: newY - eHeight,
+                    width: eWidth,
+                    height: eHeight,
+                    spawnY: newY,                  // バッタが着地すべき地面の高さ
+                    vy: 0,                         // 垂直移動速度
+                    isGrounded: true,              // 着地フラグ
+                    jumpTimer: (enemyType === 'hopper') ? Math.floor(Math.random() * 40) + 30 : 0, // バッタのジャンプ初期ディレイ
+                    isSquished: false,             // つぶれ状態フラグ
+                    squishTimer: 0                 // つぶれた状態を表示する残りフレーム数
                 });
             }
         }
@@ -345,6 +369,13 @@
 
     function update() {
         if (gameState !== 'PLAYING') return;
+
+        // 毎フレーム距離をチェックして、背景画像を確実に切り替える
+        if (distance >= STAGE2_DISTANCE) {
+            currentBgImage = bgImage2;
+        } else {
+            currentBgImage = bgImage1;
+        }
 
         if (keys.left) {
             player.vx = -player.speed;
@@ -372,9 +403,38 @@
         player.y += player.vy;
         player.isGrounded = false;
 
-        // ★【修正点】地面に強制着地・押し戻される前に、まず敵との衝突判定を解決する
+        // ★ 敵のタイマーとジャンプ移動の処理
         enemies.forEach(e => {
-            if (e.isSquished) return; // つぶれ状態の敵には衝突判定を行わない
+            if (e.isSquished) {
+                e.squishTimer--;
+                return;
+            }
+
+            // バッタ特有のジャンプ処理
+            if (e.type === 'hopper') {
+                if (e.isGrounded) {
+                    e.jumpTimer--;
+                    if (e.jumpTimer <= 0) {
+                        e.vy = -11; // ジャンプ力（真上へジャンプ）
+                        e.isGrounded = false;
+                    }
+                } else {
+                    e.vy += 0.5; // バッタ用の軽い重力
+                    e.y += e.vy;
+                    // 元の地面の高さに戻ったら着地
+                    if (e.y >= e.spawnY - e.height) {
+                        e.y = e.spawnY - e.height;
+                        e.vy = 0;
+                        e.isGrounded = true;
+                        e.jumpTimer = 80; // 着地から次のジャンプまでの間隔（約1.3秒）
+                    }
+                }
+            }
+        });
+
+        // 敵との衝突判定（踏みつけ判定）
+        enemies.forEach(e => {
+            if (e.isSquished) return;
 
             const hitboxMargin = 10; 
             if (player.x + hitboxMargin < e.x + e.width &&
@@ -382,11 +442,11 @@
                 player.y + hitboxMargin < e.y + e.height &&
                 player.y + player.height - hitboxMargin > e.y) {
                 
-                // 踏みつけ判定: プレイヤーが落下中で、かつプレイヤーの足元が敵の頭付近より上から進入している場合
+                // 踏みつけ判定
                 if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
                     e.isSquished = true;
-                    e.squishTimer = 20; // 20フレームつぶれ状態を維持する
-                    player.vy = player.jumpPower * 0.8; // 踏んだら跳ねる
+                    e.squishTimer = 20; 
+                    player.vy = player.jumpPower * 0.8; 
                     player.isGrounded = false;
                 } else {
                     // 横や下から当たったらゲームオーバー
@@ -395,7 +455,7 @@
             }
         });
 
-        // 地面（プラットフォーム）との衝突判定
+        // 地面との衝突判定
         platforms.forEach(p => {
             if (player.x < p.x + p.width && player.x + player.width > p.x &&
                 player.y < p.y + p.height && player.y + player.height > p.y) {
@@ -418,11 +478,6 @@
             distance += offset * 0.05;
             distanceEl.innerText = Math.floor(distance);
 
-            // 距離が2000mを超えたら背景画像を切り替え
-            if (distance >= 2000) {
-                currentBgImage = bgImage2;
-            }
-
             platforms.forEach(p => p.x -= offset);
             enemies.forEach(e => e.x -= offset);
 
@@ -431,12 +486,7 @@
 
         if (platforms[0].x + platforms[0].width < -100) platforms.shift();
         
-        // すでにつぶれている敵の残りタイマーを進め、画面外に消えた敵やタイマー切れの敵を削除
-        enemies.forEach(e => {
-            if (e.isSquished) {
-                e.squishTimer--;
-            }
-        });
+        // 画面外に消えた敵や、つぶれタイマー終了した敵を削除
         enemies = enemies.filter(e => (e.x + e.width >= -100) && (!e.isSquished || e.squishTimer > 0));
 
         generateMap();
@@ -471,33 +521,54 @@
             ctx.fillStyle = '#8B4513';
         });
 
-        // --- 敵の描画（つぶれ対応） ---
-        if (enemyImg.complete && enemyImg.width > 0) {
-            enemies.forEach(e => {
-                if (e.isSquished) {
-                    // つぶれているときは高さを4分の1に縮めて、地面に接する位置に描画
-                    const squishedHeight = e.height * 0.25;
-                    ctx.drawImage(enemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+        // --- 敵の描画 ---
+        enemies.forEach(e => {
+            if (e.type === 'hopper') {
+                // ★ バッタ（2000m以降）の描画
+                let currentEnemyImg = e.isGrounded ? hopperGroundImg : hopperJumpImg;
+                if (currentEnemyImg.complete && currentEnemyImg.width > 0) {
+                    if (e.isSquished) {
+                        const squishedHeight = e.height * 0.25;
+                        ctx.drawImage(currentEnemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                    } else {
+                        ctx.drawImage(currentEnemyImg, e.x, e.y, e.width, e.height);
+                    }
                 } else {
-                    ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
+                    // 画像読み込み前の仮表示（緑の長方形）
+                    ctx.fillStyle = 'green';
+                    if (e.isSquished) {
+                        const squishedHeight = e.height * 0.25;
+                        ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                    } else {
+                        ctx.fillRect(e.x, e.y, e.width, e.height);
+                    }
                 }
-            });
-        } else {
-            // 画像が読み込まれるまでは従来の赤い四角（つぶれ対応）
-            enemies.forEach(e => {
-                if (e.isSquished) {
-                    const squishedHeight = e.height * 0.25;
-                    ctx.fillStyle = 'red';
-                    ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+            } else {
+                // 通常の敵（2000m未満）の描画
+                if (enemyImg.complete && enemyImg.width > 0) {
+                    if (e.isSquished) {
+                        const squishedHeight = e.height * 0.25;
+                        ctx.drawImage(enemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                    } else {
+                        ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
+                    }
                 } else {
-                    ctx.fillStyle = 'red';
-                    ctx.fillRect(e.x, e.y, e.width, e.height);
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
-                    ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
+                    enemies.forEach(e => {
+                        if (e.isSquished) {
+                            const squishedHeight = e.height * 0.25;
+                            ctx.fillStyle = 'red';
+                            ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                        } else {
+                            ctx.fillStyle = 'red';
+                            ctx.fillRect(e.x, e.y, e.width, e.height);
+                            ctx.fillStyle = 'white';
+                            ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
+                            ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
+                        }
+                    });
                 }
-            });
-        }
+            }
+        });
 
         // --- プレイヤーの描画 ---
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
