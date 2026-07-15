@@ -234,7 +234,7 @@
     // ==========================================
     // ★ 設定：背景や敵が切り替わる距離（m）
     // ==========================================
-    const STAGE2_DISTANCE = 2000; 
+    const STAGE2_DISTANCE = 1000; 
 
     // 背景画像の設定
     const bgImage1 = new Image();
@@ -256,7 +256,7 @@
     const enemyImg = new Image();
     enemyImg.src = 'ku.png';
 
-    // ★ 2000m以降の敵（バッタ）画像の設定
+    // ★ 1000m以降の敵（バッタ）画像の設定
     const hopperGroundImg = new Image();
     hopperGroundImg.src = 'バッタ地上.png';
     const hopperJumpImg = new Image();
@@ -342,7 +342,7 @@
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
             if (Math.random() < 0.5) {
-                // 2000m以降（ステージ2）かどうかで敵の種類を切り替える
+                // 1000m以降（ステージ2）かどうかで敵の種類を切り替える
                 const isStage2 = (distance >= STAGE2_DISTANCE);
                 const enemyType = isStage2 ? 'hopper' : 'normal';
                 
@@ -524,7 +524,7 @@
         // --- 敵の描画 ---
         enemies.forEach(e => {
             if (e.type === 'hopper') {
-                // ★ バッタ（2000m以降）の描画
+                // ★ バッタ（1000m以降）の描画
                 let currentEnemyImg = e.isGrounded ? hopperGroundImg : hopperJumpImg;
                 if (currentEnemyImg.complete && currentEnemyImg.width > 0) {
                     if (e.isSquished) {
@@ -544,7 +544,7 @@
                     }
                 }
             } else {
-                // 通常の敵（2000m未満）の描画
+                // 通常の敵（1000m未満）の描画
                 if (enemyImg.complete && enemyImg.width > 0) {
                     if (e.isSquished) {
                         const squishedHeight = e.height * 0.25;
