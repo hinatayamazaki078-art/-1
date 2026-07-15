@@ -229,9 +229,16 @@
     }
 
     function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
+    // PC相当の広い横幅（論理ピクセル）を指定（例：1000〜1280あたりで調整）
+    const baseWidth = 1280; 
+    
+    // 実際のスマホ画面の縦横比を計算
+    const aspectRatio = window.innerHeight / window.innerWidth;
+    
+    // 横幅を固定し、縦幅はスマホの画面比率に合わせて調整
+    canvas.width = baseWidth;
+    canvas.height = baseWidth * aspectRatio;
+}
     window.addEventListener('resize', resize);
     
     document.addEventListener('fullscreenchange', () => { setTimeout(resize, 100); });
