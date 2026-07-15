@@ -367,10 +367,35 @@
             }
         });
 
+        // 落下速度と位置の更新
         player.vy += player.gravity;
         player.y += player.vy;
         player.isGrounded = false;
 
+        // ★【修正点】地面に強制着地・押し戻される前に、まず敵との衝突判定を解決する
+        enemies.forEach(e => {
+            if (e.isSquished) return; // つぶれ状態の敵には衝突判定を行わない
+
+            const hitboxMargin = 10; 
+            if (player.x + hitboxMargin < e.x + e.width &&
+                player.x + player.width - hitboxMargin > e.x &&
+                player.y + hitboxMargin < e.y + e.height &&
+                player.y + player.height - hitboxMargin > e.y) {
+                
+                // 踏みつけ判定: プレイヤーが落下中で、かつプレイヤーの足元が敵の頭付近より上から進入している場合
+                if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
+                    e.isSquished = true;
+                    e.squishTimer = 20; // 20フレームつぶれ状態を維持する
+                    player.vy = player.jumpPower * 0.8; // 踏んだら跳ねる
+                    player.isGrounded = false;
+                } else {
+                    // 横や下から当たったらゲームオーバー
+                    gameOver();
+                }
+            }
+        });
+
+        // 地面（プラットフォーム）との衝突判定
         platforms.forEach(p => {
             if (player.x < p.x + p.width && player.x + player.width > p.x &&
                 player.y < p.y + p.height && player.y + player.height > p.y) {
@@ -416,28 +441,6 @@
 
         generateMap();
 
-        enemies.forEach(e => {
-            if (e.isSquished) return; // つぶれ状態の敵には衝突判定を行わない
-
-            const hitboxMargin = 10; 
-            if (player.x + hitboxMargin < e.x + e.width &&
-                player.x + player.width - hitboxMargin > e.x &&
-                player.y + hitboxMargin < e.y + e.height &&
-                player.y + player.height - hitboxMargin > e.y) {
-                
-                // 踏みつけ判定: プレイヤーが落下中で、かつプレイヤーの足元が敵のやや上部にある場合
-                if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
-                    e.isSquished = true;
-                    e.squishTimer = 20; // 20フレームつぶれ状態を維持する
-                    player.vy = player.jumpPower * 0.8; // 踏んだら少し跳ねる
-                    player.isGrounded = false;
-                } else {
-                    // 横や下から当たったらゲームオーバー
-                    gameOver();
-                }
-            }
-        });
-
         if (player.y > canvas.height) {
             gameOver();
         }
@@ -468,7 +471,7 @@
             ctx.fillStyle = '#8B4513';
         });
 
-        // --- 敵の描画（変更点：つぶれ対応） ---
+        // --- 敵の描画（つぶれ対応） ---
         if (enemyImg.complete && enemyImg.width > 0) {
             enemies.forEach(e => {
                 if (e.isSquished) {
