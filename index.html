@@ -335,7 +335,9 @@
                     x: newX + width / 2,
                     y: newY - 40, // 高さに合わせて少し上げる
                     width: 60,    // 横幅を広めに
-                    height: 40    // 高さを設定
+                    height: 40,   // 高さを設定
+                    isSquished: false,  // つぶれ状態フラグ
+                    squishTimer: 0      // つぶれた状態を表示する残りフレーム数
                 });
             }
         }
@@ -403,17 +405,36 @@
         }
 
         if (platforms[0].x + platforms[0].width < -100) platforms.shift();
-        if (enemies.length > 0 && enemies[0].x + enemies[0].width < -100) enemies.shift();
+        
+        // すでにつぶれている敵の残りタイマーを進め、画面外に消えた敵やタイマー切れの敵を削除
+        enemies.forEach(e => {
+            if (e.isSquished) {
+                e.squishTimer--;
+            }
+        });
+        enemies = enemies.filter(e => (e.x + e.width >= -100) && (!e.isSquished || e.squishTimer > 0));
 
         generateMap();
 
         enemies.forEach(e => {
+            if (e.isSquished) return; // つぶれ状態の敵には衝突判定を行わない
+
             const hitboxMargin = 10; 
             if (player.x + hitboxMargin < e.x + e.width &&
                 player.x + player.width - hitboxMargin > e.x &&
                 player.y + hitboxMargin < e.y + e.height &&
                 player.y + player.height - hitboxMargin > e.y) {
-                gameOver();
+                
+                // 踏みつけ判定: プレイヤーが落下中で、かつプレイヤーの足元が敵のやや上部にある場合
+                if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
+                    e.isSquished = true;
+                    e.squishTimer = 20; // 20フレームつぶれ状態を維持する
+                    player.vy = player.jumpPower * 0.8; // 踏んだら少し跳ねる
+                    player.isGrounded = false;
+                } else {
+                    // 横や下から当たったらゲームオーバー
+                    gameOver();
+                }
             }
         });
 
@@ -447,20 +468,31 @@
             ctx.fillStyle = '#8B4513';
         });
 
-        // --- 敵の描画（変更点） ---
+        // --- 敵の描画（変更点：つぶれ対応） ---
         if (enemyImg.complete && enemyImg.width > 0) {
             enemies.forEach(e => {
-                ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
+                if (e.isSquished) {
+                    // つぶれているときは高さを4分の1に縮めて、地面に接する位置に描画
+                    const squishedHeight = e.height * 0.25;
+                    ctx.drawImage(enemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                } else {
+                    ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
+                }
             });
         } else {
-            // 画像が読み込まれるまでは従来の赤い四角
-            ctx.fillStyle = 'red';
+            // 画像が読み込まれるまでは従来の赤い四角（つぶれ対応）
             enemies.forEach(e => {
-                ctx.fillRect(e.x, e.y, e.width, e.height);
-                ctx.fillStyle = 'white';
-                ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
-                ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
-                ctx.fillStyle = 'red';
+                if (e.isSquished) {
+                    const squishedHeight = e.height * 0.25;
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                } else {
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(e.x, e.y, e.width, e.height);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
+                    ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
+                }
             });
         }
 
