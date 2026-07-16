@@ -592,7 +592,8 @@
         }
 
         platforms.forEach(p => {
-            if (platformImg.complete && platformImg.width > 0) {
+            // 画像の高さが450px以上あるかどうかの安全チェックを追加
+            if (platformImg.complete && platformImg.width > 0 && platformImg.height >= 450) {
                 const srcGrassHeight = 150; 
                 const srcDirtHeight = 300;  
                 const srcRootHeight = 220;  
