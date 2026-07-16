@@ -479,24 +479,11 @@
         player.x += player.vx;
         if (player.x < 0) player.x = 0;
 
-        platforms.forEach(p => {
-            // 修正後：高さの制限を外し、足場の幅と高さに合わせて描画する
-            if (platformImg.complete && platformImg.width > 0) {
-                ctx.drawImage(platformImg, p.x, p.y, p.width, p.height);
-            } else {
-                // 画像が読み込まれていない場合の代替処理
-                ctx.fillStyle = '#8B4513';
-                ctx.fillRect(p.x, p.y, p.width, p.height);
-                ctx.fillStyle = '#228B22';
-                ctx.fillRect(p.x, p.y, p.width, 15);
-                ctx.fillStyle = '#8B4513';
-            }
-        });
+        // 【削除】ここにあった platforms.forEach の描画コードを丸ごと削除します
 
         player.vy += player.gravity;
         player.y += player.vy;
         player.isGrounded = false;
-
         enemies.forEach(e => {
             if (e.isSquished) {
                 e.squishTimer--;
@@ -598,33 +585,9 @@
         }
 
         platforms.forEach(p => {
-            // 画像の高さが450px以上あるかどうかの安全チェックを追加
-            if (platformImg.complete && platformImg.width > 0 && platformImg.height >= 450) {
-                const srcGrassHeight = 150; 
-                const srcDirtHeight = 300;  
-                const srcRootHeight = 220;  
-                const srcW = platformImg.width;
-                const srcH = platformImg.height;
-
-                for (let x = 0; x < p.width; x += srcW) {
-                    let drawW = Math.min(srcW, p.width - x);
-                    ctx.drawImage(platformImg, 0, 0, drawW, srcGrassHeight, p.x + x, p.y, drawW, srcGrassHeight);
-                }
-
-                for (let x = 0; x < p.width; x += srcW) {
-                    for (let y = 0; y < p.height - srcGrassHeight; y += srcDirtHeight) {
-                        let drawW = Math.min(srcW, p.width - x);
-                        let drawH = Math.min(srcDirtHeight, p.height - srcGrassHeight - y);
-                        ctx.drawImage(platformImg, 0, srcGrassHeight, drawW, drawH, p.x + x, p.y + srcGrassHeight + y, drawW, drawH);
-                    }
-                }
-
-                let rootY = p.y + p.height; 
-                for (let x = 0; x < p.width; x += srcW) {
-                    let drawW = Math.min(srcW, p.width - x);
-                    ctx.drawImage(platformImg, 0, srcH - srcRootHeight, drawW, srcRootHeight, p.x + x, rootY - srcRootHeight / 2, drawW, srcRootHeight);
-                }
-
+            // 【修正】画像の高さ制限を外し、そのまま足場のサイズに合わせて描画する
+            if (platformImg.complete && platformImg.width > 0) {
+                ctx.drawImage(platformImg, p.x, p.y, p.width, p.height);
             } else {
                 ctx.fillStyle = '#8B4513';
                 ctx.fillRect(p.x, p.y, p.width, p.height);
