@@ -88,6 +88,19 @@
             z-index: 5;
         }
 
+        #stage-display {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%); /* これで横方向のド真ん中に配置されます */
+            font-size: 5vw;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 2px black;
+            z-index: 5;
+            pointer-events: none; /* タップの邪魔にならないようにする */
+        }
+
         #game-pad {
             position: absolute;
             bottom: calc(20px + env(safe-area-inset-bottom));
@@ -148,6 +161,9 @@
     
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
 
+    <div id="stage-display" class="hidden"><span id="stage-name">アスター平原</span></div>
+    <div id="game-pad" class="hidden">
+
     <div id="game-pad" class="hidden">
         <div class="pad-group">
             <div id="btn-left" class="action-btn">◀</div>
@@ -187,6 +203,8 @@
     const gamePad = document.getElementById('game-pad');
     const distanceEl = document.getElementById('distance');
     const finalDistanceEl = document.getElementById('final-distance');
+    const stageDisplay = document.getElementById('stage-display');
+    const stageNameEl = document.getElementById('stage-name');
 
     // メニューボタン
     document.getElementById('btn-start').addEventListener('click', startGame);
@@ -369,6 +387,7 @@
         gameOverScreen.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
         gamePad.classList.remove('hidden');
+        stageDisplay.classList.remove('hidden');
         gameState = 'PLAYING';
         initMap();
         
@@ -393,6 +412,7 @@
 
         scoreDisplay.classList.add('hidden');
         gamePad.classList.add('hidden');
+        stageDisplay.classList.add('hidden');
         gameOverScreen.classList.remove('hidden');
         finalDistanceEl.innerText = Math.floor(distance);
     }
@@ -439,16 +459,22 @@
     function update() {
         if (gameState !== 'PLAYING') return;
 
+        // 既存の update() 内の背景切り替え部分を以下のように修正します
         if (distance >= STAGE5_DISTANCE) {
             currentBgImage = bgImage5;
+            stageNameEl.innerText = "最終エリア（仮）"; // 4000m以降
         } else if (distance >= STAGE4_DISTANCE) {
             currentBgImage = bgImage4;
+            stageNameEl.innerText = "未知の領域（仮）"; // 3000m〜4000m
         } else if (distance >= STAGE3_DISTANCE) {
             currentBgImage = bgImage3;
+            stageNameEl.innerText = "オロ雪原"; // 2000m〜3000m
         } else if (distance >= STAGE2_DISTANCE) {
             currentBgImage = bgImage2;
+            stageNameEl.innerText = "ヴィリカ海岸"; // 1000m〜2000m
         } else {
             currentBgImage = bgImage1;
+            stageNameEl.innerText = "アスター平原"; // 0m〜1000m
         }
 
         if (keys.left) {
