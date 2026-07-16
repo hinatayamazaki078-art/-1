@@ -625,6 +625,8 @@
             }
         });
 
+        // --- 敵の描画処理の続き ---
+        
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         if (currentImg.complete && currentImg.width > 0) {
             ctx.save();
@@ -634,7 +636,15 @@
                 ctx.translate(player.x + player.width / 2, player.y + player.height / 2); 
                 ctx.scale(-1, 1); 
                 ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
-            }// ▼▼▼ 変更後の loop() 関数 ▼▼▼
+            }
+            ctx.restore(); 
+        } else {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+    } // <-- ここで draw() 関数をしっかり閉じる
+
+    // ▼▼▼ 修正：draw() 関数の外に loop() 関数を独立して配置 ▼▼▼
     function loop(timestamp) {
         if (gameState === 'PLAYING') {
             // 次のフレームを要求
@@ -656,13 +666,6 @@
             }
         }
     }
-            ctx.restore(); 
-        } else {
-            ctx.fillStyle = 'blue';
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-        }
-    }
-
     
 </script>
 </body>
