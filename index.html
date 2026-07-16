@@ -92,13 +92,13 @@
             position: absolute;
             top: 10px;
             left: 50%;
-            transform: translateX(-50%); /* これで横方向のド真ん中に配置されます */
+            transform: translateX(-50%);
             font-size: 5vw;
             font-weight: bold;
             color: white;
             text-shadow: 2px 2px 2px black;
             z-index: 5;
-            pointer-events: none; /* タップの邪魔にならないようにする */
+            pointer-events: none;
         }
 
         #game-pad {
@@ -160,9 +160,9 @@
     <canvas id="gameCanvas"></canvas>
     
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
-
     <div id="stage-display" class="hidden"><span id="stage-name">アスター平原</span></div>
 
+    <!-- 修正: 重複していた game-pad を1つに統一 -->
     <div id="game-pad" class="hidden">
         <div class="pad-group">
             <div id="btn-left" class="action-btn">◀</div>
@@ -246,16 +246,11 @@
     }
 
     function resize() {
-    // PC相当の広い横幅（論理ピクセル）を指定（例：1000〜1280あたりで調整）
-    const baseWidth = 1280; 
-    
-    // 実際のスマホ画面の縦横比を計算
-    const aspectRatio = window.innerHeight / window.innerWidth;
-    
-    // 横幅を固定し、縦幅はスマホの画面比率に合わせて調整
-    canvas.width = baseWidth;
-    canvas.height = baseWidth * aspectRatio;
-}
+        const baseWidth = 1280; 
+        const aspectRatio = window.innerHeight / window.innerWidth;
+        canvas.width = baseWidth;
+        canvas.height = baseWidth * aspectRatio;
+    }
     window.addEventListener('resize', resize);
     
     document.addEventListener('fullscreenchange', () => { setTimeout(resize, 100); });
@@ -283,7 +278,8 @@
     const bgImage5 = new Image();
     bgImage5.src = 'stage5.png';
     const platformImg = new Image();
-　　platformImg.src = 'platform.png';
+    // 修正: ここにあった全角スペースを削除しました
+    platformImg.src = 'platform.png';
     
     let currentBgImage = bgImage1;
     let bgOffset = 0;
@@ -305,11 +301,10 @@
     const hopperJumpImg = new Image();
     hopperJumpImg.src = 'バッタジャンプ.png';
 
-    // ★BGM追加箇所: 音声オブジェクトの作成
-    // ※ファイルの拡張子（.mp3, .wav, .m4aなど）に合わせて適宜変更してください
+    // ★BGM追加箇所
     const bgm = new Audio('伝承の丘.mp3'); 
-    bgm.loop = true;          // ループ再生を有効化
-    bgm.volume = 0.5;         // 音量調整（0.0〜1.0の間で設定できます）
+    bgm.loop = true;
+    bgm.volume = 0.5;
 
     // ゲーム状態
     let gameState = 'TITLE';
@@ -376,10 +371,9 @@
         const container = document.getElementById('game-container');
         requestFullscreenAndLock(container);
 
-        // ★BGM追加箇所: 冒険開始時にBGMを再生
-        bgm.currentTime = 0; // 曲の最初から再生
+        bgm.currentTime = 0;
         bgm.play().catch(err => {
-            console.warn("BGMの再生に失敗しました（ブラウザのセキュリティ制限等）:", err);
+            console.warn("BGMの再生に失敗しました:", err);
         });
 
         titleScreen.classList.add('hidden');
@@ -390,10 +384,8 @@
         gameState = 'PLAYING';
         initMap();
         
-        // ▼▼▼ ここを変更 ▼▼▼
         lastTime = performance.now();
         animationId = requestAnimationFrame(loop);
-        // ▲▲▲ ここを変更 ▲▲▲
     }
 
     function showTitle() {
@@ -406,7 +398,6 @@
         gameState = 'GAMEOVER';
         cancelAnimationFrame(animationId);
 
-        // ★BGM追加箇所: ゲームオーバー時にBGMを一時停止
         bgm.pause();
 
         scoreDisplay.classList.add('hidden');
@@ -458,22 +449,21 @@
     function update() {
         if (gameState !== 'PLAYING') return;
 
-        // 既存の update() 内の背景切り替え部分を以下のように修正します
         if (distance >= STAGE5_DISTANCE) {
             currentBgImage = bgImage5;
-            stageNameEl.innerText = "最終エリア（仮）"; // 4000m以降
+            stageNameEl.innerText = "最終エリア（仮）";
         } else if (distance >= STAGE4_DISTANCE) {
             currentBgImage = bgImage4;
-            stageNameEl.innerText = "未知の領域（仮）"; // 3000m〜4000m
+            stageNameEl.innerText = "未知の領域（仮）";
         } else if (distance >= STAGE3_DISTANCE) {
             currentBgImage = bgImage3;
-            stageNameEl.innerText = "オロ雪原"; // 2000m〜3000m
+            stageNameEl.innerText = "オロ雪原";
         } else if (distance >= STAGE2_DISTANCE) {
             currentBgImage = bgImage2;
-            stageNameEl.innerText = "ヴィリカ海岸"; // 1000m〜2000m
+            stageNameEl.innerText = "ヴィリカ海岸";
         } else {
             currentBgImage = bgImage1;
-            stageNameEl.innerText = "アスター平原"; // 0m〜1000m
+            stageNameEl.innerText = "アスター平原";
         }
 
         if (keys.left) {
@@ -601,53 +591,34 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
-        // プラットフォームの描画
         platforms.forEach(p => {
             if (platformImg.complete && platformImg.width > 0) {
-                // 画像からテクスチャを抽出して描画する
-
-                // --- 設定：画像内の各層の高さ（ピクセル） ---
-                // 提供された画像（image_0.png）のピクセルサイズに合わせて設定
-                const srcGrassHeight = 150; // 画像上部の草の層の高さ（岩や花を含む）
-                const srcDirtHeight = 300;  // 画像中央の土の層の高さ（岩を含む）
-                const srcRootHeight = 220;  // 画像下部の根の層の高さ
-                // ---
-                // ※画像の使用したい範囲に合わせて、これらの数値を調整してください。
-
-                // 画像全体の幅と高さ
+                const srcGrassHeight = 150; 
+                const srcDirtHeight = 300;  
+                const srcRootHeight = 220;  
                 const srcW = platformImg.width;
                 const srcH = platformImg.height;
 
-                // --- 天面の草の描画 ---
-                // プラットフォームの天面。水平方向に並べる。
                 for (let x = 0; x < p.width; x += srcW) {
                     let drawW = Math.min(srcW, p.width - x);
                     ctx.drawImage(platformImg, 0, 0, drawW, srcGrassHeight, p.x + x, p.y, drawW, srcGrassHeight);
                 }
 
-                // --- 土の層の描画 ---
-                // 草の層の下からプラットフォームの底まで。水平と垂直に並べる。
-                // 土の層はプラットフォームが深くなると繰り返して描画される。
                 for (let x = 0; x < p.width; x += srcW) {
                     for (let y = 0; y < p.height - srcGrassHeight; y += srcDirtHeight) {
                         let drawW = Math.min(srcW, p.width - x);
                         let drawH = Math.min(srcDirtHeight, p.height - srcGrassHeight - y);
-                        // 画像の土の部分を切り出して、プラットフォーム内の正しい位置に描画
                         ctx.drawImage(platformImg, 0, srcGrassHeight, drawW, drawH, p.x + x, p.y + srcGrassHeight + y, drawW, drawH);
                     }
                 }
 
-                // --- 根の描画 ---
-                // プラットフォームの最下部に描画。ぶら下がっている表現のため、少し食い込ませる。
                 let rootY = p.y + p.height; 
                 for (let x = 0; x < p.width; x += srcW) {
                     let drawW = Math.min(srcW, p.width - x);
-                    // 根の部分だけを切り出す (srcH - srcRootHeight)
                     ctx.drawImage(platformImg, 0, srcH - srcRootHeight, drawW, srcRootHeight, p.x + x, rootY - srcRootHeight / 2, drawW, srcRootHeight);
                 }
 
             } else {
-                // 画像が読み込まれていない場合のフォールバック（以前の矩形描画）
                 ctx.fillStyle = '#8B4513';
                 ctx.fillRect(p.x, p.y, p.width, p.height);
                 ctx.fillStyle = '#228B22';
@@ -655,6 +626,7 @@
                 ctx.fillStyle = '#8B4513';
             }
         });
+        
         enemies.forEach(e => {
             if (e.type === 'hopper') {
                 let currentEnemyImg = e.isGrounded ? hopperGroundImg : hopperJumpImg;
@@ -698,8 +670,6 @@
             }
         });
 
-        // --- 敵の描画処理の続き ---
-        
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         if (currentImg.complete && currentImg.width > 0) {
             ctx.save();
@@ -715,23 +685,18 @@
             ctx.fillStyle = 'blue';
             ctx.fillRect(player.x, player.y, player.width, player.height);
         }
-    } // <-- ここで draw() 関数をしっかり閉じる
+    } 
 
-    // ▼▼▼ 修正：draw() 関数の外に loop() 関数を独立して配置 ▼▼▼
     function loop(timestamp) {
         if (gameState === 'PLAYING') {
-            // 次のフレームを要求
             animationId = requestAnimationFrame(loop);
 
-            // timestampが取得できない場合のフォールバック
             if (!timestamp) timestamp = performance.now();
             if (!lastTime) lastTime = timestamp;
 
             const elapsed = timestamp - lastTime;
 
-            // 1/60秒 (約16.67ms) 以上経過していたら更新と描画を行う
             if (elapsed >= frameInterval) {
-                // 余剰時間を考慮して次回の基準時間を設定
                 lastTime = timestamp - (elapsed % frameInterval);
 
                 update();
