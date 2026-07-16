@@ -265,6 +265,8 @@
     bgImage4.src = 'stage4.png';
     const bgImage5 = new Image();
     bgImage5.src = 'stage5.png';
+    const platformImg = new Image();
+　　platformImg.src = 'platform.png';
     
     let currentBgImage = bgImage1;
     let bgOffset = 0;
@@ -574,14 +576,60 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
-        ctx.fillStyle = '#8B4513';
+        // プラットフォームの描画
         platforms.forEach(p => {
-            ctx.fillRect(p.x, p.y, p.width, p.height);
-            ctx.fillStyle = '#228B22';
-            ctx.fillRect(p.x, p.y, p.width, 15);
-            ctx.fillStyle = '#8B4513';
-        });
+            if (platformImg.complete && platformImg.width > 0) {
+                // 画像からテクスチャを抽出して描画する
 
+                // --- 設定：画像内の各層の高さ（ピクセル） ---
+                // 提供された画像（image_0.png）のピクセルサイズに合わせて設定
+                const srcGrassHeight = 150; // 画像上部の草の層の高さ（岩や花を含む）
+                const srcDirtHeight = 300;  // 画像中央の土の層の高さ（岩を含む）
+                const srcRootHeight = 220;  // 画像下部の根の層の高さ
+                // ---
+                // ※画像の使用したい範囲に合わせて、これらの数値を調整してください。
+
+                // 画像全体の幅と高さ
+                const srcW = platformImg.width;
+                const srcH = platformImg.height;
+
+                // --- 天面の草の描画 ---
+                // プラットフォームの天面。水平方向に並べる。
+                for (let x = 0; x < p.width; x += srcW) {
+                    let drawW = Math.min(srcW, p.width - x);
+                    ctx.drawImage(platformImg, 0, 0, drawW, srcGrassHeight, p.x + x, p.y, drawW, srcGrassHeight);
+                }
+
+                // --- 土の層の描画 ---
+                // 草の層の下からプラットフォームの底まで。水平と垂直に並べる。
+                // 土の層はプラットフォームが深くなると繰り返して描画される。
+                for (let x = 0; x < p.width; x += srcW) {
+                    for (let y = 0; y < p.height - srcGrassHeight; y += srcDirtHeight) {
+                        let drawW = Math.min(srcW, p.width - x);
+                        let drawH = Math.min(srcDirtHeight, p.height - srcGrassHeight - y);
+                        // 画像の土の部分を切り出して、プラットフォーム内の正しい位置に描画
+                        ctx.drawImage(platformImg, 0, srcGrassHeight, drawW, drawH, p.x + x, p.y + srcGrassHeight + y, drawW, drawH);
+                    }
+                }
+
+                // --- 根の描画 ---
+                // プラットフォームの最下部に描画。ぶら下がっている表現のため、少し食い込ませる。
+                let rootY = p.y + p.height; 
+                for (let x = 0; x < p.width; x += srcW) {
+                    let drawW = Math.min(srcW, p.width - x);
+                    // 根の部分だけを切り出す (srcH - srcRootHeight)
+                    ctx.drawImage(platformImg, 0, srcH - srcRootHeight, drawW, srcRootHeight, p.x + x, rootY - srcRootHeight / 2, drawW, srcRootHeight);
+                }
+
+            } else {
+                // 画像が読み込まれていない場合のフォールバック（以前の矩形描画）
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(p.x, p.y, p.width, p.height);
+                ctx.fillStyle = '#228B22';
+                ctx.fillRect(p.x, p.y, p.width, 15);
+                ctx.fillStyle = '#8B4513';
+            }
+        });
         enemies.forEach(e => {
             if (e.type === 'hopper') {
                 let currentEnemyImg = e.isGrounded ? hopperGroundImg : hopperJumpImg;
