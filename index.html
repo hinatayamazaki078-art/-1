@@ -531,12 +531,19 @@
         });
 
         platforms.forEach(p => {
+            // ★追加: 足元の余白（透明ピクセル）を相殺するためのオフセット値
+            // ※ 画像の余白に合わせて数値を調整してください（目安: 5〜20）
+            const footOffset = 15; 
+
+            // 条件式の「player.height」から footOffset を引き、足元の判定を上にずらす
             if (player.x < p.x + p.width && player.x + player.width > p.x &&
-                player.y < p.y + p.height && player.y + player.height > p.y) {
+                player.y < p.y + p.height && player.y + player.height - footOffset > p.y) {
+                
                 if (player.vy > 0) {
                     player.isGrounded = true;
                     player.vy = 0;
-                    player.y = p.y - player.height;
+                    // 着地時に、オフセットの分だけキャラクターのY座標を足場にめり込ませる
+                    player.y = p.y - player.height + footOffset;
                 } else if (player.vy < 0) {
                     player.vy = 0;
                     player.y = p.y + p.height;
