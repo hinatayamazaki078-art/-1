@@ -241,6 +241,12 @@
         if (player.isGrounded) {
             player.vy = player.jumpPower;
             player.isGrounded = false;
+
+            // ★追加：ジャンプ音を再生（連続ジャンプ対策に巻き戻してから再生）
+            jumpSound.currentTime = 0;
+            jumpSound.play().catch(err => {
+                console.warn("ジャンプ音の再生に失敗しました:", err);
+            });
         }
     }
 
@@ -303,6 +309,11 @@
     const bgm = new Audio('伝承の丘.mp3'); 
     bgm.loop = true;
     bgm.volume = 0.5;
+
+    // ★追加：ジャンプ音の設定
+    // ※実際のファイル名（例: jump.wav や jump.mp3）に合わせて変更してください
+    const jumpSound = new Audio('jump.mp3'); 
+    jumpSound.volume = 0.4; // 音量の調節（0.0 〜 1.0）
 
     // ゲーム状態
     let gameState = 'TITLE';
@@ -520,6 +531,10 @@
                     e.squishTimer = 20; 
                     player.vy = player.jumpPower * 0.8; 
                     player.isGrounded = false;
+
+                    // ★もし敵を踏んで跳ね上がった時にも音を鳴らしたい場合は、下の2行のコメントアウト（//）を外してください
+                    // jumpSound.currentTime = 0;
+                    // jumpSound.play().catch(() => {});
                 } else {
                     gameOver();
                 }
@@ -527,10 +542,7 @@
         });
 
         platforms.forEach(p => {
-            // ★修正ポイント①: 
-            // 画像が縦に伸縮しなくなったため、キャラクターの足元の余白（めり込み量）を【一定】に保ちます。
-            // ※キャラがまだ少し浮く場合はこの値を大きく、埋まりすぎる場合は小さくしてください。
-            const footOffset = 50; 
+            const footOffset = 100; 
 
             if (player.x < p.x + p.width && player.x + player.width > p.x &&
                 player.y < p.y + p.height && player.y + player.height - footOffset > p.y) {
@@ -587,16 +599,11 @@
         }
 
         platforms.forEach(p => {
-            // ★修正ポイント②: 
-            // 足場画像が潰れたり伸びたりしないよう、描画する高さを固定（例: 80px）にします。
-            // お手持ちの「platform.png」の本来の比率や、好みの厚さに合わせて調整してください。
             const imgHeight = 100; 
 
             if (platformImg.complete && platformImg.width > 0) {
-                // 1. 足場の上部のみ、固定の高さで画像を描画
                 ctx.drawImage(platformImg, p.x, p.y, p.width, imgHeight);
                 
-                // 2. 画像より下（画面の最下部まで）は、自動的に土の色（茶色）で綺麗に塗りつぶします[cite: 2]
                 if (p.height > imgHeight) {
                     ctx.fillStyle = '#8B4513'; 
                     ctx.fillRect(p.x, p.y + imgHeight, p.width, p.height - imgHeight);
