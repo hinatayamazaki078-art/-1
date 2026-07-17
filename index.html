@@ -530,7 +530,7 @@
             // ★修正ポイント①: 
             // 画像が縦に伸縮しなくなったため、キャラクターの足元の余白（めり込み量）を【一定】に保ちます。
             // ※キャラがまだ少し浮く場合はこの値を大きく、埋まりすぎる場合は小さくしてください。
-            const footOffset = 8; 
+            const footOffset = 12; 
 
             if (player.x < p.x + p.width && player.x + player.width > p.x &&
                 player.y < p.y + p.height && player.y + player.height - footOffset > p.y) {
