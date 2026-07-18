@@ -277,6 +277,8 @@
     const bgImage4 = new Image(); bgImage4.src = 'stage4.png';
     const bgImage5 = new Image(); bgImage5.src = 'stage5.png';
     const platformImg = new Image(); platformImg.src = 'platform.png';
+    const boxImg = new Image(); boxImg.src = '木箱.jpg';
+    let boxes = []; // 木箱管理用配列
     
     let currentBgImage = bgImage1;
     let bgOffset = 0;
@@ -424,9 +426,25 @@
                     isFalling: false
                 });
             }
-        }
-    }
+            
+            if (Math.random() < 0.3) {
+                const boxSize = 60; // 木箱のサイズ
+                // 敵と位置が被らないようにX座標を少しずらして配置
+                boxes.push({
+                    x: newX + width / 2 + 80, 
+                    y: newY - boxSize + 37, // 足場の上に配置 (footOffsetを考慮)
+                    width: boxSize,
+                    height: boxSize
+                });
+            }
 
+    function initMap() {
+        platforms = [];
+        enemies = [];
+        icicles = [];
+        boxes = []; // ★ここに追加
+        distance = 0;
+    
     function update() {
         if (gameState !== 'PLAYING') return;
 
@@ -547,6 +565,7 @@
             platforms.forEach(p => p.x -= offset);
             enemies.forEach(e => e.x -= offset);
             icicles.forEach(i => i.x -= offset); // ★追加：ツララもスクロールさせる
+            boxes.forEach(b => b.x -= offset);
 
             bgOffset += offset * 0.5;
         }
@@ -555,7 +574,40 @@
         
         enemies = enemies.filter(e => (e.x + e.width >= -100) && (!e.isSquished || e.squishTimer > 0));
         icicles = icicles.filter(i => (i.x + i.width >= -100) && i.y < canvas.height); // ★追加：画面外のツララを削除
+        boxes = boxes.filter(b => b.x + b.width >= -100);
 
+        // ★ここに追加：木箱との当たり判定（壁・足場として機能）
+        boxes.forEach(b => {
+            const marginX = 15;
+            const footOffset = 37;
+            
+            // プレイヤーと木箱の当たり判定を計算
+            const pLeft = player.x + marginX;
+            const pRight = player.x + player.width - marginX;
+            const pTop = player.y;
+            const pBottom = player.y + player.height - footOffset;
+
+            if (pLeft < b.x + b.width && 
+                pRight > b.x &&
+                pTop < b.y + b.height && 
+                pBottom > b.y) {
+                
+                // 上から乗った場合（落下中で、直前まで箱より上にいたと推測できる場合）
+                if (player.vy > 0 && pBottom - player.vy <= b.y + 20) {
+                    player.isGrounded = true; 
+                    player.vy = 0;
+                    player.y = b.y - player.height + footOffset;
+                } else {
+                    // 横からぶつかった場合は、進もうとしている方向の逆へ押し戻す（壁になる）
+                    if (player.vx > 0) { // 右に進んでぶつかった
+                        player.x = b.x - player.width + marginX;
+                    } else if (player.vx < 0) { // 左に進んでぶつかった
+                        player.x = b.x + b.width - marginX;
+                    }
+                }
+            }
+        });
+        
         generateMap();
 
         if (player.y > canvas.height) {
@@ -646,6 +698,17 @@
             ctx.stroke();
         });
 
+// ★ここに追加：木箱の描画
+        boxes.forEach(b => {
+            if (boxImg.complete && boxImg.width > 0) {
+                ctx.drawImage(boxImg, b.x, b.y, b.width, b.height);
+            } else {
+                // 画像が読み込めない場合の代替色
+                ctx.fillStyle = '#8B4513'; 
+                ctx.fillRect(b.x, b.y, b.width, b.height);
+            }
+        });
+        
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         if (currentImg.complete && currentImg.width > 0) {
             ctx.save();
