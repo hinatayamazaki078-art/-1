@@ -517,13 +517,21 @@
 
         platforms.forEach(p => {
             const footOffset = 37; 
-            if (player.x < p.x + p.width && player.x + player.width > p.x &&
-                player.y < p.y + p.height && player.y + player.height - footOffset > p.y) {
+            const marginX = 15; // ★追加：キャラクター左右の余白（数値を大きくするほど判定が狭くなります）
+
+            // ★ player.x に marginX を足し引きして、横幅の当たり判定を内側に寄せる
+            if (player.x + marginX < p.x + p.width && 
+                player.x + player.width - marginX > p.x &&
+                player.y < p.y + p.height && 
+                player.y + player.height - footOffset > p.y) {
+                
                 if (player.vy > 0) {
-                    player.isGrounded = true; player.vy = 0;
+                    player.isGrounded = true; 
+                    player.vy = 0;
                     player.y = p.y - player.height + footOffset;
                 } else if (player.vy < 0) {
-                    player.vy = 0; player.y = p.y + p.height;
+                    player.vy = 0; 
+                    player.y = p.y + p.height;
                 }
             }
         });
