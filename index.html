@@ -242,7 +242,6 @@
             player.vy = player.jumpPower;
             player.isGrounded = false;
 
-            // ★追加：ジャンプ音を再生（連続ジャンプ対策に巻き戻してから再生）
             jumpSound.currentTime = 0;
             jumpSound.play().catch(err => {
                 console.warn("ジャンプ音の再生に失敗しました:", err);
@@ -264,7 +263,7 @@
     resize();
 
     // ==========================================
-    // ★ 設定：背景や敵が切り替わる距離（m）
+    // 設定：背景や敵が切り替わる距離（m）
     // ==========================================
     const STAGE2_DISTANCE = 1000; 
     const STAGE3_DISTANCE = 2000; 
@@ -272,50 +271,31 @@
     const STAGE5_DISTANCE = 4000; 
 
     // 背景画像の設定
-    const bgImage1 = new Image();
-    bgImage1.src = 'ChatGPT Image 2026年7月15日 00_45_17.png';
-    const bgImage2 = new Image();
-    bgImage2.src = 'stage2.png';
-    const bgImage3 = new Image();
-    bgImage3.src = 'stage3.png';
-    const bgImage4 = new Image();
-    bgImage4.src = 'stage4.png';
-    const bgImage5 = new Image();
-    bgImage5.src = 'stage5.png';
-    const platformImg = new Image();
-    platformImg.src = 'platform.png';
+    const bgImage1 = new Image(); bgImage1.src = 'ChatGPT Image 2026年7月15日 00_45_17.png';
+    const bgImage2 = new Image(); bgImage2.src = 'stage2.png';
+    const bgImage3 = new Image(); bgImage3.src = 'stage3.png';
+    const bgImage4 = new Image(); bgImage4.src = 'stage4.png';
+    const bgImage5 = new Image(); bgImage5.src = 'stage5.png';
+    const platformImg = new Image(); platformImg.src = 'platform.png';
     
     let currentBgImage = bgImage1;
     let bgOffset = 0;
 
-    // プレイヤー画像の設定
-    const playerImgWalk = new Image();
-    playerImgWalk.src = 'si1.png';
-    const playerImgJump = new Image();
-    playerImgJump.src = 'si2.png';
+    // プレイヤー・敵画像の設定
+    const playerImgWalk = new Image(); playerImgWalk.src = 'si1.png';
+    const playerImgJump = new Image(); playerImgJump.src = 'si2.png';
     let playerFacingRight = true;
 
-    // 通常の敵画像の設定
-    const enemyImg = new Image();
-    enemyImg.src = 'ku.png';
+    const enemyImg = new Image(); enemyImg.src = 'ku.png';
+    const hopperGroundImg = new Image(); hopperGroundImg.src = 'バッタ地上.png';
+    const hopperJumpImg = new Image(); hopperJumpImg.src = 'バッタジャンプ.png';
 
-    // 1000m以降の敵（バッタ）画像の設定
-    const hopperGroundImg = new Image();
-    hopperGroundImg.src = 'バッタ地上.png';
-    const hopperJumpImg = new Image();
-    hopperJumpImg.src = 'バッタジャンプ.png';
-
-    // ★BGM追加箇所
     const bgm = new Audio('伝承の丘.mp3'); 
-    bgm.loop = true;
-    bgm.volume = 0.5;
+    bgm.loop = true; bgm.volume = 0.5;
 
-    // ★追加：ジャンプ音の設定
-    // ※実際のファイル名（例: jump.wav や jump.mp3）に合わせて変更してください
     const jumpSound = new Audio('jump.mp3'); 
-    jumpSound.volume = 0.4; // 音量の調節（0.0 〜 1.0）
+    jumpSound.volume = 0.4;
 
-    // ゲーム状態
     let gameState = 'TITLE';
     let animationId;
     let distance = 0;
@@ -323,56 +303,39 @@
     const FPS = 60;
     const frameInterval = 1000 / FPS;
     
-    // キャラクターの設定
     const player = {
-        x: 50,
-        y: 200,
-        width: 60,
-        height: 50,
-        vx: 0,
-        vy: 0,
-        speed: 6,
-        gravity: 0.8,
-        jumpPower: -13,
+        x: 50, y: 200, width: 60, height: 50,
+        vx: 0, vy: 0, speed: 6, gravity: 0.8, jumpPower: -13,
         isGrounded: false
     };
 
     let platforms = [];
     let enemies = [];
+    let icicles = []; // ★追加：ツララ管理用配列
 
     function initMap() {
         platforms = [];
         enemies = [];
+        icicles = []; // ★追加：初期化
         distance = 0;
         bgOffset = 0;
         currentBgImage = bgImage1;
-        player.x = 50;
-        player.y = 100;
-        player.vx = 0;
-        player.vy = 0;
-        keys.left = false;
-        keys.right = false;
+        player.x = 50; player.y = 100;
+        player.vx = 0; player.vy = 0;
+        keys.left = false; keys.right = false;
         playerFacingRight = true; 
         
         platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
     }
 
     function requestFullscreenAndLock(element) {
-        const requestFS = element.requestFullscreen || 
-                          element.webkitRequestFullscreen || 
-                          element.mozRequestFullScreen || 
-                          element.msRequestFullscreen;
-        
+        const requestFS = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullScreen || element.msRequestFullscreen;
         if (requestFS) {
             requestFS.call(element).then(() => {
                 if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(err => {
-                        console.warn("画面ロックに非対応の環境です:", err);
-                    });
+                    screen.orientation.lock('landscape').catch(() => {});
                 }
-            }).catch(err => {
-                console.warn("フルスクリーン化に失敗しました:", err);
-            });
+            }).catch(() => {});
         }
     }
 
@@ -381,9 +344,7 @@
         requestFullscreenAndLock(container);
 
         bgm.currentTime = 0;
-        bgm.play().catch(err => {
-            console.warn("BGMの再生に失敗しました:", err);
-        });
+        bgm.play().catch(() => {});
 
         titleScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
@@ -406,7 +367,6 @@
     function gameOver() {
         gameState = 'GAMEOVER';
         cancelAnimationFrame(animationId);
-
         bgm.pause();
 
         scoreDisplay.classList.add('hidden');
@@ -431,6 +391,7 @@
             const newX = lastPlatform.x + lastPlatform.width + gap;
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
+            // 敵の生成
             if (Math.random() < 0.5) {
                 const isStage2OrMore = (distance >= STAGE2_DISTANCE);
                 const enemyType = isStage2OrMore ? 'hopper' : 'normal';
@@ -440,16 +401,24 @@
 
                 enemies.push({
                     type: enemyType,
-                    x: newX + width / 2,
-                    y: newY - eHeight,
-                    width: eWidth,
-                    height: eHeight,
-                    spawnY: newY,
-                    vy: 0,
-                    isGrounded: true,
+                    x: newX + width / 2, y: newY - eHeight,
+                    width: eWidth, height: eHeight, spawnY: newY,
+                    vy: 0, isGrounded: true,
                     jumpTimer: (enemyType === 'hopper') ? Math.floor(Math.random() * 40) + 30 : 0,
-                    isSquished: false,
-                    squishTimer: 0
+                    isSquished: false, squishTimer: 0
+                });
+            }
+
+            // ★追加：オロ雪原（ステージ3）のツララ生成
+            const isStage3 = (distance >= STAGE3_DISTANCE && distance < STAGE4_DISTANCE);
+            if (isStage3 && Math.random() < 0.4) { // 40%の確率で生成
+                icicles.push({
+                    x: newX + Math.random() * (width - 40) + 20, // ランダムなX座標
+                    y: 0, // 画面上部から
+                    width: 30,
+                    height: 80,
+                    vy: 0,
+                    isFalling: false
                 });
             }
         }
@@ -459,28 +428,21 @@
         if (gameState !== 'PLAYING') return;
 
         if (distance >= STAGE5_DISTANCE) {
-            currentBgImage = bgImage5;
-            stageNameEl.innerText = "最終エリア（仮）";
+            currentBgImage = bgImage5; stageNameEl.innerText = "最終エリア（仮）";
         } else if (distance >= STAGE4_DISTANCE) {
-            currentBgImage = bgImage4;
-            stageNameEl.innerText = "未知の領域（仮）";
+            currentBgImage = bgImage4; stageNameEl.innerText = "未知の領域（仮）";
         } else if (distance >= STAGE3_DISTANCE) {
-            currentBgImage = bgImage3;
-            stageNameEl.innerText = "オロ雪原";
+            currentBgImage = bgImage3; stageNameEl.innerText = "オロ雪原";
         } else if (distance >= STAGE2_DISTANCE) {
-            currentBgImage = bgImage2;
-            stageNameEl.innerText = "ヴィリカ海岸";
+            currentBgImage = bgImage2; stageNameEl.innerText = "ヴィリカ海岸";
         } else {
-            currentBgImage = bgImage1;
-            stageNameEl.innerText = "アスター平原";
+            currentBgImage = bgImage1; stageNameEl.innerText = "アスター平原";
         }
 
         if (keys.left) {
-            player.vx = -player.speed;
-            playerFacingRight = false; 
+            player.vx = -player.speed; playerFacingRight = false; 
         } else if (keys.right) {
-            player.vx = player.speed;
-            playerFacingRight = true;  
+            player.vx = player.speed; playerFacingRight = true;  
         } else {
             player.vx = 0;
         }
@@ -491,35 +453,50 @@
         player.vy += player.gravity;
         player.y += player.vy;
         player.isGrounded = false;
+
         enemies.forEach(e => {
-            if (e.isSquished) {
-                e.squishTimer--;
-                return;
-            }
+            if (e.isSquished) { e.squishTimer--; return; }
 
             if (e.type === 'hopper') {
                 if (e.isGrounded) {
                     e.jumpTimer--;
                     if (e.jumpTimer <= 0) {
-                        e.vy = -11; 
-                        e.isGrounded = false;
+                        e.vy = -11; e.isGrounded = false;
                     }
                 } else {
-                    e.vy += 0.5; 
-                    e.y += e.vy;
+                    e.vy += 0.5; e.y += e.vy;
                     if (e.y >= e.spawnY - e.height) {
-                        e.y = e.spawnY - e.height;
-                        e.vy = 0;
-                        e.isGrounded = true;
-                        e.jumpTimer = 80; 
+                        e.y = e.spawnY - e.height; e.vy = 0;
+                        e.isGrounded = true; e.jumpTimer = 80; 
                     }
                 }
             }
         });
 
+        // ★追加：ツララの落下処理と当たり判定
+        icicles.forEach(icicle => {
+            // プレイヤーが近づいたら（X座標の差が150以下なら）落下開始
+            if (!icicle.isFalling && Math.abs(player.x + player.width / 2 - (icicle.x + icicle.width / 2)) < 150) {
+                icicle.isFalling = true;
+            }
+
+            if (icicle.isFalling) {
+                icicle.vy += player.gravity * 0.7; // 落下速度
+                icicle.y += icicle.vy;
+            }
+
+            // プレイヤーとの当たり判定
+            const hitboxMargin = 10;
+            if (player.x + hitboxMargin < icicle.x + icicle.width &&
+                player.x + player.width - hitboxMargin > icicle.x &&
+                player.y + hitboxMargin < icicle.y + icicle.height &&
+                player.y + player.height - hitboxMargin > icicle.y) {
+                gameOver();
+            }
+        });
+
         enemies.forEach(e => {
             if (e.isSquished) return;
-
             const hitboxMargin = 10; 
             if (player.x + hitboxMargin < e.x + e.width &&
                 player.x + player.width - hitboxMargin > e.x &&
@@ -527,14 +504,8 @@
                 player.y + player.height - hitboxMargin > e.y) {
                 
                 if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
-                    e.isSquished = true;
-                    e.squishTimer = 20; 
-                    player.vy = player.jumpPower * 0.8; 
-                    player.isGrounded = false;
-
-                    // ★もし敵を踏んで跳ね上がった時にも音を鳴らしたい場合は、下の2行のコメントアウト（//）を外してください
-                    // jumpSound.currentTime = 0;
-                    // jumpSound.play().catch(() => {});
+                    e.isSquished = true; e.squishTimer = 20; 
+                    player.vy = player.jumpPower * 0.8; player.isGrounded = false;
                 } else {
                     gameOver();
                 }
@@ -543,17 +514,13 @@
 
         platforms.forEach(p => {
             const footOffset = 100; 
-
             if (player.x < p.x + p.width && player.x + player.width > p.x &&
                 player.y < p.y + p.height && player.y + player.height - footOffset > p.y) {
-                
                 if (player.vy > 0) {
-                    player.isGrounded = true;
-                    player.vy = 0;
+                    player.isGrounded = true; player.vy = 0;
                     player.y = p.y - player.height + footOffset;
                 } else if (player.vy < 0) {
-                    player.vy = 0;
-                    player.y = p.y + p.height;
+                    player.vy = 0; player.y = p.y + p.height;
                 }
             }
         });
@@ -568,6 +535,7 @@
 
             platforms.forEach(p => p.x -= offset);
             enemies.forEach(e => e.x -= offset);
+            icicles.forEach(i => i.x -= offset); // ★追加：ツララもスクロールさせる
 
             bgOffset += offset * 0.5;
         }
@@ -575,6 +543,7 @@
         if (platforms[0].x + platforms[0].width < -100) platforms.shift();
         
         enemies = enemies.filter(e => (e.x + e.width >= -100) && (!e.isSquished || e.squishTimer > 0));
+        icicles = icicles.filter(i => (i.x + i.width >= -100) && i.y < canvas.height); // ★追加：画面外のツララを削除
 
         generateMap();
 
@@ -600,19 +569,15 @@
 
         platforms.forEach(p => {
             const imgHeight = 100; 
-
             if (platformImg.complete && platformImg.width > 0) {
                 ctx.drawImage(platformImg, p.x, p.y, p.width, imgHeight);
-                
                 if (p.height > imgHeight) {
                     ctx.fillStyle = '#8B4513'; 
                     ctx.fillRect(p.x, p.y + imgHeight, p.width, p.height - imgHeight);
                 }
             } else {
-                ctx.fillStyle = '#8B4513';
-                ctx.fillRect(p.x, p.y, p.width, p.height);
-                ctx.fillStyle = '#228B22';
-                ctx.fillRect(p.x, p.y, p.width, 15);
+                ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x, p.y, p.width, p.height);
+                ctx.fillStyle = '#228B22'; ctx.fillRect(p.x, p.y, p.width, 15);
             }
         });
         
@@ -646,17 +611,28 @@
                 } else {
                     if (e.isSquished) {
                         const squishedHeight = e.height * 0.25;
-                        ctx.fillStyle = 'red';
-                        ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                        ctx.fillStyle = 'red'; ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
                     } else {
-                        ctx.fillStyle = 'red';
-                        ctx.fillRect(e.x, e.y, e.width, e.height);
-                        ctx.fillStyle = 'white';
-                        ctx.fillRect(e.x + 5, e.y + 5, 5, 5);
-                        ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
+                        ctx.fillStyle = 'red'; ctx.fillRect(e.x, e.y, e.width, e.height);
+                        ctx.fillStyle = 'white'; ctx.fillRect(e.x + 5, e.y + 5, 5, 5); ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
                     }
                 }
             }
+        });
+
+        // ★追加：ツララの描画（専用画像が指定されていないためCanvasAPIで図形描画）
+        icicles.forEach(icicle => {
+            ctx.fillStyle = '#E0FFFF'; // 薄い水色
+            ctx.beginPath();
+            ctx.moveTo(icicle.x, icicle.y); // 左上
+            ctx.lineTo(icicle.x + icicle.width, icicle.y); // 右上
+            ctx.lineTo(icicle.x + icicle.width / 2, icicle.y + icicle.height); // 中央下（尖った部分）
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.strokeStyle = '#B0E0E6'; // 枠線
+            ctx.lineWidth = 2;
+            ctx.stroke();
         });
 
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
@@ -679,21 +655,17 @@
     function loop(timestamp) {
         if (gameState === 'PLAYING') {
             animationId = requestAnimationFrame(loop);
-
             if (!timestamp) timestamp = performance.now();
             if (!lastTime) lastTime = timestamp;
 
             const elapsed = timestamp - lastTime;
-
             if (elapsed >= frameInterval) {
                 lastTime = timestamp - (elapsed % frameInterval);
-
                 update();
                 draw();
             }
         }
     }
-    
 </script>
 </body>
 </html>
