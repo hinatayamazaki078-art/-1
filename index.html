@@ -398,11 +398,14 @@
                 
                 const eWidth = 60;
                 const eHeight = (enemyType === 'hopper') ? 50 : 40;
+                
+                // ★プレイヤーの足元(footOffset)に合わせて敵の高さも下げる
+                const enemyOffset = 37; 
 
                 enemies.push({
                     type: enemyType,
-                    x: newX + width / 2, y: newY - eHeight,
-                    width: eWidth, height: eHeight, spawnY: newY,
+                    x: newX + width / 2, y: newY - eHeight + enemyOffset,
+                    width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
                     vy: 0, isGrounded: true,
                     jumpTimer: (enemyType === 'hopper') ? Math.floor(Math.random() * 40) + 30 : 0,
                     isSquished: false, squishTimer: 0
