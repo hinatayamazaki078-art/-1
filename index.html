@@ -428,12 +428,15 @@
                 });
             }
             
+            // ★ここに追加：木箱の生成 (例として30%の確率で出現)
             if (Math.random() < 0.3) {
                 const boxSize = 60; // 木箱のサイズ
+                const embedAmount = 45; // ★足場へのめり込み量（前回は37でした。数値を大きくすると深く埋まります）
+
                 // 敵と位置が被らないようにX座標を少しずらして配置
                 boxes.push({
                     x: newX + width / 2 + 80, 
-                    y: newY - boxSize + 37, // 足場の上に配置 (footOffsetを考慮)
+                    y: newY - boxSize + embedAmount, // ★めり込み量を適用
                     width: boxSize,
                     height: boxSize
                 });
@@ -576,12 +579,14 @@
         boxes.forEach(b => {
             const marginX = 15;
             const footOffset = 37;
+            const standOffset = 20; // ★キャラを上に浮かせたい量（埋もれる場合はこの数値を大きくします）
             
             // プレイヤーと木箱の当たり判定を計算
             const pLeft = player.x + marginX;
             const pRight = player.x + player.width - marginX;
             const pTop = player.y;
-            const pBottom = player.y + player.height - footOffset;
+            // ★判定の底辺（足元）を少し下げることで、着地位置を上げる
+            const pBottom = player.y + player.height - footOffset + standOffset;
 
             if (pLeft < b.x + b.width && 
                 pRight > b.x &&
@@ -589,10 +594,12 @@
                 pBottom > b.y) {
                 
                 // 上から乗った場合（落下中で、直前まで箱より上にいたと推測できる場合）
-                if (player.vy > 0 && pBottom - player.vy <= b.y + 20) {
+                // 判定に少し余裕を持たせるため「+ 25」にしています
+                if (player.vy > 0 && pBottom - player.vy <= b.y + 25) {
                     player.isGrounded = true; 
                     player.vy = 0;
-                    player.y = b.y - player.height + footOffset;
+                    // ★着地時のY座標を上にずらす
+                    player.y = b.y - player.height + footOffset - standOffset;
                 } else {
                     // 横からぶつかった場合は、進もうとしている方向の逆へ押し戻す（壁になる）
                     if (player.vx > 0) { // 右に進んでぶつかった
