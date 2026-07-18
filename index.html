@@ -319,6 +319,7 @@
         platforms = [];
         enemies = [];
         icicles = []; // ★追加：初期化
+        boxes = [];
         distance = 0;
         bgOffset = 0;
         currentBgImage = bgImage1;
@@ -437,13 +438,8 @@
                     height: boxSize
                 });
             }
-
-    function initMap() {
-        platforms = [];
-        enemies = [];
-        icicles = [];
-        boxes = []; // ★ここに追加
-        distance = 0;
+        }
+    }
     
     function update() {
         if (gameState !== 'PLAYING') return;
