@@ -317,6 +317,7 @@
     let platforms = [];
     let enemies = [];
     let icicles = []; // ★追加：ツララ管理用配列
+    let cacti = [];
     let isWindy = false;
     let windWarning = false;
     let windTimer = 0;
@@ -393,10 +394,15 @@
         const lastPlatform = platforms[platforms.length - 1];
         
         if (lastPlatform.x + lastPlatform.width < canvas.width + 500) {
-            const gap = Math.random() * 100 + 50; 
-            const width = Math.random() * 300 + 150;
-            const yOffset = (Math.random() - 0.5) * 150;
+            // ★追加：現在ステージ6（5000m〜6000m）かどうかを判定
+            const isStage6 = (distance >= STAGE6_DISTANCE && distance < STAGE7_DISTANCE);
+
+            // ★変更：ステージ6の時は隙間をなくし(少し重ねる)、高さを平らにする
+            const gap = isStage6 ? -2 : Math.random() * 100 + 50; 
+            const yOffset = isStage6 ? 0 : (Math.random() - 0.5) * 150;
+            
             let newY = lastPlatform.y + yOffset;
+            const width = Math.random() * 300 + 150;
             
             if (newY > canvas.height - 50) newY = canvas.height - 50;
             if (newY < canvas.height - 250) newY = canvas.height - 250;
@@ -404,23 +410,19 @@
             const newX = lastPlatform.x + lastPlatform.width + gap;
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
-            // 敵の生成
+            // 敵・サボテンの生成
             if (Math.random() < 0.5) {
                 let enemyType = 'normal';
                 
-                // 距離に応じて敵の種類を決定
                 if (distance >= STAGE4_DISTANCE && distance < STAGE5_DISTANCE) {
-                    // ステージ4：ノーマルとバッタが50%の確率で両方出現
                     enemyType = Math.random() < 0.5 ? 'normal' : 'hopper';
                 } else if (distance >= STAGE2_DISTANCE) {
-                    // ステージ2, 3（および5以降）：バッタのみ
+                    // ★ステージ6でもバッタのみ出現します
                     enemyType = 'hopper';
                 }
                 
                 const eWidth = 60;
                 const eHeight = (enemyType === 'hopper') ? 50 : 40;
-                
-                // ★プレイヤーの足元(footOffset)に合わせて敵の高さも下げる
                 const enemyOffset = 37; 
 
                 enemies.push({
@@ -431,7 +433,21 @@
                     jumpTimer: (enemyType === 'hopper') ? Math.floor(Math.random() * 40) + 30 : 0,
                     isSquished: false, squishTimer: 0
                 });
+            } else if (isStage6 && Math.random() < 0.7) {
+                // ★追加：敵が出なかった足場に、高い確率(70%)でサボテンを生成
+                const cactusSize = 70;
+                const embedAmount = 37; 
+                cacti.push({
+                    x: newX + width / 2, 
+                    y: newY - cactusSize + embedAmount,
+                    width: cactusSize,
+                    height: cactusSize
+                });
             }
+            
+            // ==========================================
+            // ↓ ここから下が元々あった「ツララ」と「木箱」のコードです ↓
+            // ==========================================
 
             // ★追加：オロ雪原（ステージ3）のツララ生成
             const isStage3 = (distance >= STAGE3_DISTANCE && distance < STAGE4_DISTANCE);
@@ -620,6 +636,17 @@
         boxes = boxes.filter(b => b.x + b.width >= -100);
         cacti = cacti.filter(c => c.x + c.width >= -100);
 
+        cacti.forEach(c => {
+            const hitboxMargin = 15; // 判定を少し甘めにして理不尽さを減らす
+            if (player.x + hitboxMargin < c.x + c.width &&
+                player.x + player.width - hitboxMargin > c.x &&
+                player.y + hitboxMargin < c.y + c.height &&
+                player.y + player.height - hitboxMargin > c.y) {
+                // 上から踏んでも倒せないので無条件でゲームオーバー
+                gameOver();
+            }
+        });
+
         // ★ここに追加：木箱との当たり判定（壁・足場として機能）
         boxes.forEach(b => {
             const marginX = 15;
@@ -754,6 +781,15 @@
                 // 画像が読み込めない場合の代替色
                 ctx.fillStyle = '#8B4513'; 
                 ctx.fillRect(b.x, b.y, b.width, b.height);
+            }
+        });
+
+        cacti.forEach(c => {
+            if (cactusImg.complete && cactusImg.width > 0) {
+                ctx.drawImage(cactusImg, c.x, c.y, c.width, c.height);
+            } else {
+                ctx.fillStyle = 'green'; 
+                ctx.fillRect(c.x, c.y, c.width, c.height);
             }
         });
         
