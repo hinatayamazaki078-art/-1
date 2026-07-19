@@ -314,6 +314,9 @@
     let platforms = [];
     let enemies = [];
     let icicles = []; // ★追加：ツララ管理用配列
+    let isWindy = false;
+    let windWarning = false;
+    let windTimer = 0;
 
     function initMap() {
         platforms = [];
@@ -327,6 +330,9 @@
         player.vx = 0; player.vy = 0;
         keys.left = false; keys.right = false;
         playerFacingRight = true; 
+        isWindy = false;
+        windWarning = false;
+        windTimer = 0;
         
         platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
     }
@@ -477,6 +483,31 @@
 
         player.x += player.vx;
         if (player.x < 0) player.x = 0;
+
+        if (distance >= STAGE5_DISTANCE) {
+            if (!isWindy && !windWarning) {
+                // ランダムで警告開始
+                if (Math.random() < 0.005) {
+                    windWarning = true;
+                    windTimer = 60; // 60フレーム（約1秒）警告
+                }
+            } else if (windWarning) {
+                windTimer--;
+                if (windTimer <= 0) {
+                    windWarning = false;
+                    isWindy = true;
+                    windTimer = 150; // 150フレーム（約2.5秒）風が吹く
+                }
+            } else if (isWindy) {
+                windTimer--;
+                player.x -= 4.0; // ★風の強さ（左に押し戻される力）
+                if (player.x < 0) player.x = 0; // 画面外に飛ばされないようにする
+                
+                if (windTimer <= 0) {
+                    isWindy = false;
+                }
+            }
+        }
 
         player.vy += player.gravity;
         player.y += player.vy;
@@ -734,6 +765,29 @@
         } else {
             ctx.fillStyle = 'blue';
             ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+    if (windWarning) {
+            ctx.fillStyle = "rgba(255, 69, 0, 0.8)";
+            ctx.font = "bold 50px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("⚠️ 突風注意！", canvas.width / 2, canvas.height / 3);
+        } else if (isWindy) {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+            ctx.font = "bold 40px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("༄༅༄༅ 突風発生中！ ༄༅༄༅", canvas.width / 2, canvas.height / 3);
+            
+            // 風の線（パーティクル）を描画
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.lineWidth = 3;
+            for (let i = 0; i < 6; i++) {
+                let windX = Math.random() * canvas.width;
+                let windY = Math.random() * canvas.height;
+                ctx.beginPath();
+                ctx.moveTo(windX, windY);
+                ctx.lineTo(windX - (100 + Math.random() * 150), windY);
+                ctx.stroke();
+            }
         }
     } 
 
