@@ -269,6 +269,8 @@
     const STAGE3_DISTANCE = 2000; 
     const STAGE4_DISTANCE = 3000; 
     const STAGE5_DISTANCE = 4000; 
+    const STAGE6_DISTANCE = 5000; // ★追加：ステージ6開始
+    const STAGE7_DISTANCE = 6000;
 
     // 背景画像の設定
     const bgImage1 = new Image(); bgImage1.src = 'ChatGPT Image 2026年7月15日 00_45_17.png';
@@ -291,6 +293,7 @@
     const enemyImg = new Image(); enemyImg.src = 'ku.png';
     const hopperGroundImg = new Image(); hopperGroundImg.src = 'バッタ地上.png';
     const hopperJumpImg = new Image(); hopperJumpImg.src = 'バッタジャンプ.png';
+    const cactusImg = new Image(); cactusImg.src = 'サボテン.png';
 
     const bgm = new Audio('伝承の丘.mp3'); 
     bgm.loop = true; bgm.volume = 0.5;
@@ -323,6 +326,7 @@
         enemies = [];
         icicles = []; // ★追加：初期化
         boxes = [];
+        cacti = [];
         distance = 0;
         bgOffset = 0;
         currentBgImage = bgImage1;
@@ -604,6 +608,7 @@
             enemies.forEach(e => e.x -= offset);
             icicles.forEach(i => i.x -= offset); // ★追加：ツララもスクロールさせる
             boxes.forEach(b => b.x -= offset);
+            cacti.forEach(c => c.x -= offset);
 
             bgOffset += offset * 0.5;
         }
@@ -613,6 +618,7 @@
         enemies = enemies.filter(e => (e.x + e.width >= -100) && (!e.isSquished || e.squishTimer > 0));
         icicles = icicles.filter(i => (i.x + i.width >= -100) && i.y < canvas.height); // ★追加：画面外のツララを削除
         boxes = boxes.filter(b => b.x + b.width >= -100);
+        cacti = cacti.filter(c => c.x + c.width >= -100);
 
         // ★ここに追加：木箱との当たり判定（壁・足場として機能）
         boxes.forEach(b => {
