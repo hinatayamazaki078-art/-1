@@ -396,8 +396,16 @@
 
             // 敵の生成
             if (Math.random() < 0.5) {
-                const isStage2OrMore = (distance >= STAGE2_DISTANCE);
-                const enemyType = isStage2OrMore ? 'hopper' : 'normal';
+                let enemyType = 'normal';
+                
+                // 距離に応じて敵の種類を決定
+                if (distance >= STAGE4_DISTANCE && distance < STAGE5_DISTANCE) {
+                    // ステージ4：ノーマルとバッタが50%の確率で両方出現
+                    enemyType = Math.random() < 0.5 ? 'normal' : 'hopper';
+                } else if (distance >= STAGE2_DISTANCE) {
+                    // ステージ2, 3（および5以降）：バッタのみ
+                    enemyType = 'hopper';
+                }
                 
                 const eWidth = 60;
                 const eHeight = (enemyType === 'hopper') ? 50 : 40;
