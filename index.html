@@ -160,7 +160,7 @@
     <canvas id="gameCanvas"></canvas>
     
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
-    <div id="stage-display" class="hidden"><span id="stage-name">アスター平原</span></div>
+    <div id="stage-display" class="hidden"><span id="stage-name">始まりの村</span></div>
 
     <div id="game-pad" class="hidden">
         <div class="pad-group">
@@ -174,7 +174,7 @@
 
     <div id="title-screen" class="screen">
         <h1>アクションラン</h1>
-        <button id="btn-start" class="menu-btn">冒険開始</button>
+        <button id="btn-start" class="menu-btn">ゲームスタート</button>
         <button id="btn-ranking" class="menu-btn" onclick="alert('ランキングサーバーは未接続です\n（将来実装予定）')">ランキング</button>
         <button id="btn-avatar" class="menu-btn" onclick="alert('アバター設定画面\n（将来実装予定）')">アバター設定</button>
     </div>
@@ -237,7 +237,7 @@
     setupButton('btn-jump', 'jump');
 
     function doJump() {
-        if (gameState !== 'PLAYING') return;
+        if (gameState !== 'PLAYING' && gameState !== 'VILLAGE') return;
         if (player.isGrounded) {
             player.vy = player.jumpPower;
             player.isGrounded = false;
@@ -263,16 +263,26 @@
     resize();
 
     // ==========================================
-    // 設定：背景や敵が切り替わる距離（m）
+    // 村エリアの設定
+    // ==========================================
+    const villageBg1 = new Image(); villageBg1.src = '村1.png';
+    const villageBg2 = new Image(); villageBg2.src = '村2.png';
+    const VILLAGE_WIDTH = 2560; // 村1(1280px) + 村2(1280px)
+    const GATE_WIDTH = 140;
+    const GATE_HEIGHT = 180;
+    const GATE_X = 1280 - (GATE_WIDTH / 2); // 真ん中（村1と村2の境界）に配置
+    let cameraX = 0;
+
+    // ==========================================
+    // メインゲームの設定
     // ==========================================
     const STAGE2_DISTANCE = 1000; 
     const STAGE3_DISTANCE = 2000; 
     const STAGE4_DISTANCE = 3000; 
     const STAGE5_DISTANCE = 4000; 
-    const STAGE6_DISTANCE = 5000; // ★追加：ステージ6開始
+    const STAGE6_DISTANCE = 5000;
     const STAGE7_DISTANCE = 6000;
 
-    // 背景画像の設定
     const bgImage1 = new Image(); bgImage1.src = 'ChatGPT Image 2026年7月15日 00_45_17.png';
     const bgImage2 = new Image(); bgImage2.src = 'stage2.png';
     const bgImage3 = new Image(); bgImage3.src = 'stage3.png';
@@ -280,12 +290,11 @@
     const bgImage5 = new Image(); bgImage5.src = 'stage5.png';
     const platformImg = new Image(); platformImg.src = 'platform.png';
     const boxImg = new Image(); boxImg.src = '木箱.png';
-    let boxes = []; // 木箱管理用配列
-    
+    let boxes = [];
+
     let currentBgImage = bgImage1;
     let bgOffset = 0;
 
-    // プレイヤー・敵画像の設定
     const playerImgWalk = new Image(); playerImgWalk.src = 'si1.png';
     const playerImgJump = new Image(); playerImgJump.src = 'si2.png';
     let playerFacingRight = true;
@@ -301,7 +310,7 @@
     const jumpSound = new Audio('jump.mp3'); 
     jumpSound.volume = 0.4;
 
-    let gameState = 'TITLE';
+    let gameState = 'TITLE'; // 'TITLE', 'VILLAGE', 'PLAYING', 'GAMEOVER'
     let animationId;
     let distance = 0;
     let lastTime = 0;
@@ -316,16 +325,28 @@
 
     let platforms = [];
     let enemies = [];
-    let icicles = []; // ★追加：ツララ管理用配列
+    let icicles = [];
     let cacti = [];
     let isWindy = false;
     let windWarning = false;
     let windTimer = 0;
 
+    // 村の初期化（スタート時に呼ばれる）
+    function initVillage() {
+        // ゲートの直前にスポーン
+        player.x = GATE_X + (GATE_WIDTH / 2) - (player.width / 2);
+        player.y = canvas.height - 180; // 石畳の上付近
+        player.vx = 0;
+        player.vy = 0;
+        keys.left = false;
+        keys.right = false;
+        playerFacingRight = true;
+    }
+
     function initMap() {
         platforms = [];
         enemies = [];
-        icicles = []; // ★追加：初期化
+        icicles = [];
         boxes = [];
         cacti = [];
         distance = 0;
@@ -362,11 +383,13 @@
 
         titleScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
-        scoreDisplay.classList.remove('hidden');
+        scoreDisplay.classList.add('hidden'); // 村では距離非表示
         gamePad.classList.remove('hidden');
         stageDisplay.classList.remove('hidden');
-        gameState = 'PLAYING';
-        initMap();
+        stageNameEl.innerText = "始まりの村";
+
+        gameState = 'VILLAGE';
+        initVillage();
         
         lastTime = performance.now();
         animationId = requestAnimationFrame(loop);
@@ -390,14 +413,93 @@
         finalDistanceEl.innerText = Math.floor(distance);
     }
 
+    function updateVillage() {
+        if (keys.left) {
+            player.vx = -player.speed; playerFacingRight = false;
+        } else if (keys.right) {
+            player.vx = player.speed; playerFacingRight = true;
+        } else {
+            player.vx = 0;
+        }
+
+        player.x += player.vx;
+
+        // 村の左右の端で移動制限
+        if (player.x < 0) player.x = 0;
+        if (player.x > VILLAGE_WIDTH - player.width) player.x = VILLAGE_WIDTH - player.width;
+
+        // 村の地面（下部の石畳の位置）
+        const villageGroundY = canvas.height - 110;
+        player.vy += player.gravity;
+        player.y += player.vy;
+
+        if (player.y + player.height > villageGroundY) {
+            player.y = villageGroundY - player.height;
+            player.vy = 0;
+            player.isGrounded = true;
+        } else {
+            player.isGrounded = false;
+        }
+
+        // カメラがプレイヤーを追従（村の端ではスクロールをストップ）
+        cameraX = player.x + player.width / 2 - canvas.width / 2;
+        if (cameraX < 0) cameraX = 0;
+        if (cameraX > VILLAGE_WIDTH - canvas.width) cameraX = VILLAGE_WIDTH - canvas.width;
+    }
+
+    function drawVillage() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. 背景の描画 (村1 -> 村2)
+        if (villageBg1.complete && villageBg1.width > 0) {
+            ctx.drawImage(villageBg1, 0 - cameraX, 0, 1280, canvas.height);
+        }
+        if (villageBg2.complete && villageBg2.width > 0) {
+            ctx.drawImage(villageBg2, 1280 - cameraX, 0, 1280, canvas.height);
+        }
+
+        // 2. 中央のゲート描画
+        const gateScreenX = GATE_X - cameraX;
+        const gateY = canvas.height - 110 - GATE_HEIGHT;
+
+        // ゲート枠
+        ctx.fillStyle = '#4A2E18';
+        ctx.fillRect(gateScreenX, gateY, 20, GATE_HEIGHT);
+        ctx.fillRect(gateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
+        ctx.fillRect(gateScreenX, gateY, GATE_WIDTH, 30);
+
+        // ゲートの看板
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('冒険の門', gateScreenX + GATE_WIDTH / 2, gateY + 22);
+
+        // 3. プレイヤー描画
+        let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
+        const drawX = player.x - cameraX;
+
+        if (currentImg.complete && currentImg.width > 0) {
+            ctx.save();
+            if (playerFacingRight) {
+                ctx.drawImage(currentImg, drawX, player.y, player.width, player.height);
+            } else {
+                ctx.translate(drawX + player.width / 2, player.y + player.height / 2);
+                ctx.scale(-1, 1);
+                ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
+            }
+            ctx.restore();
+        } else {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(drawX, player.y, player.width, player.height);
+        }
+    }
+
     function generateMap() {
         const lastPlatform = platforms[platforms.length - 1];
         
         if (lastPlatform.x + lastPlatform.width < canvas.width + 500) {
-            // ★追加：現在ステージ6（5000m〜6000m）かどうかを判定
             const isStage6 = (distance >= STAGE6_DISTANCE && distance < STAGE7_DISTANCE);
 
-            // ★変更：ステージ6の時は隙間をなくし(少し重ねる)、高さを平らにする
             const gap = isStage6 ? -2 : Math.random() * 100 + 50; 
             const yOffset = isStage6 ? 0 : (Math.random() - 0.5) * 150;
             
@@ -410,14 +512,12 @@
             const newX = lastPlatform.x + lastPlatform.width + gap;
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
-            // 敵・サボテンの生成
             if (Math.random() < 0.5) {
                 let enemyType = 'normal';
                 
                 if (distance >= STAGE4_DISTANCE && distance < STAGE5_DISTANCE) {
                     enemyType = Math.random() < 0.5 ? 'normal' : 'hopper';
                 } else if (distance >= STAGE2_DISTANCE) {
-                    // ★ステージ6でもバッタのみ出現します
                     enemyType = 'hopper';
                 }
                 
@@ -434,7 +534,6 @@
                     isSquished: false, squishTimer: 0
                 });
             } else if (isStage6 && Math.random() < 0.7) {
-                // ★追加：敵が出なかった足場に、高い確率(70%)でサボテンを生成
                 const cactusSize = 70;
                 const embedAmount = 37; 
                 cacti.push({
@@ -445,16 +544,11 @@
                 });
             }
             
-            // ==========================================
-            // ↓ ここから下が元々あった「ツララ」と「木箱」のコードです ↓
-            // ==========================================
-
-            // ★追加：オロ雪原（ステージ3）のツララ生成
             const isStage3 = (distance >= STAGE3_DISTANCE && distance < STAGE4_DISTANCE);
-            if (isStage3 && Math.random() < 0.4) { // 40%の確率で生成
+            if (isStage3 && Math.random() < 0.4) {
                 icicles.push({
-                    x: newX + Math.random() * (width - 40) + 20, // ランダムなX座標
-                    y: 0, // 画面上部から
+                    x: newX + Math.random() * (width - 40) + 20,
+                    y: 0,
                     width: 30,
                     height: 80,
                     vy: 0,
@@ -462,15 +556,13 @@
                 });
             }
             
-            // ★ここに追加：木箱の生成 (例として30%の確率で出現)
             if (Math.random() < 0.3) {
-                const boxSize = 60; // 木箱のサイズ
-                const embedAmount = 45; // ★足場へのめり込み量（前回は37でした。数値を大きくすると深く埋まります）
+                const boxSize = 60;
+                const embedAmount = 45;
 
-                // 敵と位置が被らないようにX座標を少しずらして配置
                 boxes.push({
                     x: newX + width / 2 + 80, 
-                    y: newY - boxSize + embedAmount, // ★めり込み量を適用
+                    y: newY - boxSize + embedAmount,
                     width: boxSize,
                     height: boxSize
                 });
@@ -479,6 +571,11 @@
     }
     
     function update() {
+        if (gameState === 'VILLAGE') {
+            updateVillage();
+            return;
+        }
+
         if (gameState !== 'PLAYING') return;
 
         if (distance >= STAGE5_DISTANCE) {
@@ -506,22 +603,21 @@
 
         if (distance >= STAGE5_DISTANCE) {
             if (!isWindy && !windWarning) {
-                // ランダムで警告開始
                 if (Math.random() < 0.005) {
                     windWarning = true;
-                    windTimer = 60; // 60フレーム（約1秒）警告
+                    windTimer = 60;
                 }
             } else if (windWarning) {
                 windTimer--;
                 if (windTimer <= 0) {
                     windWarning = false;
                     isWindy = true;
-                    windTimer = 150; // 150フレーム（約2.5秒）風が吹く
+                    windTimer = 150;
                 }
             } else if (isWindy) {
                 windTimer--;
-                player.x -= 4.0; // ★風の強さ（左に押し戻される力）
-                if (player.x < 0) player.x = 0; // 画面外に飛ばされないようにする
+                player.x -= 4.0;
+                if (player.x < 0) player.x = 0;
                 
                 if (windTimer <= 0) {
                     isWindy = false;
@@ -552,19 +648,16 @@
             }
         });
 
-        // ★追加：ツララの落下処理と当たり判定
         icicles.forEach(icicle => {
-            // プレイヤーが近づいたら（X座標の差が150以下なら）落下開始
             if (!icicle.isFalling && Math.abs(player.x + player.width / 2 - (icicle.x + icicle.width / 2)) < 150) {
                 icicle.isFalling = true;
             }
 
             if (icicle.isFalling) {
-                icicle.vy += player.gravity * 0.7; // 落下速度
+                icicle.vy += player.gravity * 0.7;
                 icicle.y += icicle.vy;
             }
 
-            // プレイヤーとの当たり判定
             const hitboxMargin = 10;
             if (player.x + hitboxMargin < icicle.x + icicle.width &&
                 player.x + player.width - hitboxMargin > icicle.x &&
@@ -593,9 +686,8 @@
 
         platforms.forEach(p => {
             const footOffset = 37; 
-            const marginX = 15; // ★追加：キャラクター左右の余白（数値を大きくするほど判定が狭くなります）
+            const marginX = 15;
 
-            // ★ player.x に marginX を足し引きして、横幅の当たり判定を内側に寄せる
             if (player.x + marginX < p.x + p.width && 
                 player.x + player.width - marginX > p.x &&
                 player.y < p.y + p.height && 
@@ -622,7 +714,7 @@
 
             platforms.forEach(p => p.x -= offset);
             enemies.forEach(e => e.x -= offset);
-            icicles.forEach(i => i.x -= offset); // ★追加：ツララもスクロールさせる
+            icicles.forEach(i => i.x -= offset);
             boxes.forEach(b => b.x -= offset);
             cacti.forEach(c => c.x -= offset);
 
@@ -632,32 +724,28 @@
         if (platforms[0].x + platforms[0].width < -100) platforms.shift();
         
         enemies = enemies.filter(e => (e.x + e.width >= -100) && (!e.isSquished || e.squishTimer > 0));
-        icicles = icicles.filter(i => (i.x + i.width >= -100) && i.y < canvas.height); // ★追加：画面外のツララを削除
+        icicles = icicles.filter(i => (i.x + i.width >= -100) && i.y < canvas.height);
         boxes = boxes.filter(b => b.x + b.width >= -100);
         cacti = cacti.filter(c => c.x + c.width >= -100);
 
         cacti.forEach(c => {
-            const hitboxMargin = 15; // 判定を少し甘めにして理不尽さを減らす
+            const hitboxMargin = 15;
             if (player.x + hitboxMargin < c.x + c.width &&
                 player.x + player.width - hitboxMargin > c.x &&
                 player.y + hitboxMargin < c.y + c.height &&
                 player.y + player.height - hitboxMargin > c.y) {
-                // 上から踏んでも倒せないので無条件でゲームオーバー
                 gameOver();
             }
         });
 
-        // ★ここに追加：木箱との当たり判定（壁・足場として機能）
         boxes.forEach(b => {
             const marginX = 15;
             const footOffset = 37;
-            const standOffset = 20; // ★キャラを上に浮かせたい量（埋もれる場合はこの数値を大きくします）
+            const standOffset = 20;
             
-            // プレイヤーと木箱の当たり判定を計算
             const pLeft = player.x + marginX;
             const pRight = player.x + player.width - marginX;
             const pTop = player.y;
-            // ★判定の底辺（足元）を少し下げることで、着地位置を上げる
             const pBottom = player.y + player.height - footOffset + standOffset;
 
             if (pLeft < b.x + b.width && 
@@ -665,18 +753,14 @@
                 pTop < b.y + b.height && 
                 pBottom > b.y) {
                 
-                // 上から乗った場合（落下中で、直前まで箱より上にいたと推測できる場合）
-                // 判定に少し余裕を持たせるため「+ 25」にしています
                 if (player.vy > 0 && pBottom - player.vy <= b.y + 25) {
                     player.isGrounded = true; 
                     player.vy = 0;
-                    // ★着地時のY座標を上にずらす
                     player.y = b.y - player.height + footOffset - standOffset;
                 } else {
-                    // 横からぶつかった場合は、進もうとしている方向の逆へ押し戻す（壁になる）
-                    if (player.vx > 0) { // 右に進んでぶつかった
+                    if (player.vx > 0) {
                         player.x = b.x - player.width + marginX;
-                    } else if (player.vx < 0) { // 左に進んでぶつかった
+                    } else if (player.vx < 0) {
                         player.x = b.x + b.width - marginX;
                     }
                 }
@@ -691,6 +775,11 @@
     }
 
     function draw() {
+        if (gameState === 'VILLAGE') {
+            drawVillage();
+            return;
+        }
+
         if (currentBgImage.complete && currentBgImage.width > 0) {
             const scale = canvas.height / currentBgImage.height;
             const scaledWidth = currentBgImage.width * scale;
@@ -758,27 +847,24 @@
             }
         });
 
-        // ★追加：ツララの描画（専用画像が指定されていないためCanvasAPIで図形描画）
         icicles.forEach(icicle => {
-            ctx.fillStyle = '#E0FFFF'; // 薄い水色
+            ctx.fillStyle = '#E0FFFF';
             ctx.beginPath();
-            ctx.moveTo(icicle.x, icicle.y); // 左上
-            ctx.lineTo(icicle.x + icicle.width, icicle.y); // 右上
-            ctx.lineTo(icicle.x + icicle.width / 2, icicle.y + icicle.height); // 中央下（尖った部分）
+            ctx.moveTo(icicle.x, icicle.y);
+            ctx.lineTo(icicle.x + icicle.width, icicle.y);
+            ctx.lineTo(icicle.x + icicle.width / 2, icicle.y + icicle.height);
             ctx.closePath();
             ctx.fill();
             
-            ctx.strokeStyle = '#B0E0E6'; // 枠線
+            ctx.strokeStyle = '#B0E0E6';
             ctx.lineWidth = 2;
             ctx.stroke();
         });
 
-// ★ここに追加：木箱の描画
         boxes.forEach(b => {
             if (boxImg.complete && boxImg.width > 0) {
                 ctx.drawImage(boxImg, b.x, b.y, b.width, b.height);
             } else {
-                // 画像が読み込めない場合の代替色
                 ctx.fillStyle = '#8B4513'; 
                 ctx.fillRect(b.x, b.y, b.width, b.height);
             }
@@ -808,7 +894,8 @@
             ctx.fillStyle = 'blue';
             ctx.fillRect(player.x, player.y, player.width, player.height);
         }
-    if (windWarning) {
+
+        if (windWarning) {
             ctx.fillStyle = "rgba(255, 69, 0, 0.8)";
             ctx.font = "bold 50px sans-serif";
             ctx.textAlign = "center";
@@ -819,7 +906,6 @@
             ctx.textAlign = "center";
             ctx.fillText("༄༅༄༅ 突風発生中！ ༄༅༄༅", canvas.width / 2, canvas.height / 3);
             
-            // 風の線（パーティクル）を描画
             ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
             ctx.lineWidth = 3;
             for (let i = 0; i < 6; i++) {
@@ -834,7 +920,7 @@
     } 
 
     function loop(timestamp) {
-        if (gameState === 'PLAYING') {
+        if (gameState === 'PLAYING' || gameState === 'VILLAGE') {
             animationId = requestAnimationFrame(loop);
             if (!timestamp) timestamp = performance.now();
             if (!lastTime) lastTime = timestamp;
