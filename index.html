@@ -266,23 +266,30 @@
         });
     }
 
-    function syncMyPosition() {
-        if (!db || gameState !== 'VILLAGE') return;
-        
-        if (!myPlayerRef) {
-            myPlayerRef = db.ref('village_players/' + myPlayerId);
-            myPlayerRef.onDisconnect().remove(); // 接続切断時に自動で消去
-        }
+    let lastSyncTime = 0;
+const SYNC_INTERVAL = 100; // 100ミリ秒（毎秒10回）ごとに送信
 
-        myPlayerRef.set({
-            x: player.x,
-            y: player.y,
-            facingRight: playerFacingRight,
-            isGrounded: player.isGrounded,
-            updatedAt: Date.now()
-        });
+function syncMyPosition() {
+    if (!db || gameState !== 'VILLAGE') return;
+    
+    const now = Date.now();
+    // 前回の送信から100ms経過していなければスキップ
+    if (now - lastSyncTime < SYNC_INTERVAL) return;
+    lastSyncTime = now;
+
+    if (!myPlayerRef) {
+        myPlayerRef = db.ref('village_players/' + myPlayerId);
+        myPlayerRef.onDisconnect().remove(); // 接続切断時に自動で消去
     }
 
+    myPlayerRef.set({
+        x: player.x,
+        y: player.y,
+        facingRight: playerFacingRight,
+        isGrounded: player.isGrounded,
+        updatedAt: now
+    });
+}
     function removeMyPosition() {
         if (myPlayerRef) {
             myPlayerRef.remove();
@@ -588,6 +595,19 @@
     }
 
     function drawVillage() {
+
+const now = Date.now();
+for (let key in otherPlayers) {
+    const op = otherPlayers[key];
+    
+    // 5秒以上更新がないプレイヤー（古いデータ）は描画をスキップ
+    if (now - op.updatedAt > 5000) continue;
+
+    const opDrawX = op.x - cameraX;
+
+    if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
+        let opImg = op.isGrounded ? playerImgWalk : playerImgJump;
+        
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (villageBg1.complete && villageBg1.width > 0) {
