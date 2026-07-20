@@ -77,6 +77,17 @@
             transform: translateY(2px);
         }
 
+        /* ★追加：ゲート前で出るボタンのアニメーション */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        #btn-enter-gate {
+            background-color: #32cd32;
+            animation: pulse 1.5s infinite;
+        }
+
         #score-display {
             position: absolute;
             top: 10px;
@@ -162,6 +173,12 @@
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
     <div id="stage-display" class="hidden"><span id="stage-name">始まりの村</span></div>
 
+    <!-- ★追加：ゲート前用UI -->
+    <div id="gate-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
+        <button id="btn-enter-gate" class="menu-btn">冒険に出発！</button>
+        <p style="color: white; font-weight: bold; text-shadow: 2px 2px 2px black; font-size: 3vw; margin-top: 10px;">▲ボタン（キー）でも出発</p>
+    </div>
+
     <div id="game-pad" class="hidden">
         <div class="pad-group">
             <div id="btn-left" class="action-btn">◀</div>
@@ -203,6 +220,10 @@
     const finalDistanceEl = document.getElementById('final-distance');
     const stageDisplay = document.getElementById('stage-display');
     const stageNameEl = document.getElementById('stage-name');
+    
+    // ★追加：ゲートアクションの要素
+    const gateActionUI = document.getElementById('gate-action');
+    document.getElementById('btn-enter-gate').addEventListener('click', enterGate);
 
     // メニューボタン
     document.getElementById('btn-start').addEventListener('click', startGame);
@@ -237,6 +258,12 @@
     setupButton('btn-jump', 'jump');
 
     function doJump() {
+        // ★追加：ゲートの前にいるときにジャンプボタンを押したら冒険に出発する
+        if (gameState === 'VILLAGE' && isNearGate) {
+            enterGate();
+            return;
+        }
+
         if (gameState !== 'PLAYING' && gameState !== 'VILLAGE') return;
         if (player.isGrounded) {
             player.vy = player.jumpPower;
@@ -267,11 +294,12 @@
     // ==========================================
     const villageBg1 = new Image(); villageBg1.src = '村1.png';
     const villageBg2 = new Image(); villageBg2.src = '村2.png';
-    const VILLAGE_WIDTH = 2560; // 村1(1280px) + 村2(1280px)
+    const VILLAGE_WIDTH = 2560; 
     const GATE_WIDTH = 140;
     const GATE_HEIGHT = 180;
-    const GATE_X = 1280 - (GATE_WIDTH / 2); // 真ん中（村1と村2の境界）に配置
+    const GATE_X = 1280 - (GATE_WIDTH / 2); 
     let cameraX = 0;
+    let isNearGate = false; // ★追加：ゲートの近くにいるか判定用
 
     // ==========================================
     // メインゲームの設定
@@ -331,16 +359,17 @@
     let windWarning = false;
     let windTimer = 0;
 
-    // 村の初期化（スタート時に呼ばれる）
+    // 村の初期化
     function initVillage() {
-        // ゲートの直前にスポーン
         player.x = GATE_X + (GATE_WIDTH / 2) - (player.width / 2);
-        player.y = canvas.height - 180; // 石畳の上付近
+        player.y = canvas.height - 180;
         player.vx = 0;
         player.vy = 0;
         keys.left = false;
         keys.right = false;
         playerFacingRight = true;
+        isNearGate = false;
+        gateActionUI.classList.add('hidden'); // ボタンを消しておく
     }
 
     function initMap() {
@@ -383,7 +412,8 @@
 
         titleScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
-        scoreDisplay.classList.add('hidden'); // 村では距離非表示
+        scoreDisplay.classList.add('hidden');
+        gateActionUI.classList.add('hidden');
         gamePad.classList.remove('hidden');
         stageDisplay.classList.remove('hidden');
         stageNameEl.innerText = "始まりの村";
@@ -393,6 +423,20 @@
         
         lastTime = performance.now();
         animationId = requestAnimationFrame(loop);
+    }
+
+    // ★追加：ゲートから冒険へ出発する関数
+    function enterGate() {
+        if (gameState !== 'VILLAGE') return;
+        
+        // UIの切り替え
+        gateActionUI.classList.add('hidden');
+        scoreDisplay.classList.remove('hidden'); // 距離を表示
+        stageNameEl.innerText = "アスター平原"; // 最初のステージ名
+        
+        // メインゲームへ状態を変更して初期化
+        gameState = 'PLAYING';
+        initMap();
     }
 
     function showTitle() {
@@ -409,6 +453,7 @@
         scoreDisplay.classList.add('hidden');
         gamePad.classList.add('hidden');
         stageDisplay.classList.add('hidden');
+        gateActionUI.classList.add('hidden');
         gameOverScreen.classList.remove('hidden');
         finalDistanceEl.innerText = Math.floor(distance);
     }
@@ -424,11 +469,9 @@
 
         player.x += player.vx;
 
-        // 村の左右の端で移動制限
         if (player.x < 0) player.x = 0;
         if (player.x > VILLAGE_WIDTH - player.width) player.x = VILLAGE_WIDTH - player.width;
 
-        // 村の地面（下部の石畳の位置）
         const villageGroundY = canvas.height - 110;
         player.vy += player.gravity;
         player.y += player.vy;
@@ -441,16 +484,30 @@
             player.isGrounded = false;
         }
 
-        // カメラがプレイヤーを追従（村の端ではスクロールをストップ）
         cameraX = player.x + player.width / 2 - canvas.width / 2;
         if (cameraX < 0) cameraX = 0;
         if (cameraX > VILLAGE_WIDTH - canvas.width) cameraX = VILLAGE_WIDTH - canvas.width;
+
+        // ★追加：ゲートとの当たり判定（近づいたかどうかのチェック）
+        const playerCenterX = player.x + player.width / 2;
+        const gateMargin = 80; // 判定の広さ
+        
+        if (playerCenterX >= GATE_X - gateMargin && playerCenterX <= GATE_X + GATE_WIDTH + gateMargin) {
+            if (!isNearGate) {
+                isNearGate = true;
+                gateActionUI.classList.remove('hidden');
+            }
+        } else {
+            if (isNearGate) {
+                isNearGate = false;
+                gateActionUI.classList.add('hidden');
+            }
+        }
     }
 
     function drawVillage() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 1. 背景の描画 (村1 -> 村2)
         if (villageBg1.complete && villageBg1.width > 0) {
             ctx.drawImage(villageBg1, 0 - cameraX, 0, 1280, canvas.height);
         }
@@ -458,23 +515,27 @@
             ctx.drawImage(villageBg2, 1280 - cameraX, 0, 1280, canvas.height);
         }
 
-        // 2. 中央のゲート描画
         const gateScreenX = GATE_X - cameraX;
         const gateY = canvas.height - 110 - GATE_HEIGHT;
 
-        // ゲート枠
         ctx.fillStyle = '#4A2E18';
         ctx.fillRect(gateScreenX, gateY, 20, GATE_HEIGHT);
         ctx.fillRect(gateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
         ctx.fillRect(gateScreenX, gateY, GATE_WIDTH, 30);
 
-        // ゲートの看板
         ctx.fillStyle = '#FFD700';
         ctx.font = 'bold 20px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('冒険の門', gateScreenX + GATE_WIDTH / 2, gateY + 22);
 
-        // 3. プレイヤー描画
+        // ★追加：ゲートの前にいるとき、ゲートの下を光らせる演出
+        if (isNearGate) {
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(gateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true);
+            ctx.fill();
+        }
+
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         const drawX = player.x - cameraX;
 
