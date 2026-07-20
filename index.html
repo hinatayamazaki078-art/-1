@@ -595,21 +595,12 @@ function syncMyPosition() {
     }
 
     function drawVillage() {
-
-const now = Date.now();
-for (let key in otherPlayers) {
-    const op = otherPlayers[key];
-    
-    // 5秒以上更新がないプレイヤー（古いデータ）は描画をスキップ
-    if (now - op.updatedAt > 5000) continue;
-
-    const opDrawX = op.x - cameraX;
-
-    if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
-        let opImg = op.isGrounded ? playerImgWalk : playerImgJump;
+        const now = Date.now();
         
+        // 1. まず画面全体をクリアする（常に実行）
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // 2. 背景を描画する
         if (villageBg1.complete && villageBg1.width > 0) {
             ctx.drawImage(villageBg1, 0 - cameraX, 0, 1280, canvas.height);
         }
@@ -617,6 +608,7 @@ for (let key in otherPlayers) {
             ctx.drawImage(villageBg2, 1280 - cameraX, 0, 1280, canvas.height);
         }
 
+        // 3. ゲートの描画
         const gateScreenX = GATE_X - cameraX;
         const gateY = canvas.height - 110 - GATE_HEIGHT;
 
@@ -642,6 +634,10 @@ for (let key in otherPlayers) {
         // ==========================================
         for (let key in otherPlayers) {
             const op = otherPlayers[key];
+            
+            // 5秒以上更新がないプレイヤー（古いデータ）は描画をスキップ
+            if (now - op.updatedAt > 5000) continue;
+
             const opDrawX = op.x - cameraX;
 
             if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
@@ -670,6 +666,32 @@ for (let key in otherPlayers) {
             }
         }
 
+        // ==========================================
+        // 自分のプレイヤーを描画
+        // ==========================================
+        let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
+        const drawX = player.x - cameraX;
+
+        if (currentImg.complete && currentImg.width > 0) {
+            ctx.save();
+            if (playerFacingRight) {
+                ctx.drawImage(currentImg, drawX, player.y, player.width, player.height);
+            } else {
+                ctx.translate(drawX + player.width / 2, player.y + player.height / 2);
+                ctx.scale(-1, 1);
+                ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
+            }
+            ctx.restore();
+        } else {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(drawX, player.y, player.width, player.height);
+        }
+
+        ctx.fillStyle = '#FFFF00';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText("YOU", drawX + player.width / 2, player.y - 8);
+    }
         // 自分のプレイヤーを描画
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         const drawX = player.x - cameraX;
