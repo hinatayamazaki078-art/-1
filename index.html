@@ -39,6 +39,71 @@
             object-fit: cover;
         }
 
+        /* ＝＝＝ ★追加：ステータスUIのスタイル ＝＝＝ */
+        #status-ui {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            width: 320px;
+            height: 110px;
+            background-image: url('ステータス表示.png');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            z-index: 30;
+            pointer-events: none; /* 後ろの画面がタッチできるように基本は無効化 */
+        }
+
+        /* アバターを丸枠にハメる（画像のサイズに合わせてtop, left, width, heightを微調整してください） */
+        .status-avatar {
+            position: absolute;
+            top: 20%; 
+            left: 6%; 
+            width: 22%; 
+            height: 64%;
+            border-radius: 50%;
+            background-image: url('si1.png');
+            background-size: 180%; /* 顔がアップになるように拡大 */
+            background-position: top center;
+            background-color: white; /* 透過部分の白埋め */
+        }
+
+        /* 名前とレベルテキスト */
+        .status-name-level {
+            position: absolute;
+            top: 25%; 
+            left: 38%; 
+            width: 55%;
+            color: #5a3c11; 
+            font-weight: bold; 
+            font-size: 18px;
+            cursor: pointer;
+            pointer-events: auto; /* ここだけタップできるように有効化 */
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+
+        /* バーのコンテナ（緑と黄色の枠） */
+        .status-bar-container {
+            position: absolute;
+            left: 42%; 
+            width: 42%; 
+            height: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .stamina-bar-container { top: 62%; }
+        .magic-bar-container { top: 82%; }
+
+        .status-bar {
+            height: 100%;
+            width: 100%;
+            transition: width 0.2s ease-out;
+        }
+        .bar-green { background-color: #32cd32; box-shadow: 0 0 5px #32cd32; }
+        .bar-yellow { background-color: #ffd700; box-shadow: 0 0 5px #ffd700; }
+        /* ＝＝＝ ここまでステータスUIのスタイル ＝＝＝ */
+
         .screen {
             position: absolute;
             top: 0;
@@ -51,7 +116,7 @@
             justify-content: center;
             align-items: center;
             color: white;
-            z-index: 10;
+            z-index: 40; /* UIより上に表示するためz-index変更 */
         }
 
         .hidden {
@@ -82,7 +147,6 @@
             transform: translateY(2px);
         }
 
-        /* ゲート前で出るボタンのアニメーション */
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -95,9 +159,9 @@
 
         #score-display {
             position: absolute;
-            top: 10px;
+            top: 130px; /* UIの下に配置 */
             left: 20px;
-            font-size: 5vw;
+            font-size: 4vw;
             font-weight: bold;
             color: white;
             text-shadow: 2px 2px 2px black;
@@ -125,7 +189,7 @@
             justify-content: space-between;
             padding: 0 calc(24px + env(safe-area-inset-right)) 0 calc(24px + env(safe-area-inset-left));
             box-sizing: border-box;
-            z-index: 5;
+            z-index: 25;
             pointer-events: none;
         }
 
@@ -175,6 +239,21 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
+    <!-- ★追加：ステータス表示UI -->
+    <div id="status-ui" class="hidden">
+        <div class="status-avatar"></div>
+        <div class="status-name-level" onclick="changePlayerName()">
+            <span id="status-name">プレイヤー</span> 
+            <span id="status-level" style="margin-left: 5px;">Lv.1</span>
+        </div>
+        <div class="status-bar-container stamina-bar-container">
+            <div id="stamina-fill" class="status-bar bar-green"></div>
+        </div>
+        <div class="status-bar-container magic-bar-container">
+            <div id="magic-fill" class="status-bar bar-yellow"></div>
+        </div>
+    </div>
+
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
     <div id="stage-display" class="hidden"><span id="stage-name">始まりの村</span></div>
 
@@ -215,32 +294,28 @@
 <script>
     // ==========================================
     // Firebase 設定
-    // ※以下をご自身のFirebase設定情報に書き換えてください
     // ==========================================
     const firebaseConfig = {
-  apiKey: "AIzaSyCTU0ZEsxrTcTSDEJISNvOZFA6fJFNaFXg",
-  authDomain: "action-game-62bac.firebaseapp.com",
-  databaseURL: "https://action-game-62bac-default-rtdb.asia-southeast1.firebasedatabase.app", // ← これを追加！
-  projectId: "action-game-62bac",
-  storageBucket: "action-game-62bac.firebasestorage.app",
-  messagingSenderId: "256673568778",
-  appId: "1:256673568778:web:d9c05b62cd941215f5a7f3",
-  measurementId: "G-SW5TYGT4P8"
-};
+      apiKey: "AIzaSyCTU0ZEsxrTcTSDEJISNvOZFA6fJFNaFXg",
+      authDomain: "action-game-62bac.firebaseapp.com",
+      databaseURL: "https://action-game-62bac-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "action-game-62bac",
+      storageBucket: "action-game-62bac.firebasestorage.app",
+      messagingSenderId: "256673568778",
+      appId: "1:256673568778:web:d9c05b62cd941215f5a7f3",
+      measurementId: "G-SW5TYGT4P8"
+    };
 
     let db = null;
     let myPlayerRef = null;
     const myPlayerId = 'user_' + Math.random().toString(36).substr(2, 9);
     let otherPlayers = {};
 
-    // Firebase 初期化処理
     try {
         if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
             firebase.initializeApp(firebaseConfig);
             db = firebase.database();
             setupFirebaseListeners();
-        } else {
-            console.warn("Firebase設定がデフォルトのままです。`firebaseConfig`を書き換えるとマルチプレイが動きます。");
         }
     } catch (err) {
         console.error("Firebase初期化エラー:", err);
@@ -254,11 +329,7 @@
             if (snapshot.key !== myPlayerId) {
                 const data = snapshot.val();
                 otherPlayers[snapshot.key] = {
-                    ...data,
-                    drawX: data.x, // ★追加: アニメーション用の現在X座標
-                    drawYOffset: data.yOffset || 0, // ★追加: アニメーション用の現在Yオフセット
-                    targetX: data.x,
-                    targetYOffset: data.yOffset || 0
+                    ...data, drawX: data.x, drawYOffset: data.yOffset || 0, targetX: data.x, targetYOffset: data.yOffset || 0
                 };
             }
         });
@@ -267,7 +338,6 @@
             if (snapshot.key !== myPlayerId) {
                 const data = snapshot.val();
                 if (otherPlayers[snapshot.key]) {
-                    // ★変更: 既存プレイヤーは「目標値」だけを更新する
                     otherPlayers[snapshot.key].targetX = data.x;
                     otherPlayers[snapshot.key].targetYOffset = data.yOffset || 0;
                     otherPlayers[snapshot.key].facingRight = data.facingRight;
@@ -275,11 +345,7 @@
                     otherPlayers[snapshot.key].updatedAt = data.updatedAt;
                 } else {
                     otherPlayers[snapshot.key] = {
-                        ...data,
-                        drawX: data.x,
-                        drawYOffset: data.yOffset || 0,
-                        targetX: data.x,
-                        targetYOffset: data.yOffset || 0
+                        ...data, drawX: data.x, drawYOffset: data.yOffset || 0, targetX: data.x, targetYOffset: data.yOffset || 0
                     };
                 }
             }
@@ -291,33 +357,31 @@
     }
 
     let lastSyncTime = 0;
-const SYNC_INTERVAL = 100; // 100ミリ秒（毎秒10回）ごとに送信
+    const SYNC_INTERVAL = 100;
 
-function syncMyPosition() {
-    if (!db || gameState !== 'VILLAGE') return;
-    
-    const now = Date.now();
-    // 前回の送信から100ms経過していなければスキップ
-    if (now - lastSyncTime < SYNC_INTERVAL) return;
-    lastSyncTime = now;
+    function syncMyPosition() {
+        if (!db || gameState !== 'VILLAGE') return;
+        const now = Date.now();
+        if (now - lastSyncTime < SYNC_INTERVAL) return;
+        lastSyncTime = now;
 
-    if (!myPlayerRef) {
-        myPlayerRef = db.ref('village_players/' + myPlayerId);
-        myPlayerRef.onDisconnect().remove(); 
+        if (!myPlayerRef) {
+            myPlayerRef = db.ref('village_players/' + myPlayerId);
+            myPlayerRef.onDisconnect().remove(); 
+        }
+
+        const villageGroundY = canvas.height - 110;
+        const yOffset = villageGroundY - player.y;
+
+        myPlayerRef.set({
+            x: player.x,
+            yOffset: yOffset,
+            facingRight: playerFacingRight,
+            isGrounded: player.isGrounded,
+            updatedAt: now
+        });
     }
 
-    // ★追加: 地面を基準とした相対Y座標（高さ）を計算
-    const villageGroundY = canvas.height - 110;
-    const yOffset = villageGroundY - player.y;
-
-    myPlayerRef.set({
-        x: player.x,
-        yOffset: yOffset, // ★変更: y の代わりに yOffset を送信
-        facingRight: playerFacingRight,
-        isGrounded: player.isGrounded,
-        updatedAt: now
-    });
-}
     function removeMyPosition() {
         if (myPlayerRef) {
             myPlayerRef.remove();
@@ -339,10 +403,9 @@ function syncMyPosition() {
     const finalDistanceEl = document.getElementById('final-distance');
     const stageDisplay = document.getElementById('stage-display');
     const stageNameEl = document.getElementById('stage-name');
-    
     const gateActionUI = document.getElementById('gate-action');
+    
     document.getElementById('btn-enter-gate').addEventListener('click', enterGate);
-
     document.getElementById('btn-start').addEventListener('click', startGame);
     document.getElementById('btn-restart').addEventListener('click', showTitle);
 
@@ -373,6 +436,64 @@ function syncMyPosition() {
     setupButton('btn-right', 'right');
     setupButton('btn-jump', 'jump');
 
+    // ★追加：RPGステータス用変数
+    let playerName = "プレイヤー";
+    let playerLevel = 1;
+    let playerExp = 0;
+    let currentLevelReq = 2000;
+    let nextLevelTotalExp = 2000;
+    let maxStamina = 100;
+    let currentStamina = 100;
+
+    // ★追加：UI更新処理
+    function updateStatusUI() {
+        document.getElementById('status-name').innerText = playerName;
+        document.getElementById('status-level').innerText = "Lv." + playerLevel;
+        
+        const staminaPercent = (currentStamina / maxStamina) * 100;
+        document.getElementById('stamina-fill').style.width = Math.max(0, staminaPercent) + '%';
+        
+        // 魔力は未実装のためとりあえず常に100%
+        document.getElementById('magic-fill').style.width = '100%';
+    }
+
+    // ★追加：名前変更処理
+    function changePlayerName() {
+        const newName = prompt("名前を入力してください", playerName);
+        if (newName && newName.trim() !== "") {
+            playerName = newName.trim();
+            updateStatusUI();
+        }
+    }
+
+    // ★追加：レベルアップ判定
+    function checkLevelUp() {
+        let leveledUp = false;
+        while (playerExp >= nextLevelTotalExp) {
+            playerLevel++;
+            maxStamina += 2; // レベルが上がると最大スタミナ+2
+            currentStamina = maxStamina; // レベルアップ時のおまけでスタミナ全回復
+            
+            currentLevelReq += 100; // 次の必要経験値が100上がる
+            nextLevelTotalExp += currentLevelReq;
+            leveledUp = true;
+        }
+        if (leveledUp) {
+            updateStatusUI();
+        }
+    }
+
+    // ★追加：1秒に1スタミナ回復するタイマー
+    setInterval(() => {
+        if (gameState === 'PLAYING' || gameState === 'VILLAGE') {
+            if (currentStamina < maxStamina) {
+                currentStamina = Math.min(maxStamina, currentStamina + 1);
+                updateStatusUI();
+            }
+        }
+    }, 1000);
+
+    // ★変更：ジャンプ処理（スタミナ消費と連続ジャンプ対応）
     function doJump() {
         if (gameState === 'VILLAGE' && isNearGate) {
             enterGate();
@@ -380,15 +501,28 @@ function syncMyPosition() {
         }
 
         if (gameState !== 'PLAYING' && gameState !== 'VILLAGE') return;
+        
         if (player.isGrounded) {
+            // 地上からのジャンプ（スタミナ消費0）
             player.vy = player.jumpPower;
             player.isGrounded = false;
-
-            jumpSound.currentTime = 0;
-            jumpSound.play().catch(err => {
-                console.warn("ジャンプ音の再生に失敗しました:", err);
-            });
+            playJumpSound();
+        } else {
+            // 空中での連続ジャンプ（2段以上：スタミナ20消費）
+            if (currentStamina >= 20) {
+                currentStamina -= 20;
+                player.vy = player.jumpPower;
+                updateStatusUI();
+                playJumpSound();
+            }
         }
+    }
+
+    function playJumpSound() {
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(err => {
+            console.warn("ジャンプ音の再生に失敗しました:", err);
+        });
     }
 
     function resize() {
@@ -398,14 +532,12 @@ function syncMyPosition() {
         canvas.height = baseWidth * aspectRatio;
     }
     window.addEventListener('resize', resize);
-    
     document.addEventListener('fullscreenchange', () => { setTimeout(resize, 100); });
     document.addEventListener('webkitfullscreenchange', () => { setTimeout(resize, 100); });
-    
     resize();
 
     // ==========================================
-    // 村エリアの設定
+    // リソースとゲーム内変数設定
     // ==========================================
     const villageBg1 = new Image(); villageBg1.src = '村1.png';
     const villageBg2 = new Image(); villageBg2.src = '村2.png';
@@ -416,9 +548,6 @@ function syncMyPosition() {
     let cameraX = 0;
     let isNearGate = false;
 
-    // ==========================================
-    // メインゲームの設定
-    // ==========================================
     const STAGE2_DISTANCE = 1000; 
     const STAGE3_DISTANCE = 2000; 
     const STAGE4_DISTANCE = 3000; 
@@ -453,7 +582,7 @@ function syncMyPosition() {
     const jumpSound = new Audio('jump.mp3'); 
     jumpSound.volume = 0.4;
 
-    let gameState = 'TITLE'; // 'TITLE', 'VILLAGE', 'PLAYING', 'GAMEOVER'
+    let gameState = 'TITLE';
     let animationId;
     let distance = 0;
     let lastTime = 0;
@@ -492,7 +621,7 @@ function syncMyPosition() {
         icicles = [];
         boxes = [];
         cacti = [];
-        distance = 0;
+        distance = 0; // 距離はリセットしますが、レベルと経験値（playerExp）は維持します
         bgOffset = 0;
         currentBgImage = bgImage1;
         player.x = 50; player.y = 100;
@@ -502,7 +631,6 @@ function syncMyPosition() {
         isWindy = false;
         windWarning = false;
         windTimer = 0;
-        
         platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
     }
 
@@ -532,6 +660,10 @@ function syncMyPosition() {
         stageDisplay.classList.remove('hidden');
         stageNameEl.innerText = "始まりの村";
 
+        // ★追加：ステータスUIを表示
+        document.getElementById('status-ui').classList.remove('hidden');
+        updateStatusUI();
+
         gameState = 'VILLAGE';
         initVillage();
         
@@ -541,13 +673,10 @@ function syncMyPosition() {
 
     function enterGate() {
         if (gameState !== 'VILLAGE') return;
-        
-        removeMyPosition(); // 村を出るのでFirebaseから位置情報を削除
-        
+        removeMyPosition();
         gateActionUI.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
         stageNameEl.innerText = "アスター平原";
-        
         gameState = 'PLAYING';
         initMap();
     }
@@ -555,6 +684,7 @@ function syncMyPosition() {
     function showTitle() {
         removeMyPosition();
         gameOverScreen.classList.add('hidden');
+        document.getElementById('status-ui').classList.add('hidden'); // ★UI非表示
         titleScreen.classList.remove('hidden');
         gameState = 'TITLE';
     }
@@ -569,6 +699,7 @@ function syncMyPosition() {
         gamePad.classList.add('hidden');
         stageDisplay.classList.add('hidden');
         gateActionUI.classList.add('hidden');
+        document.getElementById('status-ui').classList.add('hidden'); // ★UI非表示
         gameOverScreen.classList.remove('hidden');
         finalDistanceEl.innerText = Math.floor(distance);
     }
@@ -617,18 +748,13 @@ function syncMyPosition() {
                 gateActionUI.classList.add('hidden');
             }
         }
-
-        // 自分の位置をFirebaseにリアルタイム送信
         syncMyPosition();
     }
 
     function drawVillage() {
         const now = Date.now();
-        
-        // 1. まず画面全体をクリアする（常に実行）
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 2. 背景を描画する
         if (villageBg1.complete && villageBg1.width > 0) {
             ctx.drawImage(villageBg1, 0 - cameraX, 0, 1280, canvas.height);
         }
@@ -636,7 +762,6 @@ function syncMyPosition() {
             ctx.drawImage(villageBg2, 1280 - cameraX, 0, 1280, canvas.height);
         }
 
-        // 3. ゲートの描画
         const gateScreenX = GATE_X - cameraX;
         const gateY = canvas.height - 110 - GATE_HEIGHT;
 
@@ -657,18 +782,12 @@ function syncMyPosition() {
             ctx.fill();
         }
 
-        // ==========================================
-        // オンラインの他プレイヤーを描画
-        // ==========================================
-        const villageGroundY = canvas.height - 110; // ★自分の画面の地面Y座標
+        const villageGroundY = canvas.height - 110;
 
         for (let key in otherPlayers) {
             const op = otherPlayers[key];
-            
-            // 5秒以上更新がないプレイヤー（古いデータ）は描画をスキップ
             if (now - op.updatedAt > 5000) continue;
 
-            // ★追加: 補間(Lerp)処理。現在の位置から目標位置へ滑らかに近づける
             if (op.targetX !== undefined) {
                 op.drawX += (op.targetX - op.drawX) * 0.2; 
             }
@@ -677,7 +796,6 @@ function syncMyPosition() {
             }
 
             const opDrawX = op.drawX - cameraX;
-            // ★追加: 相手のY座標を自分の画面サイズに合わせて計算し直す
             const opDrawY = villageGroundY - (op.drawYOffset || 0);
 
             if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
@@ -686,29 +804,25 @@ function syncMyPosition() {
                 ctx.save();
                 if (opImg.complete && opImg.width > 0) {
                     if (op.facingRight) {
-                        ctx.drawImage(opImg, opDrawX, opDrawY, player.width, player.height); // ★op.y を opDrawY に変更
+                        ctx.drawImage(opImg, opDrawX, opDrawY, player.width, player.height);
                     } else {
-                        ctx.translate(opDrawX + player.width / 2, opDrawY + player.height / 2); // ★op.y を opDrawY に変更
+                        ctx.translate(opDrawX + player.width / 2, opDrawY + player.height / 2);
                         ctx.scale(-1, 1);
                         ctx.drawImage(opImg, -player.width / 2, -player.height / 2, player.width, player.height);
                     }
                 } else {
                     ctx.fillStyle = 'orange';
-                    ctx.fillRect(opDrawX, opDrawY, player.width, player.height); // ★op.y を opDrawY に変更
+                    ctx.fillRect(opDrawX, opDrawY, player.width, player.height);
                 }
                 ctx.restore();
 
-                // 他プレイヤーの上に名前（タグ）を表示
                 ctx.fillStyle = '#00FFCC';
                 ctx.font = 'bold 14px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText("PLAYER", opDrawX + player.width / 2, opDrawY - 8); // ★op.y を opDrawY に変更
+                ctx.fillText("PLAYER", opDrawX + player.width / 2, opDrawY - 8);
             }
         }
 
-        // ==========================================
-        // 自分のプレイヤーを描画
-        // ==========================================
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         const drawX = player.x - cameraX;
 
@@ -730,18 +844,13 @@ function syncMyPosition() {
         ctx.fillStyle = '#FFFF00';
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#FFFF00';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.textAlign = 'center';
         ctx.fillText("YOU", drawX + player.width / 2, player.y - 8);
-    } // ← drawVillage() の正しい終わり
+    }
 
     function generateMap() {
         const lastPlatform = platforms[platforms.length - 1];
-        
         if (lastPlatform.x + lastPlatform.width < canvas.width + 500) {
             const isStage6 = (distance >= STAGE6_DISTANCE && distance < STAGE7_DISTANCE);
-
             const gap = isStage6 ? -2 : Math.random() * 100 + 50; 
             const yOffset = isStage6 ? 0 : (Math.random() - 0.5) * 150;
             
@@ -756,57 +865,40 @@ function syncMyPosition() {
 
             if (Math.random() < 0.5) {
                 let enemyType = 'normal';
-                
                 if (distance >= STAGE4_DISTANCE && distance < STAGE5_DISTANCE) {
                     enemyType = Math.random() < 0.5 ? 'normal' : 'hopper';
                 } else if (distance >= STAGE2_DISTANCE) {
                     enemyType = 'hopper';
                 }
-                
                 const eWidth = 60;
                 const eHeight = (enemyType === 'hopper') ? 50 : 40;
                 const enemyOffset = 37; 
-
                 enemies.push({
-                    type: enemyType,
-                    x: newX + width / 2, y: newY - eHeight + enemyOffset,
+                    type: enemyType, x: newX + width / 2, y: newY - eHeight + enemyOffset,
                     width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
-                    vy: 0, isGrounded: true,
-                    jumpTimer: (enemyType === 'hopper') ? Math.floor(Math.random() * 40) + 30 : 0,
+                    vy: 0, isGrounded: true, jumpTimer: (enemyType === 'hopper') ? Math.floor(Math.random() * 40) + 30 : 0,
                     isSquished: false, squishTimer: 0
                 });
             } else if (isStage6 && Math.random() < 0.7) {
                 const cactusSize = 70;
                 const embedAmount = 37; 
                 cacti.push({
-                    x: newX + width / 2, 
-                    y: newY - cactusSize + embedAmount,
-                    width: cactusSize,
-                    height: cactusSize
+                    x: newX + width / 2, y: newY - cactusSize + embedAmount, width: cactusSize, height: cactusSize
                 });
             }
             
             const isStage3 = (distance >= STAGE3_DISTANCE && distance < STAGE4_DISTANCE);
             if (isStage3 && Math.random() < 0.4) {
                 icicles.push({
-                    x: newX + Math.random() * (width - 40) + 20,
-                    y: 0,
-                    width: 30,
-                    height: 80,
-                    vy: 0,
-                    isFalling: false
+                    x: newX + Math.random() * (width - 40) + 20, y: 0, width: 30, height: 80, vy: 0, isFalling: false
                 });
             }
             
             if (Math.random() < 0.3) {
                 const boxSize = 60;
                 const embedAmount = 45;
-
                 boxes.push({
-                    x: newX + width / 2 + 80, 
-                    y: newY - boxSize + embedAmount,
-                    width: boxSize,
-                    height: boxSize
+                    x: newX + width / 2 + 80, y: newY - boxSize + embedAmount, width: boxSize, height: boxSize
                 });
             }
         }
@@ -817,7 +909,6 @@ function syncMyPosition() {
             updateVillage();
             return;
         }
-
         if (gameState !== 'PLAYING') return;
 
         if (distance >= STAGE5_DISTANCE) {
@@ -845,25 +936,15 @@ function syncMyPosition() {
 
         if (distance >= STAGE5_DISTANCE) {
             if (!isWindy && !windWarning) {
-                if (Math.random() < 0.005) {
-                    windWarning = true;
-                    windTimer = 60;
-                }
+                if (Math.random() < 0.005) { windWarning = true; windTimer = 60; }
             } else if (windWarning) {
                 windTimer--;
-                if (windTimer <= 0) {
-                    windWarning = false;
-                    isWindy = true;
-                    windTimer = 150;
-                }
+                if (windTimer <= 0) { windWarning = false; isWindy = true; windTimer = 150; }
             } else if (isWindy) {
                 windTimer--;
                 player.x -= 4.0;
                 if (player.x < 0) player.x = 0;
-                
-                if (windTimer <= 0) {
-                    isWindy = false;
-                }
+                if (windTimer <= 0) { isWindy = false; }
             }
         }
 
@@ -873,19 +954,13 @@ function syncMyPosition() {
 
         enemies.forEach(e => {
             if (e.isSquished) { e.squishTimer--; return; }
-
             if (e.type === 'hopper') {
                 if (e.isGrounded) {
                     e.jumpTimer--;
-                    if (e.jumpTimer <= 0) {
-                        e.vy = -11; e.isGrounded = false;
-                    }
+                    if (e.jumpTimer <= 0) { e.vy = -11; e.isGrounded = false; }
                 } else {
                     e.vy += 0.5; e.y += e.vy;
-                    if (e.y >= e.spawnY - e.height) {
-                        e.y = e.spawnY - e.height; e.vy = 0;
-                        e.isGrounded = true; e.jumpTimer = 80; 
-                    }
+                    if (e.y >= e.spawnY - e.height) { e.y = e.spawnY - e.height; e.vy = 0; e.isGrounded = true; e.jumpTimer = 80; }
                 }
             }
         });
@@ -894,17 +969,11 @@ function syncMyPosition() {
             if (!icicle.isFalling && Math.abs(player.x + player.width / 2 - (icicle.x + icicle.width / 2)) < 150) {
                 icicle.isFalling = true;
             }
-
-            if (icicle.isFalling) {
-                icicle.vy += player.gravity * 0.7;
-                icicle.y += icicle.vy;
-            }
+            if (icicle.isFalling) { icicle.vy += player.gravity * 0.7; icicle.y += icicle.vy; }
 
             const hitboxMargin = 10;
-            if (player.x + hitboxMargin < icicle.x + icicle.width &&
-                player.x + player.width - hitboxMargin > icicle.x &&
-                player.y + hitboxMargin < icicle.y + icicle.height &&
-                player.y + player.height - hitboxMargin > icicle.y) {
+            if (player.x + hitboxMargin < icicle.x + icicle.width && player.x + player.width - hitboxMargin > icicle.x &&
+                player.y + hitboxMargin < icicle.y + icicle.height && player.y + player.height - hitboxMargin > icicle.y) {
                 gameOver();
             }
         });
@@ -912,11 +981,8 @@ function syncMyPosition() {
         enemies.forEach(e => {
             if (e.isSquished) return;
             const hitboxMargin = 10; 
-            if (player.x + hitboxMargin < e.x + e.width &&
-                player.x + player.width - hitboxMargin > e.x &&
-                player.y + hitboxMargin < e.y + e.height &&
-                player.y + player.height - hitboxMargin > e.y) {
-                
+            if (player.x + hitboxMargin < e.x + e.width && player.x + player.width - hitboxMargin > e.x &&
+                player.y + hitboxMargin < e.y + e.height && player.y + player.height - hitboxMargin > e.y) {
                 if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
                     e.isSquished = true; e.squishTimer = 20; 
                     player.vy = player.jumpPower * 0.8; player.isGrounded = false;
@@ -929,19 +995,12 @@ function syncMyPosition() {
         platforms.forEach(p => {
             const footOffset = 37; 
             const marginX = 15;
-
-            if (player.x + marginX < p.x + p.width && 
-                player.x + player.width - marginX > p.x &&
-                player.y < p.y + p.height && 
-                player.y + player.height - footOffset > p.y) {
-                
+            if (player.x + marginX < p.x + p.width && player.x + player.width - marginX > p.x &&
+                player.y < p.y + p.height && player.y + player.height - footOffset > p.y) {
                 if (player.vy > 0) {
-                    player.isGrounded = true; 
-                    player.vy = 0;
-                    player.y = p.y - player.height + footOffset;
+                    player.isGrounded = true; player.vy = 0; player.y = p.y - player.height + footOffset;
                 } else if (player.vy < 0) {
-                    player.vy = 0; 
-                    player.y = p.y + p.height;
+                    player.vy = 0; player.y = p.y + p.height;
                 }
             }
         });
@@ -951,8 +1010,14 @@ function syncMyPosition() {
             const offset = player.x - scrollThreshold;
             player.x = scrollThreshold;
             
-            distance += offset * 0.05;
+            // ★変更：距離を加算し、同時に経験値も加算する
+            let addedDist = offset * 0.05;
+            distance += addedDist;
+            playerExp += addedDist;
             distanceEl.innerText = Math.floor(distance);
+            
+            // 経験値がたまったらレベルアップ処理へ
+            checkLevelUp();
 
             platforms.forEach(p => p.x -= offset);
             enemies.forEach(e => e.x -= offset);
@@ -972,39 +1037,23 @@ function syncMyPosition() {
 
         cacti.forEach(c => {
             const hitboxMargin = 15;
-            if (player.x + hitboxMargin < c.x + c.width &&
-                player.x + player.width - hitboxMargin > c.x &&
-                player.y + hitboxMargin < c.y + c.height &&
-                player.y + player.height - hitboxMargin > c.y) {
+            if (player.x + hitboxMargin < c.x + c.width && player.x + player.width - hitboxMargin > c.x &&
+                player.y + hitboxMargin < c.y + c.height && player.y + player.height - hitboxMargin > c.y) {
                 gameOver();
             }
         });
 
         boxes.forEach(b => {
-            const marginX = 15;
-            const footOffset = 37;
-            const standOffset = 20;
-            
-            const pLeft = player.x + marginX;
-            const pRight = player.x + player.width - marginX;
-            const pTop = player.y;
-            const pBottom = player.y + player.height - footOffset + standOffset;
+            const marginX = 15; const footOffset = 37; const standOffset = 20;
+            const pLeft = player.x + marginX; const pRight = player.x + player.width - marginX;
+            const pTop = player.y; const pBottom = player.y + player.height - footOffset + standOffset;
 
-            if (pLeft < b.x + b.width && 
-                pRight > b.x &&
-                pTop < b.y + b.height && 
-                pBottom > b.y) {
-                
+            if (pLeft < b.x + b.width && pRight > b.x && pTop < b.y + b.height && pBottom > b.y) {
                 if (player.vy > 0 && pBottom - player.vy <= b.y + 25) {
-                    player.isGrounded = true; 
-                    player.vy = 0;
-                    player.y = b.y - player.height + footOffset - standOffset;
+                    player.isGrounded = true; player.vy = 0; player.y = b.y - player.height + footOffset - standOffset;
                 } else {
-                    if (player.vx > 0) {
-                        player.x = b.x - player.width + marginX;
-                    } else if (player.vx < 0) {
-                        player.x = b.x + b.width - marginX;
-                    }
+                    if (player.vx > 0) { player.x = b.x - player.width + marginX; } 
+                    else if (player.vx < 0) { player.x = b.x + b.width - marginX; }
                 }
             }
         });
@@ -1041,8 +1090,7 @@ function syncMyPosition() {
             if (platformImg.complete && platformImg.width > 0) {
                 ctx.drawImage(platformImg, p.x, p.y, p.width, imgHeight);
                 if (p.height > imgHeight) {
-                    ctx.fillStyle = '#8B4513'; 
-                    ctx.fillRect(p.x, p.y + imgHeight, p.width, p.height - imgHeight);
+                    ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x, p.y + imgHeight, p.width, p.height - imgHeight);
                 }
             } else {
                 ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x, p.y, p.width, p.height);
@@ -1055,16 +1103,14 @@ function syncMyPosition() {
                 let currentEnemyImg = e.isGrounded ? hopperGroundImg : hopperJumpImg;
                 if (currentEnemyImg.complete && currentEnemyImg.width > 0) {
                     if (e.isSquished) {
-                        const squishedHeight = e.height * 0.25;
-                        ctx.drawImage(currentEnemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                        const squishedHeight = e.height * 0.25; ctx.drawImage(currentEnemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
                     } else {
                         ctx.drawImage(currentEnemyImg, e.x, e.y, e.width, e.height);
                     }
                 } else {
                     ctx.fillStyle = 'green';
                     if (e.isSquished) {
-                        const squishedHeight = e.height * 0.25;
-                        ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                        const squishedHeight = e.height * 0.25; ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
                     } else {
                         ctx.fillRect(e.x, e.y, e.width, e.height);
                     }
@@ -1072,15 +1118,13 @@ function syncMyPosition() {
             } else {
                 if (enemyImg.complete && enemyImg.width > 0) {
                     if (e.isSquished) {
-                        const squishedHeight = e.height * 0.25;
-                        ctx.drawImage(enemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                        const squishedHeight = e.height * 0.25; ctx.drawImage(enemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
                     } else {
                         ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
                     }
                 } else {
                     if (e.isSquished) {
-                        const squishedHeight = e.height * 0.25;
-                        ctx.fillStyle = 'red'; ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                        const squishedHeight = e.height * 0.25; ctx.fillStyle = 'red'; ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
                     } else {
                         ctx.fillStyle = 'red'; ctx.fillRect(e.x, e.y, e.width, e.height);
                         ctx.fillStyle = 'white'; ctx.fillRect(e.x + 5, e.y + 5, 5, 5); ctx.fillRect(e.x + 20, e.y + 5, 5, 5);
@@ -1092,33 +1136,19 @@ function syncMyPosition() {
         icicles.forEach(icicle => {
             ctx.fillStyle = '#E0FFFF';
             ctx.beginPath();
-            ctx.moveTo(icicle.x, icicle.y);
-            ctx.lineTo(icicle.x + icicle.width, icicle.y);
-            ctx.lineTo(icicle.x + icicle.width / 2, icicle.y + icicle.height);
-            ctx.closePath();
-            ctx.fill();
-            
-            ctx.strokeStyle = '#B0E0E6';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+            ctx.moveTo(icicle.x, icicle.y); ctx.lineTo(icicle.x + icicle.width, icicle.y); ctx.lineTo(icicle.x + icicle.width / 2, icicle.y + icicle.height);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#B0E0E6'; ctx.lineWidth = 2; ctx.stroke();
         });
 
         boxes.forEach(b => {
-            if (boxImg.complete && boxImg.width > 0) {
-                ctx.drawImage(boxImg, b.x, b.y, b.width, b.height);
-            } else {
-                ctx.fillStyle = '#8B4513'; 
-                ctx.fillRect(b.x, b.y, b.width, b.height);
-            }
+            if (boxImg.complete && boxImg.width > 0) { ctx.drawImage(boxImg, b.x, b.y, b.width, b.height); } 
+            else { ctx.fillStyle = '#8B4513'; ctx.fillRect(b.x, b.y, b.width, b.height); }
         });
 
         cacti.forEach(c => {
-            if (cactusImg.complete && cactusImg.width > 0) {
-                ctx.drawImage(cactusImg, c.x, c.y, c.width, c.height);
-            } else {
-                ctx.fillStyle = 'green'; 
-                ctx.fillRect(c.x, c.y, c.width, c.height);
-            }
+            if (cactusImg.complete && cactusImg.width > 0) { ctx.drawImage(cactusImg, c.x, c.y, c.width, c.height); } 
+            else { ctx.fillStyle = 'green'; ctx.fillRect(c.x, c.y, c.width, c.height); }
         });
         
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
@@ -1133,30 +1163,19 @@ function syncMyPosition() {
             }
             ctx.restore(); 
         } else {
-            ctx.fillStyle = 'blue';
-            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height);
         }
 
         if (windWarning) {
-            ctx.fillStyle = "rgba(255, 69, 0, 0.8)";
-            ctx.font = "bold 50px sans-serif";
-            ctx.textAlign = "center";
+            ctx.fillStyle = "rgba(255, 69, 0, 0.8)"; ctx.font = "bold 50px sans-serif"; ctx.textAlign = "center";
             ctx.fillText("⚠️ 突風注意！", canvas.width / 2, canvas.height / 3);
         } else if (isWindy) {
-            ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-            ctx.font = "bold 40px sans-serif";
-            ctx.textAlign = "center";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.7)"; ctx.font = "bold 40px sans-serif"; ctx.textAlign = "center";
             ctx.fillText("༄༅༄༅ 突風発生中！ ༄༅༄༅", canvas.width / 2, canvas.height / 3);
-            
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"; ctx.lineWidth = 3;
             for (let i = 0; i < 6; i++) {
-                let windX = Math.random() * canvas.width;
-                let windY = Math.random() * canvas.height;
-                ctx.beginPath();
-                ctx.moveTo(windX, windY);
-                ctx.lineTo(windX - (100 + Math.random() * 150), windY);
-                ctx.stroke();
+                let windX = Math.random() * canvas.width; let windY = Math.random() * canvas.height;
+                ctx.beginPath(); ctx.moveTo(windX, windY); ctx.lineTo(windX - (100 + Math.random() * 150), windY); ctx.stroke();
             }
         }
     } 
