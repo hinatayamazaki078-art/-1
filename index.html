@@ -717,22 +717,39 @@
 
         titleScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
-        scoreDisplay.classList.add('hidden');
-        gateActionUI.classList.add('hidden');
-        gamePad.classList.remove('hidden');
-        stageDisplay.classList.remove('hidden');
-        stageNameEl.innerText = "始まりの村";
-
+        
         document.getElementById('status-ui').classList.remove('hidden');
         updateStatusUI();
 
-        gameState = 'VILLAGE';
-        initVillage();
-        
+        // ＝＝＝ ★変更：途中再開データがあるかどうかの分岐 ＝＝＝
+        if (savedDistance > 0) {
+            // 【途中から再開する場合】直接「PLAYING」状態へ
+            gateActionUI.classList.add('hidden');
+            scoreDisplay.classList.remove('hidden'); // 距離表示を出す
+            gamePad.classList.remove('hidden');
+            stageDisplay.classList.remove('hidden');
+            
+            gameState = 'PLAYING';
+            initMap(true); // 前回追加した「途中再開フラグ(true)」を渡す
+            
+            savedDistance = 0; // ロード後はメモリ上の再開距離をリセット
+            saveGame();        // 即座にセーブして状態を確定
+        } else {
+            // 【新規スタート・ゲームオーバー後の場合】通常通り「村」へ
+            scoreDisplay.classList.add('hidden');
+            gateActionUI.classList.add('hidden');
+            gamePad.classList.remove('hidden');
+            stageDisplay.classList.remove('hidden');
+            stageNameEl.innerText = "始まりの村";
+
+            gameState = 'VILLAGE';
+            initVillage();
+        }
+        // ＝＝＝ ★変更ここまで ＝＝＝
+
         lastTime = performance.now();
         animationId = requestAnimationFrame(loop);
     }
-
     function enterGate() {
         if (gameState !== 'VILLAGE') return;
         removeMyPosition();
