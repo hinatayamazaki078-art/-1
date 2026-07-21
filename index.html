@@ -609,7 +609,7 @@
             const playPosRef = db.ref('parties/' + currentPartyId + '/positions/' + myPlayerId);
             playPosRef.onDisconnect().remove();
             
-            const absoluteX = (distance * 20) + player.x;
+            const absoluteX = totalScrollX + player.x;
 
             playPosRef.set({
                 absX: absoluteX,
@@ -895,6 +895,10 @@
     let animationId;
     let distance = 0;
     let lastTime = 0;
+    let totalScrollX = 0;              // 正確なスクロール量の記録用
+let enemiesGeneratedCount = 0;     // 敵に割り振る通し番号（ID）
+let defeatedEnemies = new Set();   // 倒された敵のIDリスト
+let enemiesDefeatedListener = null;// Firebaseのリスナー
     const FPS = 60;
     const frameInterval = 1000 / FPS;
     
@@ -923,11 +927,15 @@
 
     function initMap(isResume = false) {
         platforms = []; enemies = []; icicles = []; boxes = []; cacti = [];
+        enemiesGeneratedCount = 0;
         
         if (isResume && savedDistance > 0) {
             distance = savedDistance; bgOffset = distance * 10;
+            totalScrollX = distance * 20;
         } else {
             distance = 0; bgOffset = 0; currentBgImage = bgImage1;
+            totalScrollX = 0;
+            defeatedEnemies.clear();
             player.x = 50; player.y = 100; player.vx = 0; player.vy = 0;
             keys.left = false; keys.right = false; playerFacingRight = true; 
             isWindy = false; windWarning = false; windTimer = 0;
@@ -1106,6 +1114,10 @@
 
     function cleanupPartyData() {
         if (partyListener && partyRef) partyRef.off('value', partyListener);
+        if (enemiesDefeatedListener && currentPartyId && db) {
+        db.ref('parties/' + currentPartyId + '/enemiesDefeated').off('child_added', enemiesDefeatedListener);
+    }
+    enemiesDefeatedListener = null;
         partyRoomScreen.classList.add('hidden');
         currentPartyId = null;
         isPartyLeader = false;
@@ -1195,6 +1207,18 @@
         posRef.on('child_removed', (snapshot) => {
             delete partyPositions[snapshot.key];
         });
+        const enemiesRef = db.ref('parties/' + currentPartyId + '/enemiesDefeated');
+    enemiesDefeatedListener = enemiesRef.on('child_added', (snapshot) => {
+        const enemyId = parseInt(snapshot.key);
+        defeatedEnemies.add(enemyId); // 倒されたリストに記録
+
+        // 自分の画面にまだその敵がいたら、潰すアニメーションを発動
+        const enemy = enemies.find(e => e.id === enemyId);
+        if (enemy && !enemy.isSquished) {
+            enemy.isSquished = true;
+            enemy.squishTimer = 20;
+        }
+    });
     }
 
     function executeAdventure(isMulti) {
@@ -1443,22 +1467,30 @@
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
             if (gameRandom() < 0.5) { 
-                let enemyType = 'normal';
-                if (distance >= getDistance('s4') && distance < getDistance('s5')) {
-                    enemyType = gameRandom() < 0.5 ? 'normal' : 'hopper'; 
-                } else if (distance >= getDistance('s2')) {
-                    enemyType = 'hopper';
-                }
-                const eWidth = 60;
-                const eHeight = (enemyType === 'hopper') ? 50 : 40;
-                const enemyOffset = 37; 
-                enemies.push({
-                    type: enemyType, x: newX + width / 2, y: newY - eHeight + enemyOffset,
-                    width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
-                    vy: 0, isGrounded: true, 
-                    jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, 
-                    isSquished: false, squishTimer: 0
-                });
+            let enemyType = 'normal';
+            if (distance >= getDistance('s4') && distance < getDistance('s5')) {
+                enemyType = gameRandom() < 0.5 ? 'normal' : 'hopper'; 
+            } else if (distance >= getDistance('s2')) {
+                enemyType = 'hopper';
+            }
+            const eWidth = 60;
+            const eHeight = (enemyType === 'hopper') ? 50 : 40;
+            const enemyOffset = 37; 
+
+            // ▼▼▼ 追加・変更 ▼▼▼
+            const eId = enemiesGeneratedCount++; // 敵にIDを割り当て
+            const alreadyDefeated = defeatedEnemies.has(eId); // すでに倒されているか？
+
+            enemies.push({
+                id: eId, // ← IDを保存
+                type: enemyType, x: newX + width / 2, y: newY - eHeight + enemyOffset,
+                width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
+                vy: 0, isGrounded: true, 
+                jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, 
+                isSquished: alreadyDefeated, // ← 変更：倒されていれば最初から潰れ判定
+                squishTimer: alreadyDefeated ? 0 : 0 // ← 変更
+            });
+            // ▲▲▲ ここまで ▲▲▲
             } else if (isStage6 && gameRandom() < 0.7) { 
                 const cactusSize = 70; const embedAmount = 37; 
                 cacti.push({ x: newX + width / 2, y: newY - cactusSize + embedAmount, width: cactusSize, height: cactusSize });
@@ -1542,6 +1574,9 @@
                 player.y + hitboxMargin < e.y + e.height && player.y + player.height - hitboxMargin > e.y) {
                 if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
                     e.isSquished = true; e.squishTimer = 20; player.vy = player.jumpPower * 0.8; player.isGrounded = false;
+                    if (isMultiplayer && currentPartyId && db) {
+                        db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
+                    }
                 } else { gameOver(); }
             }
         });
@@ -1559,6 +1594,7 @@
         const scrollThreshold = canvas.width / 2;
         if (player.x > scrollThreshold) {
             const offset = player.x - scrollThreshold; player.x = scrollThreshold;
+            totalScrollX += offset;
             let addedDist = offset * 0.05;
             distance += addedDist; playerExp += addedDist;
             distanceEl.innerText = Math.floor(distance);
@@ -1678,7 +1714,7 @@
 
         if (isMultiplayer && currentPartyId) {
             const now = Date.now();
-            const myAbsXBase = distance * 20;
+            const myAbsXBase = totalScrollX;
 
             for (let key in partyPositions) {
                 const op = partyPositions[key];
