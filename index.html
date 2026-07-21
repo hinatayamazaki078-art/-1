@@ -727,29 +727,32 @@
         gateActionUI.classList.add('hidden');
     }
 
-    function initMap() {
+    // 引数に isResume を追加（デフォルトは false にしておく）
+    function initMap(isResume = false) {
         platforms = [];
         enemies = [];
         icicles = [];
         boxes = [];
         cacti = [];
+        
         // ★変更：再開時は距離を引き継ぐ
         if (isResume && savedDistance > 0) {
             distance = savedDistance;
             bgOffset = distance * 10; // 距離に応じて背景を適当にスクロール
         } else {
-        distance = 0; 
-        bgOffset = 0;
-        currentBgImage = bgImage1;
-        player.x = 50; player.y = 100;
-        player.vx = 0; player.vy = 0;
-        keys.left = false; keys.right = false;
-        playerFacingRight = true; 
-        isWindy = false;
-        windWarning = false;
-        windTimer = 0;
-        platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
-    }
+            distance = 0; 
+            bgOffset = 0;
+            currentBgImage = bgImage1;
+            player.x = 50; player.y = 100;
+            player.vx = 0; player.vy = 0;
+            keys.left = false; keys.right = false;
+            playerFacingRight = true; 
+            isWindy = false;
+            windWarning = false;
+            windTimer = 0;
+            platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
+        } // ← elseブロックを閉じる } が抜けていました！
+    } // ← initMap関数を閉じる } が抜けていました！
 
     function requestFullscreenAndLock(element) {
         const requestFS = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullScreen || element.msRequestFullscreen;
