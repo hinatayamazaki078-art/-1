@@ -503,7 +503,8 @@ function gameRandom() {
             nextLevelTotalExp: nextLevelTotalExp,
             maxStamina: maxStamina,
             currentStamina: currentStamina,
-            distance: (gameState === 'PLAYING') ? distance : 0
+            // マルチプレイ中は距離を0として保存し、次回起動時は村からスタートさせる
+            distance: (gameState === 'PLAYING' && !isMultiplayer) ? distance : 0
         };
         localStorage.setItem('actionGameSaveData', JSON.stringify(saveData));
     }
