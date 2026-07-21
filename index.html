@@ -400,7 +400,9 @@
             yOffset: yOffset,
             facingRight: playerFacingRight,
             isGrounded: player.isGrounded,
-            updatedAt: now
+            updatedAt: now,
+            name: playerName,   // ★追加：自分の名前を同期
+            level: playerLevel  // ★追加：自分のレベルを同期
         });
     }
 
@@ -879,7 +881,10 @@
                 ctx.fillStyle = '#00FFCC';
                 ctx.font = 'bold 14px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText("PLAYER", opDrawX + player.width / 2, opDrawY - 8);
+                // データがない場合は初期値を設定して表示
+                const opName = op.name || "プレイヤー";
+                const opLevel = op.level || 1;
+                ctx.fillText(opName + " Lv." + opLevel, opDrawX + player.width / 2, opDrawY - 8);
             }
         }
 
@@ -904,7 +909,8 @@
         ctx.fillStyle = '#FFFF00';
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText("YOU", drawX + player.width / 2, player.y - 8);
+        // 自分の名前とレベルを表示
+        ctx.fillText(playerName + " Lv." + playerLevel, drawX + player.width / 2, player.y - 8);
     }
 
     function generateMap() {
