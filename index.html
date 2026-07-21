@@ -418,9 +418,6 @@
             }
         }
     }
-
-    // 起動時にデータをロードする
-    loadGame();
     
     function syncMyPosition() {
         if (!db || gameState !== 'VILLAGE') return;
@@ -533,6 +530,8 @@
     let nextLevelTotalExp = 2000;
     let maxStamina = 100;
     let currentStamina = 100;
+
+    loadGame();
 
     // ★追加：UI更新処理
     function updateStatusUI() {
