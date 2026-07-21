@@ -381,6 +381,47 @@
     let lastSyncTime = 0;
     const SYNC_INTERVAL = 100;
 
+// ==========================================
+    // セーブ＆ロード機能
+    // ==========================================
+    let savedDistance = 0; // 途中再開用の距離データ
+
+    function saveGame() {
+        const saveData = {
+            playerName: playerName,
+            playerLevel: playerLevel,
+            playerExp: playerExp,
+            currentLevelReq: currentLevelReq,
+            nextLevelTotalExp: nextLevelTotalExp,
+            maxStamina: maxStamina,
+            currentStamina: currentStamina,
+            distance: (gameState === 'PLAYING') ? distance : 0 // 冒険中のみ距離を保存
+        };
+        localStorage.setItem('actionGameSaveData', JSON.stringify(saveData));
+    }
+
+    function loadGame() {
+        const dataStr = localStorage.getItem('actionGameSaveData');
+        if (dataStr) {
+            try {
+                const data = JSON.parse(dataStr);
+                playerName = data.playerName || "プレイヤー";
+                playerLevel = data.playerLevel || 1;
+                playerExp = data.playerExp || 0;
+                currentLevelReq = data.currentLevelReq || 2000;
+                nextLevelTotalExp = data.nextLevelTotalExp || 2000;
+                maxStamina = data.maxStamina || 100;
+                currentStamina = data.currentStamina || 100;
+                savedDistance = data.distance || 0;
+            } catch(e) {
+                console.error("セーブデータの読み込みに失敗しました", e);
+            }
+        }
+    }
+
+    // 起動時にデータをロードする
+    loadGame();
+    
     function syncMyPosition() {
         if (!db || gameState !== 'VILLAGE') return;
         const now = Date.now();
@@ -521,6 +562,7 @@
         if (newName && newName.trim() !== "") {
             playerName = newName.trim();
             updateStatusUI();
+            saveGame(); // ★追加：名前変更を保存
         }
         nameInputModal.classList.add('hidden');
         
@@ -555,6 +597,13 @@
             }
         }
     }, 1000);
+
+    // ★追加：5秒ごとにオートセーブを実行するタイマー
+    setInterval(() => {
+        if (gameState === 'PLAYING' || gameState === 'VILLAGE') {
+            saveGame();
+        }
+    }, 5000);
 
     // ★変更：ジャンプ処理（スタミナ消費と連続ジャンプ対応）
     function doJump() {
@@ -684,6 +733,11 @@
         icicles = [];
         boxes = [];
         cacti = [];
+        // ★変更：再開時は距離を引き継ぐ
+        if (isResume && savedDistance > 0) {
+            distance = savedDistance;
+            bgOffset = distance * 10; // 距離に応じて背景を適当にスクロール
+        } else {
         distance = 0; 
         bgOffset = 0;
         currentBgImage = bgImage1;
@@ -774,6 +828,11 @@
         cancelAnimationFrame(animationId);
         bgm.pause();
 
+const currentScore = distance; // 最終記録を一時保存
+        distance = 0;
+        saveGame();
+        distance = currentScore; // 表示用に一時的に戻す
+        
         scoreDisplay.classList.add('hidden');
         gamePad.classList.add('hidden');
         stageDisplay.classList.add('hidden');
