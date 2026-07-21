@@ -507,20 +507,61 @@
         if (e.key === 'ArrowRight') keys.right = false;
     });
 
-    const setupButton = (id, action) => {
+    // ------------------------------------------
+    // PC（マウス操作）用の設定
+    // ------------------------------------------
+    const setupMouseBtn = (id, action) => {
         const btn = document.getElementById(id);
-        const startAction = (e) => { e.preventDefault(); if(action === 'jump') doJump(); else keys[action] = true; };
-        const endAction = (e) => { e.preventDefault(); if(action !== 'jump') keys[action] = false; };
-        
-        btn.addEventListener('mousedown', startAction);
-        btn.addEventListener('touchstart', startAction);
-        btn.addEventListener('mouseup', endAction);
-        btn.addEventListener('touchend', endAction);
-        btn.addEventListener('mouseleave', endAction);
+        btn.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            if (action === 'jump') doJump();
+            else keys[action] = true;
+        });
+        btn.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            if (action !== 'jump') keys[action] = false;
+        });
+        btn.addEventListener('mouseleave', (e) => {
+            e.preventDefault();
+            if (action !== 'jump') keys[action] = false;
+        });
     };
-    setupButton('btn-left', 'left');
-    setupButton('btn-right', 'right');
-    setupButton('btn-jump', 'jump');
+    setupMouseBtn('btn-left', 'left');
+    setupMouseBtn('btn-right', 'right');
+    setupMouseBtn('btn-jump', 'jump');
+
+    // ------------------------------------------
+    // スマホ（タッチ・指スライド移動）用の設定
+    // ------------------------------------------
+    const jumpBtn = document.getElementById('btn-jump');
+    jumpBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        doJump(); // ジャンプボタンが押された瞬間のみ発火
+    });
+
+    function handleTouchControls(e) {
+        let left = false;
+        let right = false;
+
+        // 現在画面を触っているすべての指の位置をミリ秒単位で確認
+        for (let i = 0; i < e.touches.length; i++) {
+            const touch = e.touches[i];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target) {
+                if (target.id === 'btn-left') left = true;
+                if (target.id === 'btn-right') right = true;
+            }
+        }
+
+        keys.left = left;
+        keys.right = right;
+    }
+
+    // タッチ開始・移動・離した時・キャンセル時に常に指下のボタン状態を更新
+    window.addEventListener('touchstart', handleTouchControls, { passive: false });
+    window.addEventListener('touchmove', handleTouchControls, { passive: false });
+    window.addEventListener('touchend', handleTouchControls, { passive: false });
+    window.addEventListener('touchcancel', handleTouchControls, { passive: false });
 
     // ★追加：RPGステータス用変数
     let playerName = "プレイヤー";
