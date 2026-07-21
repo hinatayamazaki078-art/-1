@@ -205,6 +205,46 @@
             pointer-events: none;
         }
 
+        /* ★追加：冒険中の村へ帰るボタン（右上・小） */
+        #btn-return-village {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 35;
+            background-color: rgba(0, 0, 0, 0.65);
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        #btn-return-village:active {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ★追加：確認ダイアログ用のボタン設定 */
+        .confirm-btn-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .confirm-btn {
+            padding: 10px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 2px solid #fff;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+        }
+        .btn-yes { background-color: #ff4d4d; color: white; }
+        .btn-no { background-color: #555; color: white; }
+        .btn-yes:active, .btn-no:active { transform: translateY(2px); }
+
         #game-pad {
             position: absolute;
             bottom: calc(20px + env(safe-area-inset-bottom));
@@ -246,7 +286,7 @@
             background-color: rgba(255, 255, 255, 0.4);
         }
 
-        /* ＝＝＝ ★追加：パーティーUI用スタイル ＝＝＝ */
+        /* ＝＝＝ パーティーUI用スタイル ＝＝＝ */
         .modal-box {
             background: rgba(20, 20, 40, 0.9);
             border: 4px solid #4169E1;
@@ -313,6 +353,9 @@
 
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
+
+    <!-- ★追加：冒険中用「村に帰る」ボタン -->
+    <button id="btn-return-village" class="hidden">村に帰る</button>
     
     <div id="status-ui" class="hidden">
         <div class="status-avatar"></div>
@@ -337,7 +380,7 @@
         <p style="color: white; font-weight: bold; text-shadow: 2px 2px 2px black; font-size: 2vw; margin-top: 10px;">▲ボタン（キー）でも出発</p>
     </div>
 
-    <!-- ★追加：マルチ冒険の門アクション -->
+    <!-- マルチ冒険の門アクション -->
     <div id="multi-gate-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
         <button id="btn-create-party" class="menu-btn multi-btn">パーティー作成</button>
         <button id="btn-join-party" class="menu-btn multi-btn">パーティー参加</button>
@@ -363,7 +406,19 @@
         <button id="btn-name-decide" class="menu-btn">決定</button>
     </div>
 
-    <!-- ★追加：パーティー参加リスト画面 -->
+    <!-- ★追加：村に帰る確認ダイアログ -->
+    <div id="return-confirm-modal" class="screen hidden" style="z-index: 60;">
+        <div class="modal-box" style="max-width: 400px; border-color: #ff4500;">
+            <h2 style="color: #FFD700; margin-bottom: 10px;">本当に帰りますか？</h2>
+            <p style="color: white; font-size: 16px; margin-bottom: 15px;">村へ戻ると冒険は終了します。</p>
+            <div class="confirm-btn-group">
+                <button id="btn-return-yes" class="confirm-btn btn-yes">はい</button>
+                <button id="btn-return-no" class="confirm-btn btn-no">いいえ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- パーティー参加リスト画面 -->
     <div id="party-list-screen" class="screen hidden" style="z-index: 50;">
         <div class="modal-box">
             <h2 style="color: #FFD700; margin-bottom: 10px;">参加可能なパーティー</h2>
@@ -374,7 +429,7 @@
         </div>
     </div>
 
-    <!-- ★追加：パーティー待機ルーム画面 -->
+    <!-- パーティー待機ルーム画面 -->
     <div id="party-room-screen" class="screen hidden" style="z-index: 50;">
         <div class="modal-box">
             <h2 style="color: #FFD700; margin-bottom: 10px;">待機ルーム (最大4人)</h2>
@@ -422,7 +477,7 @@
     const myPlayerId = 'user_' + Math.random().toString(36).substr(2, 9);
     let otherPlayers = {};
 
-    // ★追加：マルチプレイ用変数
+    // マルチプレイ用変数
     let isMultiplayer = false; 
     let currentPartyId = null;
     let isPartyLeader = false;
@@ -483,16 +538,15 @@
     // ==========================================
     let savedDistance = 0;
 
-    // ★追加：マップ生成用のシード値と疑似乱数ジェネレーター
-let mapSeed = 1;
-let currentPartyMapSeed = 1;
+    let mapSeed = 1;
+    let currentPartyMapSeed = 1;
 
-function gameRandom() {
-    let t = mapSeed += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-}
+    function gameRandom() {
+        let t = mapSeed += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
     
     function saveGame() {
         const saveData = {
@@ -503,8 +557,7 @@ function gameRandom() {
             nextLevelTotalExp: nextLevelTotalExp,
             maxStamina: maxStamina,
             currentStamina: currentStamina,
-            // マルチプレイ中は距離を0として保存し、次回起動時は村からスタートさせる
-            distance: (gameState === 'PLAYING' && !isMultiplayer) ? distance : 0
+            distance: (gameState === 'PLAYING') ? distance : 0
         };
         localStorage.setItem('actionGameSaveData', JSON.stringify(saveData));
     }
@@ -528,7 +581,6 @@ function gameRandom() {
         }
     }
     
-    // ★既存の関数をまるごと書き換え
     function syncMyPosition() {
         if (!db) return;
         const now = Date.now();
@@ -553,12 +605,10 @@ function gameRandom() {
                 level: playerLevel
             });
         } 
-        // ★ここから追加：冒険中（PLAYING）の同期処理
         else if (gameState === 'PLAYING' && isMultiplayer && currentPartyId) {
             const playPosRef = db.ref('parties/' + currentPartyId + '/positions/' + myPlayerId);
             playPosRef.onDisconnect().remove();
             
-            // distanceは 0.05倍されているので、実際のピクセルスクロール量は distance * 20
             const absoluteX = (distance * 20) + player.x;
 
             playPosRef.set({
@@ -596,6 +646,12 @@ function gameRandom() {
     const gateActionUI = document.getElementById('gate-action');
     const multiGateActionUI = document.getElementById('multi-gate-action');
     const fadeOverlay = document.getElementById('fade-overlay'); 
+
+    // ★追加：村に戻るUIの要素取得
+    const btnReturnVillage = document.getElementById('btn-return-village');
+    const returnConfirmModal = document.getElementById('return-confirm-modal');
+    const btnReturnYes = document.getElementById('btn-return-yes');
+    const btnReturnNo = document.getElementById('btn-return-no');
     
     // パーティー用UI
     const partyListScreen = document.getElementById('party-list-screen');
@@ -608,12 +664,26 @@ function gameRandom() {
     document.getElementById('btn-enter-gate').addEventListener('click', enterSoloGate);
     document.getElementById('btn-restart').addEventListener('click', showTitle);
     
-    // ★マルチ用イベント
+    // マルチ用イベント
     document.getElementById('btn-create-party').addEventListener('click', createParty);
     document.getElementById('btn-join-party').addEventListener('click', showPartyList);
     document.getElementById('btn-close-party-list').addEventListener('click', hidePartyList);
     document.getElementById('btn-leave-party').addEventListener('click', leaveParty);
     btnStartMulti.addEventListener('click', startMultiAdventure);
+
+    // ★追加：村に帰る処理のイベントリスナー
+    btnReturnVillage.addEventListener('click', () => {
+        returnConfirmModal.classList.remove('hidden');
+    });
+
+    btnReturnNo.addEventListener('click', () => {
+        returnConfirmModal.classList.add('hidden');
+    });
+
+    btnReturnYes.addEventListener('click', () => {
+        returnConfirmModal.classList.add('hidden');
+        returnToVillage();
+    });
 
     titleScreen.addEventListener('click', () => {
         fadeOverlay.classList.remove('hidden');
@@ -742,9 +812,7 @@ function gameRandom() {
 
     function doJump() {
         if (gameState === 'VILLAGE') {
-            // いずれかの門の近くならアクション実行
             if (isNearSoloGate) { enterSoloGate(); return; }
-            // マルチ門の前で上キー押した場合は何もしない（UIから選ぶため）
         }
 
         if (gameState !== 'PLAYING' && gameState !== 'VILLAGE') return;
@@ -781,17 +849,15 @@ function gameRandom() {
     const villageBg2 = new Image(); villageBg2.src = '村2.png';
     const VILLAGE_WIDTH = 2560; 
     
-    // ★門の設定（ソロとマルチ）
     const GATE_WIDTH = 140;
     const GATE_HEIGHT = 180;
     const SOLO_GATE_X = 1280 - (GATE_WIDTH / 2); 
-    const MULTI_GATE_X = 700; // マルチ門の座標
+    const MULTI_GATE_X = 700; 
     
     let cameraX = 0;
     let isNearSoloGate = false;
     let isNearMultiGate = false;
 
-    // ★基本距離。マルチプレイ時はこれを2倍にする
     const BASE_DISTANCES = {
         s2: 1000, s3: 2000, s4: 3000, s5: 4000, s6: 5000, s7: 6000
     };
@@ -851,7 +917,8 @@ function gameRandom() {
         isNearMultiGate = false;
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
-        isMultiplayer = false; // 村にいる時はソロ設定に戻す
+        btnReturnVillage.classList.add('hidden'); // 村にいるときはボタンを消す
+        isMultiplayer = false; 
     }
 
     function initMap(isResume = false) {
@@ -893,6 +960,7 @@ function gameRandom() {
             scoreDisplay.classList.remove('hidden'); 
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
+            btnReturnVillage.classList.remove('hidden'); // 冒険再開時はボタン表示
             
             gameState = 'PLAYING';
             initMap(true); 
@@ -901,6 +969,7 @@ function gameRandom() {
             scoreDisplay.classList.add('hidden');
             gateActionUI.classList.add('hidden');
             multiGateActionUI.classList.add('hidden');
+            btnReturnVillage.classList.add('hidden');
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
             stageNameEl.innerText = "始まりの村";
@@ -913,7 +982,7 @@ function gameRandom() {
         animationId = requestAnimationFrame(loop);
     }
 
-    // ＝＝＝ ★追加：パーティー・マルチプレイ機能 ＝＝＝
+    // ＝＝＝ パーティー・マルチプレイ機能 ＝＝＝
 
     function createParty() {
         if (!db) return alert("通信エラー：マルチプレイを利用できません。");
@@ -921,16 +990,14 @@ function gameRandom() {
         currentPartyId = partyRef.key;
         isPartyLeader = true;
 
-        // ★追加：パーティー共通のマップシードを生成
         const newMapSeed = Math.floor(Math.random() * 1000000);
 
-        // DBにパーティー情報作成
         partyRef.set({
             leaderId: myPlayerId,
             leaderName: playerName,
             leaderLevel: playerLevel,
             status: 'waiting',
-            mapSeed: newMapSeed, // ★追加：シード値をデータベースに保存
+            mapSeed: newMapSeed, 
             players: {
                 [myPlayerId]: { name: playerName, level: playerLevel }
             }
@@ -958,7 +1025,6 @@ function gameRandom() {
                     const div = document.createElement('div');
                     div.className = 'party-list-item';
                     
-                    // パーティー情報
                     const info = document.createElement('div');
                     info.style.textAlign = 'left';
                     info.innerHTML = `
@@ -1000,10 +1066,9 @@ function gameRandom() {
         isPartyLeader = false;
         partyRef = db.ref('parties/' + partyId);
 
-        // トランザクションで定員チェックしつつ参加
         partyRef.child('players').transaction((players) => {
-            if (players === null) return players; // パーティーが存在しない
-            if (Object.keys(players).length >= 4) return undefined; // アボート（満員）
+            if (players === null) return players; 
+            if (Object.keys(players).length >= 4) return undefined; 
             players[myPlayerId] = { name: playerName, level: playerLevel };
             return players;
         }, (error, committed, snapshot) => {
@@ -1032,7 +1097,7 @@ function gameRandom() {
     function leaveParty() {
         if (!partyRef) return;
         if (isPartyLeader) {
-            partyRef.remove(); // リーダー退出で解散
+            partyRef.remove(); 
         } else {
             partyRef.child('players/' + myPlayerId).remove();
         }
@@ -1053,7 +1118,6 @@ function gameRandom() {
         partyListener = partyRef.on('value', (snapshot) => {
             const data = snapshot.val();
             if (!data) {
-                // 解散された
                 alert("パーティーが解散されました。");
                 cleanupPartyData();
                 return;
@@ -1063,7 +1127,6 @@ function gameRandom() {
                 currentPartyMapSeed = data.mapSeed;
             }
 
-            // メンバー表示更新
             partyMembersContainer.innerHTML = "";
             const players = data.players || {};
             for (let pid in players) {
@@ -1080,9 +1143,7 @@ function gameRandom() {
                 partyMembersContainer.appendChild(div);
             }
 
-            // 出発チェック
             if (data.status === 'playing') {
-                // ゲームスタート！
                 if (partyListener && partyRef) partyRef.off('value', partyListener);
                 partyRoomScreen.classList.add('hidden');
                 executeAdventure(true);
@@ -1092,20 +1153,17 @@ function gameRandom() {
 
     function startMultiAdventure() {
         if (!isPartyLeader || !partyRef) return;
-        // DBのステータスを変更し、全員のクライアントを出発させる
         partyRef.update({ status: 'playing' });
     }
-    // ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
 
     function enterSoloGate() {
         if (gameState !== 'VILLAGE') return;
         executeAdventure(false);
     }
 
-    // ★新しく追加：冒険中のパーティメンバーの座標を受信する
     function setupPartyPositionsListener() {
         if (!db || !currentPartyId) return;
-        partyPositions = {}; // 初期化
+        partyPositions = {}; 
         const posRef = db.ref('parties/' + currentPartyId + '/positions');
         
         posRef.on('child_added', (snapshot) => {
@@ -1139,17 +1197,16 @@ function gameRandom() {
         });
     }
 
-    // ★既存の関数を書き換え：マルチなら通信を開始させる
     function executeAdventure(isMulti) {
         removeMyPosition();
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
+        btnReturnVillage.classList.remove('hidden'); // ★冒険スタートでボタン表示
         stageNameEl.innerText = "アスター平原";
         gameState = 'PLAYING';
         isMultiplayer = isMulti;
         
-        // ★追加：マルチプレイ時は共有シード、ソロ時は完全なランダムシードを設定
         if (isMultiplayer) {
             mapSeed = currentPartyMapSeed; 
             setupPartyPositionsListener();
@@ -1160,9 +1217,43 @@ function gameRandom() {
         initMap();
     }
 
+    // ★追加：暗転して村に戻る処理
+    function returnToVillage() {
+        // 暗転フェードアウトの開始
+        fadeOverlay.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => { fadeOverlay.style.opacity = '1'; });
+        });
+
+        setTimeout(() => {
+            // 位置情報・マルチプレイの後始末
+            removeMyPosition();
+            if (isMultiplayer && currentPartyId) {
+                leaveParty();
+            }
+
+            // UI切り替え
+            btnReturnVillage.classList.add('hidden');
+            scoreDisplay.classList.add('hidden');
+            stageNameEl.innerText = "始まりの村";
+            
+            // 村状態へ変更と初期化
+            gameState = 'VILLAGE';
+            initVillage();
+            saveGame();
+
+            // 明るく戻す
+            fadeOverlay.style.opacity = '0';
+            setTimeout(() => { 
+                fadeOverlay.classList.add('hidden'); 
+            }, 2000);
+        }, 2000);
+    }
+
     function showTitle() {
         removeMyPosition();
         gameOverScreen.classList.add('hidden');
+        btnReturnVillage.classList.add('hidden');
         document.getElementById('status-ui').classList.add('hidden');
         titleScreen.classList.remove('hidden');
         gameState = 'TITLE';
@@ -1184,6 +1275,7 @@ function gameRandom() {
         stageDisplay.classList.add('hidden');
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
+        btnReturnVillage.classList.add('hidden'); // ゲームオーバー時は非表示
         document.getElementById('status-ui').classList.add('hidden');
         gameOverScreen.classList.remove('hidden');
         finalDistanceEl.innerText = Math.floor(distance);
@@ -1228,7 +1320,7 @@ function gameRandom() {
             if (isNearSoloGate) { isNearSoloGate = false; gateActionUI.classList.add('hidden'); }
         }
 
-        // ★マルチ門判定
+        // マルチ門判定
         if (playerCenterX >= MULTI_GATE_X - gateMargin && playerCenterX <= MULTI_GATE_X + GATE_WIDTH + gateMargin) {
             if (!isNearMultiGate) { isNearMultiGate = true; multiGateActionUI.classList.remove('hidden'); }
         } else {
@@ -1248,7 +1340,7 @@ function gameRandom() {
         const villageGroundY = canvas.height - 110;
         const gateY = villageGroundY - GATE_HEIGHT;
 
-        // ★ソロ冒険の門 描画
+        // ソロ冒険の門 描画
         const soloGateScreenX = SOLO_GATE_X - cameraX;
         ctx.fillStyle = '#4A2E18';
         ctx.fillRect(soloGateScreenX, gateY, 20, GATE_HEIGHT);
@@ -1262,9 +1354,9 @@ function gameRandom() {
             ctx.arc(soloGateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
         }
 
-        // ★マルチ冒険の門 描画
+        // マルチ冒険の門 描画
         const multiGateScreenX = MULTI_GATE_X - cameraX;
-        ctx.fillStyle = '#2a4b7c'; // マルチ用は少し青っぽい色
+        ctx.fillStyle = '#2a4b7c'; 
         ctx.fillRect(multiGateScreenX, gateY, 20, GATE_HEIGHT);
         ctx.fillRect(multiGateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
         ctx.fillRect(multiGateScreenX, gateY, GATE_WIDTH, 30);
@@ -1338,12 +1430,11 @@ function gameRandom() {
         if (lastPlatform.x + lastPlatform.width < canvas.width + 500) {
             const isStage6 = (distance >= getDistance('s6') && distance < getDistance('s7'));
             
-            // ★ Math.random() を gameRandom() に変更
             const gap = isStage6 ? -2 : gameRandom() * 100 + 50; 
             const yOffset = isStage6 ? 0 : (gameRandom() - 0.5) * 150;
             
             let newY = lastPlatform.y + yOffset;
-            const width = gameRandom() * 300 + 150; // ★ 変更
+            const width = gameRandom() * 300 + 150; 
             
             if (newY > canvas.height - 50) newY = canvas.height - 50;
             if (newY < canvas.height - 250) newY = canvas.height - 250;
@@ -1351,10 +1442,10 @@ function gameRandom() {
             const newX = lastPlatform.x + lastPlatform.width + gap;
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
-            if (gameRandom() < 0.5) { // ★ 変更
+            if (gameRandom() < 0.5) { 
                 let enemyType = 'normal';
                 if (distance >= getDistance('s4') && distance < getDistance('s5')) {
-                    enemyType = gameRandom() < 0.5 ? 'normal' : 'hopper'; // ★ 変更
+                    enemyType = gameRandom() < 0.5 ? 'normal' : 'hopper'; 
                 } else if (distance >= getDistance('s2')) {
                     enemyType = 'hopper';
                 }
@@ -1365,20 +1456,20 @@ function gameRandom() {
                     type: enemyType, x: newX + width / 2, y: newY - eHeight + enemyOffset,
                     width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
                     vy: 0, isGrounded: true, 
-                    jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, // ★ 変更
+                    jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, 
                     isSquished: false, squishTimer: 0
                 });
-            } else if (isStage6 && gameRandom() < 0.7) { // ★ 変更
+            } else if (isStage6 && gameRandom() < 0.7) { 
                 const cactusSize = 70; const embedAmount = 37; 
                 cacti.push({ x: newX + width / 2, y: newY - cactusSize + embedAmount, width: cactusSize, height: cactusSize });
             }
             
             const isStage3 = (distance >= getDistance('s3') && distance < getDistance('s4'));
-            if (isStage3 && gameRandom() < 0.4) { // ★ 変更
-                icicles.push({ x: newX + gameRandom() * (width - 40) + 20, y: 0, width: 30, height: 80, vy: 0, isFalling: false }); // ★ 変更
+            if (isStage3 && gameRandom() < 0.4) { 
+                icicles.push({ x: newX + gameRandom() * (width - 40) + 20, y: 0, width: 30, height: 80, vy: 0, isFalling: false }); 
             }
             
-            if (gameRandom() < 0.3) { // ★ 変更
+            if (gameRandom() < 0.3) { 
                 const boxSize = 60; const embedAmount = 45;
                 boxes.push({ x: newX + width / 2 + 80, y: newY - boxSize + embedAmount, width: boxSize, height: boxSize });
             }
@@ -1389,7 +1480,6 @@ function gameRandom() {
         if (gameState === 'VILLAGE') { updateVillage(); return; }
         if (gameState !== 'PLAYING') return;
 
-        // ★距離計算の倍率反映
         if (distance >= getDistance('s5')) {
             currentBgImage = bgImage5; stageNameEl.innerText = "グリオン砂漠" + (isMultiplayer ? "(マルチ)" : "");
         } else if (distance >= getDistance('s4')) {
@@ -1586,23 +1676,20 @@ function gameRandom() {
             else { ctx.fillStyle = 'green'; ctx.fillRect(c.x, c.y, c.width, c.height); }
         });
 
-if (isMultiplayer && currentPartyId) {
+        if (isMultiplayer && currentPartyId) {
             const now = Date.now();
-            const myAbsXBase = distance * 20; // 自分がスクロールした総ピクセル量
+            const myAbsXBase = distance * 20;
 
             for (let key in partyPositions) {
                 const op = partyPositions[key];
-                if (now - op.updatedAt > 5000) continue; // 通信が途切れたら非表示
+                if (now - op.updatedAt > 5000) continue;
 
-                // なめらかに動かすための補間
                 if (op.targetAbsX !== undefined) op.drawAbsX += (op.targetAbsX - op.drawAbsX) * 0.2;
                 if (op.targetY !== undefined) op.drawY += (op.targetY - op.drawY) * 0.2;
 
-                // 相手の絶対座標から、自分のスクロール量を引いて画面内の位置を計算
                 const opDrawX = op.drawAbsX - myAbsXBase;
                 const opDrawY = op.drawY;
 
-                // 画面内にいる時だけ描画する
                 if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
                     let opImg = op.isGrounded ? playerImgWalk : playerImgJump;
                     ctx.save();
