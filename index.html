@@ -428,6 +428,7 @@
     let isPartyLeader = false;
     let partyRef = null;
     let partyListener = null;
+    let partyPositions = {};
 
     try {
         if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
@@ -515,31 +516,50 @@
         }
     }
     
+    // ★既存の関数をまるごと書き換え
     function syncMyPosition() {
-        if (!db || gameState !== 'VILLAGE') return;
+        if (!db) return;
         const now = Date.now();
         if (now - lastSyncTime < SYNC_INTERVAL) return;
         lastSyncTime = now;
 
-        if (!myPlayerRef) {
-            myPlayerRef = db.ref('village_players/' + myPlayerId);
-            myPlayerRef.onDisconnect().remove(); 
+        if (gameState === 'VILLAGE') {
+            if (!myPlayerRef) {
+                myPlayerRef = db.ref('village_players/' + myPlayerId);
+                myPlayerRef.onDisconnect().remove(); 
+            }
+            const villageGroundY = canvas.height - 110;
+            const yOffset = villageGroundY - player.y;
+
+            myPlayerRef.set({
+                x: player.x,
+                yOffset: yOffset,
+                facingRight: playerFacingRight,
+                isGrounded: player.isGrounded,
+                updatedAt: now,
+                name: playerName,
+                level: playerLevel
+            });
+        } 
+        // ★ここから追加：冒険中（PLAYING）の同期処理
+        else if (gameState === 'PLAYING' && isMultiplayer && currentPartyId) {
+            const playPosRef = db.ref('parties/' + currentPartyId + '/positions/' + myPlayerId);
+            playPosRef.onDisconnect().remove();
+            
+            // distanceは 0.05倍されているので、実際のピクセルスクロール量は distance * 20
+            const absoluteX = (distance * 20) + player.x;
+
+            playPosRef.set({
+                absX: absoluteX,
+                y: player.y,
+                facingRight: playerFacingRight,
+                isGrounded: player.isGrounded,
+                updatedAt: now,
+                name: playerName,
+                level: playerLevel
+            });
         }
-
-        const villageGroundY = canvas.height - 110;
-        const yOffset = villageGroundY - player.y;
-
-        myPlayerRef.set({
-            x: player.x,
-            yOffset: yOffset,
-            facingRight: playerFacingRight,
-            isGrounded: player.isGrounded,
-            updatedAt: now,
-            name: playerName,
-            level: playerLevel
-        });
     }
-
     function removeMyPosition() {
         if (myPlayerRef) {
             myPlayerRef.remove();
@@ -1063,6 +1083,44 @@
         executeAdventure(false);
     }
 
+    // ★新しく追加：冒険中のパーティメンバーの座標を受信する
+    function setupPartyPositionsListener() {
+        if (!db || !currentPartyId) return;
+        partyPositions = {}; // 初期化
+        const posRef = db.ref('parties/' + currentPartyId + '/positions');
+        
+        posRef.on('child_added', (snapshot) => {
+            if (snapshot.key !== myPlayerId) {
+                const data = snapshot.val();
+                partyPositions[snapshot.key] = {
+                    ...data, drawAbsX: data.absX, drawY: data.y
+                };
+            }
+        });
+
+        posRef.on('child_changed', (snapshot) => {
+            if (snapshot.key !== myPlayerId) {
+                const data = snapshot.val();
+                if (partyPositions[snapshot.key]) {
+                    partyPositions[snapshot.key].targetAbsX = data.absX;
+                    partyPositions[snapshot.key].targetY = data.y;
+                    partyPositions[snapshot.key].facingRight = data.facingRight;
+                    partyPositions[snapshot.key].isGrounded = data.isGrounded;
+                    partyPositions[snapshot.key].updatedAt = data.updatedAt;
+                } else {
+                    partyPositions[snapshot.key] = {
+                        ...data, drawAbsX: data.absX, drawY: data.y
+                    };
+                }
+            }
+        });
+
+        posRef.on('child_removed', (snapshot) => {
+            delete partyPositions[snapshot.key];
+        });
+    }
+
+    // ★既存の関数を書き換え：マルチなら通信を開始させる
     function executeAdventure(isMulti) {
         removeMyPosition();
         gateActionUI.classList.add('hidden');
@@ -1071,6 +1129,12 @@
         stageNameEl.innerText = "アスター平原";
         gameState = 'PLAYING';
         isMultiplayer = isMulti;
+        
+        // ★ここを追加：マルチプレイなら位置同期用の通信を開始
+        if (isMultiplayer) {
+            setupPartyPositionsListener();
+        }
+        
         initMap();
     }
 
@@ -1423,6 +1487,7 @@
         generateMap();
 
         if (player.y > canvas.height) gameOver();
+        syncMyPosition();
     }
 
     function draw() {
@@ -1495,6 +1560,46 @@
             if (cactusImg.complete && cactusImg.width > 0) { ctx.drawImage(cactusImg, c.x, c.y, c.width, c.height); } 
             else { ctx.fillStyle = 'green'; ctx.fillRect(c.x, c.y, c.width, c.height); }
         });
+
+if (isMultiplayer && currentPartyId) {
+            const now = Date.now();
+            const myAbsXBase = distance * 20; // 自分がスクロールした総ピクセル量
+
+            for (let key in partyPositions) {
+                const op = partyPositions[key];
+                if (now - op.updatedAt > 5000) continue; // 通信が途切れたら非表示
+
+                // なめらかに動かすための補間
+                if (op.targetAbsX !== undefined) op.drawAbsX += (op.targetAbsX - op.drawAbsX) * 0.2;
+                if (op.targetY !== undefined) op.drawY += (op.targetY - op.drawY) * 0.2;
+
+                // 相手の絶対座標から、自分のスクロール量を引いて画面内の位置を計算
+                const opDrawX = op.drawAbsX - myAbsXBase;
+                const opDrawY = op.drawY;
+
+                // 画面内にいる時だけ描画する
+                if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
+                    let opImg = op.isGrounded ? playerImgWalk : playerImgJump;
+                    ctx.save();
+                    if (opImg.complete && opImg.width > 0) {
+                        if (op.facingRight) {
+                            ctx.drawImage(opImg, opDrawX, opDrawY, player.width, player.height);
+                        } else {
+                            ctx.translate(opDrawX + player.width / 2, opDrawY + player.height / 2);
+                            ctx.scale(-1, 1);
+                            ctx.drawImage(opImg, -player.width / 2, -player.height / 2, player.width, player.height);
+                        }
+                    } else {
+                        ctx.fillStyle = 'orange'; ctx.fillRect(opDrawX, opDrawY, player.width, player.height);
+                    }
+                    ctx.restore();
+
+                    ctx.fillStyle = '#00FFCC'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+                    const opName = op.name || "プレイヤー";
+                    ctx.fillText(opName, opDrawX + player.width / 2, opDrawY - 8);
+                }
+            }
+        }
         
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         if (currentImg.complete && currentImg.width > 0) {
