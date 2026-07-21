@@ -39,7 +39,7 @@
             object-fit: cover;
         }
 
-        /* ＝＝＝ ★追加：ステータスUIのスタイル ＝＝＝ */
+        /* ＝＝＝ ステータスUIのスタイル ＝＝＝ */
         #status-ui {
             position: absolute;
             top: 10px;
@@ -115,16 +115,16 @@
             z-index: 40;
         }
 
-        /* ★新しいタイトル画面の設定 */
+        /* タイトル画面の設定 */
         #title-screen {
-            background-image: url('タイトル画面.png'); /* 指定画像を背景に */
+            background-image: url('タイトル画面.png');
             background-size: cover;
             background-position: center;
             background-color: transparent;
-            cursor: pointer; /* タップできることを示す指マーク */
+            cursor: pointer;
         }
 
-        /* ★カスタム名前入力画面用スタイル */
+        /* カスタム名前入力画面用スタイル */
         #name-input-field {
             font-size: 5vw;
             padding: 10px;
@@ -161,6 +161,14 @@
         
         button.menu-btn:active {
             transform: translateY(2px);
+        }
+
+        /* ★マルチ用のボタンスタイル追加 */
+        button.multi-btn {
+            background-color: #4169E1;
+        }
+        button.multi-start-btn {
+            background-color: #32cd32;
         }
 
         @keyframes pulse {
@@ -238,6 +246,57 @@
             background-color: rgba(255, 255, 255, 0.4);
         }
 
+        /* ＝＝＝ ★追加：パーティーUI用スタイル ＝＝＝ */
+        .modal-box {
+            background: rgba(20, 20, 40, 0.9);
+            border: 4px solid #4169E1;
+            border-radius: 15px;
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80%;
+            overflow-y: auto;
+            text-align: center;
+        }
+        
+        .party-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #aaa;
+        }
+
+        .party-member {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 10px auto;
+            width: 80%;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ffd700;
+        }
+
+        .member-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-image: url('si1.png');
+            background-size: 180%;
+            background-position: top center;
+            background-color: white;
+        }
+
+        .member-info {
+            text-align: left;
+            flex-grow: 1;
+        }
+
         @media screen and (orientation: portrait) {
             #portrait-warning {
                 display: flex;
@@ -272,9 +331,16 @@
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
     <div id="stage-display" class="hidden"><span id="stage-name">始まりの村</span></div>
 
+    <!-- ソロ冒険の門アクション -->
     <div id="gate-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
-        <button id="btn-enter-gate" class="menu-btn">冒険に出発！</button>
-        <p style="color: white; font-weight: bold; text-shadow: 2px 2px 2px black; font-size: 3vw; margin-top: 10px;">▲ボタン（キー）でも出発</p>
+        <button id="btn-enter-gate" class="menu-btn">ソロ冒険に出発！</button>
+        <p style="color: white; font-weight: bold; text-shadow: 2px 2px 2px black; font-size: 2vw; margin-top: 10px;">▲ボタン（キー）でも出発</p>
+    </div>
+
+    <!-- ★追加：マルチ冒険の門アクション -->
+    <div id="multi-gate-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
+        <button id="btn-create-party" class="menu-btn multi-btn">パーティー作成</button>
+        <button id="btn-join-party" class="menu-btn multi-btn">パーティー参加</button>
     </div>
 
     <div id="game-pad" class="hidden">
@@ -287,16 +353,39 @@
         </div>
     </div>
 
-    <!-- ★リニューアルされたタイトル画面 -->
-    <div id="title-screen" class="screen">
-        <!-- 中身は空にして、CSSで画像を背景にしています -->
-    </div>
+    <!-- タイトル画面 -->
+    <div id="title-screen" class="screen"></div>
 
-    <!-- ★追加：カスタム名前入力画面 -->
+    <!-- 名前入力画面 -->
     <div id="name-input-modal" class="screen hidden" style="z-index: 60;">
         <h2 style="color: white; margin-bottom: 20px; text-shadow: 2px 2px 2px black;">名前を入力してください</h2>
         <input type="text" id="name-input-field" maxlength="10">
         <button id="btn-name-decide" class="menu-btn">決定</button>
+    </div>
+
+    <!-- ★追加：パーティー参加リスト画面 -->
+    <div id="party-list-screen" class="screen hidden" style="z-index: 50;">
+        <div class="modal-box">
+            <h2 style="color: #FFD700; margin-bottom: 10px;">参加可能なパーティー</h2>
+            <div id="party-list-container" style="min-height: 200px; max-height: 300px; overflow-y: auto;">
+                <!-- ここにリストが生成されます -->
+            </div>
+            <button id="btn-close-party-list" class="menu-btn" style="background-color: #555;">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- ★追加：パーティー待機ルーム画面 -->
+    <div id="party-room-screen" class="screen hidden" style="z-index: 50;">
+        <div class="modal-box">
+            <h2 style="color: #FFD700; margin-bottom: 10px;">待機ルーム (最大4人)</h2>
+            <div id="party-members-container">
+                <!-- ここにメンバー一覧が生成されます -->
+            </div>
+            <div style="margin-top: 20px;">
+                <button id="btn-start-multi" class="menu-btn multi-start-btn hidden">冒険開始！</button>
+                <button id="btn-leave-party" class="menu-btn" style="background-color: #ff4d4d;">退出する</button>
+            </div>
+        </div>
     </div>
 
     <div id="game-over-screen" class="screen hidden">
@@ -309,7 +398,7 @@
         <h2>スマホを横向きにしてください</h2>
     </div>
 
-    <!-- ★追加：フェード演出用レイヤー -->
+    <!-- フェード演出用レイヤー -->
     <div id="fade-overlay" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:999; pointer-events:none; opacity:0; transition: opacity 2s ease-in-out;"></div>
 </div>
 
@@ -332,6 +421,13 @@
     let myPlayerRef = null;
     const myPlayerId = 'user_' + Math.random().toString(36).substr(2, 9);
     let otherPlayers = {};
+
+    // ★追加：マルチプレイ用変数
+    let isMultiplayer = false; 
+    let currentPartyId = null;
+    let isPartyLeader = false;
+    let partyRef = null;
+    let partyListener = null;
 
     try {
         if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
@@ -381,10 +477,10 @@
     let lastSyncTime = 0;
     const SYNC_INTERVAL = 100;
 
-// ==========================================
+    // ==========================================
     // セーブ＆ロード機能
     // ==========================================
-    let savedDistance = 0; // 途中再開用の距離データ
+    let savedDistance = 0;
 
     function saveGame() {
         const saveData = {
@@ -395,7 +491,7 @@
             nextLevelTotalExp: nextLevelTotalExp,
             maxStamina: maxStamina,
             currentStamina: currentStamina,
-            distance: (gameState === 'PLAYING') ? distance : 0 // 冒険中のみ距離を保存
+            distance: (gameState === 'PLAYING') ? distance : 0
         };
         localStorage.setItem('actionGameSaveData', JSON.stringify(saveData));
     }
@@ -414,7 +510,7 @@
                 currentStamina = data.currentStamina || 100;
                 savedDistance = data.distance || 0;
             } catch(e) {
-                console.error("セーブデータの読み込みに失敗しました", e);
+                console.error("セーブデータの読み込みに失敗", e);
             }
         }
     }
@@ -439,8 +535,8 @@
             facingRight: playerFacingRight,
             isGrounded: player.isGrounded,
             updatedAt: now,
-            name: playerName,   // ★追加：自分の名前を同期
-            level: playerLevel  // ★追加：自分のレベルを同期
+            name: playerName,
+            level: playerLevel
         });
     }
 
@@ -452,7 +548,7 @@
     }
 
     // ==========================================
-    // DOM要素と基本設定
+    // DOM要素とイベントリスナー
     // ==========================================
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -466,32 +562,37 @@
     const stageDisplay = document.getElementById('stage-display');
     const stageNameEl = document.getElementById('stage-name');
     const gateActionUI = document.getElementById('gate-action');
-    const fadeOverlay = document.getElementById('fade-overlay'); // ★追加
+    const multiGateActionUI = document.getElementById('multi-gate-action');
+    const fadeOverlay = document.getElementById('fade-overlay'); 
     
-    document.getElementById('btn-enter-gate').addEventListener('click', enterGate);
-    document.getElementById('btn-restart').addEventListener('click', showTitle);
+    // パーティー用UI
+    const partyListScreen = document.getElementById('party-list-screen');
+    const partyRoomScreen = document.getElementById('party-room-screen');
+    const partyListContainer = document.getElementById('party-list-container');
+    const partyMembersContainer = document.getElementById('party-members-container');
+    const btnStartMulti = document.getElementById('btn-start-multi');
 
-    // ★追加：タイトル画面タップ時のフェード処理
+    // ボタンイベント
+    document.getElementById('btn-enter-gate').addEventListener('click', enterSoloGate);
+    document.getElementById('btn-restart').addEventListener('click', showTitle);
+    
+    // ★マルチ用イベント
+    document.getElementById('btn-create-party').addEventListener('click', createParty);
+    document.getElementById('btn-join-party').addEventListener('click', showPartyList);
+    document.getElementById('btn-close-party-list').addEventListener('click', hidePartyList);
+    document.getElementById('btn-leave-party').addEventListener('click', leaveParty);
+    btnStartMulti.addEventListener('click', startMultiAdventure);
+
     titleScreen.addEventListener('click', () => {
-        // フェード用レイヤーを表示して暗くする
         fadeOverlay.classList.remove('hidden');
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                fadeOverlay.style.opacity = '1';
-            });
+            requestAnimationFrame(() => { fadeOverlay.style.opacity = '1'; });
         });
 
-        // 2秒後（真っ暗になったタイミング）で裏側の画面を切り替える
         setTimeout(() => {
             startGame();
-            
-            // 画面がロビーに切り替わったら、今度はゆっくり明るくする
             fadeOverlay.style.opacity = '0';
-            
-            // 明るくなりきったらレイヤーを隠す
-            setTimeout(() => {
-                fadeOverlay.classList.add('hidden');
-            }, 2000);
+            setTimeout(() => { fadeOverlay.classList.add('hidden'); }, 2000);
         }, 2000);
     });
 
@@ -507,43 +608,24 @@
         if (e.key === 'ArrowRight') keys.right = false;
     });
 
-    // ------------------------------------------
-    // PC（マウス操作）用の設定
-    // ------------------------------------------
     const setupMouseBtn = (id, action) => {
         const btn = document.getElementById(id);
         btn.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            if (action === 'jump') doJump();
-            else keys[action] = true;
+            if (action === 'jump') doJump(); else keys[action] = true;
         });
-        btn.addEventListener('mouseup', (e) => {
-            e.preventDefault();
-            if (action !== 'jump') keys[action] = false;
-        });
-        btn.addEventListener('mouseleave', (e) => {
-            e.preventDefault();
-            if (action !== 'jump') keys[action] = false;
-        });
+        btn.addEventListener('mouseup', (e) => { e.preventDefault(); if (action !== 'jump') keys[action] = false; });
+        btn.addEventListener('mouseleave', (e) => { e.preventDefault(); if (action !== 'jump') keys[action] = false; });
     };
     setupMouseBtn('btn-left', 'left');
     setupMouseBtn('btn-right', 'right');
     setupMouseBtn('btn-jump', 'jump');
 
-    // ------------------------------------------
-    // スマホ（タッチ・指スライド移動）用の設定
-    // ------------------------------------------
     const jumpBtn = document.getElementById('btn-jump');
-    jumpBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        doJump(); // ジャンプボタンが押された瞬間のみ発火
-    });
+    jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); doJump(); });
 
     function handleTouchControls(e) {
-        let left = false;
-        let right = false;
-
-        // 現在画面を触っているすべての指の位置をミリ秒単位で確認
+        let left = false, right = false;
         for (let i = 0; i < e.touches.length; i++) {
             const touch = e.touches[i];
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -552,18 +634,15 @@
                 if (target.id === 'btn-right') right = true;
             }
         }
-
-        keys.left = left;
-        keys.right = right;
+        keys.left = left; keys.right = right;
     }
 
-    // タッチ開始・移動・離した時・キャンセル時に常に指下のボタン状態を更新
     window.addEventListener('touchstart', handleTouchControls, { passive: false });
     window.addEventListener('touchmove', handleTouchControls, { passive: false });
     window.addEventListener('touchend', handleTouchControls, { passive: false });
     window.addEventListener('touchcancel', handleTouchControls, { passive: false });
 
-    // ★追加：RPGステータス用変数
+    // プレイヤー変数
     let playerName = "プレイヤー";
     let playerLevel = 1;
     let playerExp = 0;
@@ -574,19 +653,14 @@
 
     loadGame();
 
-    // ★追加：UI更新処理
     function updateStatusUI() {
         document.getElementById('status-name').innerText = playerName;
         document.getElementById('status-level').innerText = "Lv." + playerLevel;
-        
         const staminaPercent = (currentStamina / maxStamina) * 100;
         document.getElementById('stamina-fill').style.width = Math.max(0, staminaPercent) + '%';
-        
-        // 魔力は未実装のためとりあえず常に100%
         document.getElementById('magic-fill').style.width = '100%';
     }
 
-    // ★変更：カスタム名前入力画面の表示・決定処理
     const nameInputModal = document.getElementById('name-input-modal');
     const nameInputField = document.getElementById('name-input-field');
     const btnNameDecide = document.getElementById('btn-name-decide');
@@ -602,33 +676,25 @@
         if (newName && newName.trim() !== "") {
             playerName = newName.trim();
             updateStatusUI();
-            saveGame(); // ★追加：名前変更を保存
+            saveGame();
         }
         nameInputModal.classList.add('hidden');
-        
-        // フルスクリーンを再要求してURLバーを消す
-        const container = document.getElementById('game-container');
-        requestFullscreenAndLock(container);
+        requestFullscreenAndLock(document.getElementById('game-container'));
     });
 
-    // ★追加：レベルアップ判定
     function checkLevelUp() {
         let leveledUp = false;
         while (playerExp >= nextLevelTotalExp) {
             playerLevel++;
-            maxStamina += 2; // レベルが上がると最大スタミナ+2
-            currentStamina = maxStamina; // レベルアップ時のおまけでスタミナ全回復
-            
-            currentLevelReq += 100; // 次の必要経験値が100上がる
+            maxStamina += 2; 
+            currentStamina = maxStamina;
+            currentLevelReq += 100; 
             nextLevelTotalExp += currentLevelReq;
             leveledUp = true;
         }
-        if (leveledUp) {
-            updateStatusUI();
-        }
+        if (leveledUp) updateStatusUI();
     }
 
-    // ★追加：1秒に1スタミナ回復するタイマー
     setInterval(() => {
         if (gameState === 'PLAYING' || gameState === 'VILLAGE') {
             if (currentStamina < maxStamina) {
@@ -638,43 +704,31 @@
         }
     }, 1000);
 
-    // ★追加：5秒ごとにオートセーブを実行するタイマー
     setInterval(() => {
-        if (gameState === 'PLAYING' || gameState === 'VILLAGE') {
-            saveGame();
-        }
+        if (gameState === 'PLAYING' || gameState === 'VILLAGE') saveGame();
     }, 5000);
 
-    // ★変更：ジャンプ処理（スタミナ消費と連続ジャンプ対応）
     function doJump() {
-        if (gameState === 'VILLAGE' && isNearGate) {
-            enterGate();
-            return;
+        if (gameState === 'VILLAGE') {
+            // いずれかの門の近くならアクション実行
+            if (isNearSoloGate) { enterSoloGate(); return; }
+            // マルチ門の前で上キー押した場合は何もしない（UIから選ぶため）
         }
 
         if (gameState !== 'PLAYING' && gameState !== 'VILLAGE') return;
         
         if (player.isGrounded) {
-            // 地上からのジャンプ（スタミナ消費0）
-            player.vy = player.jumpPower;
-            player.isGrounded = false;
-            playJumpSound();
+            player.vy = player.jumpPower; player.isGrounded = false; playJumpSound();
         } else {
-            // 空中での連続ジャンプ（2段以上：スタミナ20消費）
             if (currentStamina >= 20) {
-                currentStamina -= 20;
-                player.vy = player.jumpPower;
-                updateStatusUI();
-                playJumpSound();
+                currentStamina -= 20; player.vy = player.jumpPower; updateStatusUI(); playJumpSound();
             }
         }
     }
 
     function playJumpSound() {
         jumpSound.currentTime = 0;
-        jumpSound.play().catch(err => {
-            console.warn("ジャンプ音の再生に失敗しました:", err);
-        });
+        jumpSound.play().catch(err => { console.warn("Jump sound failed:", err); });
     }
 
     function resize() {
@@ -694,18 +748,26 @@
     const villageBg1 = new Image(); villageBg1.src = '村1.png';
     const villageBg2 = new Image(); villageBg2.src = '村2.png';
     const VILLAGE_WIDTH = 2560; 
+    
+    // ★門の設定（ソロとマルチ）
     const GATE_WIDTH = 140;
     const GATE_HEIGHT = 180;
-    const GATE_X = 1280 - (GATE_WIDTH / 2); 
+    const SOLO_GATE_X = 1280 - (GATE_WIDTH / 2); 
+    const MULTI_GATE_X = 700; // マルチ門の座標
+    
     let cameraX = 0;
-    let isNearGate = false;
+    let isNearSoloGate = false;
+    let isNearMultiGate = false;
 
-    const STAGE2_DISTANCE = 1000; 
-    const STAGE3_DISTANCE = 2000; 
-    const STAGE4_DISTANCE = 3000; 
-    const STAGE5_DISTANCE = 4000; 
-    const STAGE6_DISTANCE = 5000;
-    const STAGE7_DISTANCE = 6000;
+    // ★基本距離。マルチプレイ時はこれを2倍にする
+    const BASE_DISTANCES = {
+        s2: 1000, s3: 2000, s4: 3000, s5: 4000, s6: 5000, s7: 6000
+    };
+
+    function getDistance(stageKey) {
+        const multiplier = isMultiplayer ? 2 : 1;
+        return BASE_DISTANCES[stageKey] * multiplier;
+    }
 
     const bgImage1 = new Image(); bgImage1.src = 'ChatGPT Image 2026年7月15日 00_45_17.png';
     const bgImage2 = new Image(); bgImage2.src = 'stage2.png';
@@ -728,11 +790,8 @@
     const hopperJumpImg = new Image(); hopperJumpImg.src = 'バッタジャンプ.png';
     const cactusImg = new Image(); cactusImg.src = 'サボテン.png';
 
-    const bgm = new Audio('伝承の丘.mp3'); 
-    bgm.loop = true; bgm.volume = 0.5;
-
-    const jumpSound = new Audio('jump.mp3'); 
-    jumpSound.volume = 0.4;
+    const bgm = new Audio('伝承の丘.mp3'); bgm.loop = true; bgm.volume = 0.5;
+    const jumpSound = new Audio('jump.mp3'); jumpSound.volume = 0.4;
 
     let gameState = 'TITLE';
     let animationId;
@@ -747,60 +806,41 @@
         isGrounded: false
     };
 
-    let platforms = [];
-    let enemies = [];
-    let icicles = [];
-    let cacti = [];
-    let isWindy = false;
-    let windWarning = false;
-    let windTimer = 0;
+    let platforms = [], enemies = [], icicles = [], cacti = [];
+    let isWindy = false, windWarning = false, windTimer = 0;
 
     function initVillage() {
-        player.x = GATE_X + (GATE_WIDTH / 2) - (player.width / 2);
+        player.x = SOLO_GATE_X + (GATE_WIDTH / 2) - (player.width / 2);
         player.y = canvas.height - 180;
-        player.vx = 0;
-        player.vy = 0;
-        keys.left = false;
-        keys.right = false;
+        player.vx = 0; player.vy = 0;
+        keys.left = false; keys.right = false;
         playerFacingRight = true;
-        isNearGate = false;
+        isNearSoloGate = false;
+        isNearMultiGate = false;
         gateActionUI.classList.add('hidden');
+        multiGateActionUI.classList.add('hidden');
+        isMultiplayer = false; // 村にいる時はソロ設定に戻す
     }
 
-    // 引数に isResume を追加（デフォルトは false にしておく）
     function initMap(isResume = false) {
-        platforms = [];
-        enemies = [];
-        icicles = [];
-        boxes = [];
-        cacti = [];
+        platforms = []; enemies = []; icicles = []; boxes = []; cacti = [];
         
-        // ★変更：再開時は距離を引き継ぐ
         if (isResume && savedDistance > 0) {
-            distance = savedDistance;
-            bgOffset = distance * 10; // 距離に応じて背景を適当にスクロール
+            distance = savedDistance; bgOffset = distance * 10;
         } else {
-            distance = 0; 
-            bgOffset = 0;
-            currentBgImage = bgImage1;
-            player.x = 50; player.y = 100;
-            player.vx = 0; player.vy = 0;
-            keys.left = false; keys.right = false;
-            playerFacingRight = true; 
-            isWindy = false;
-            windWarning = false;
-            windTimer = 0;
+            distance = 0; bgOffset = 0; currentBgImage = bgImage1;
+            player.x = 50; player.y = 100; player.vx = 0; player.vy = 0;
+            keys.left = false; keys.right = false; playerFacingRight = true; 
+            isWindy = false; windWarning = false; windTimer = 0;
             platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
-        } // ← elseブロックを閉じる } が抜けていました！
-    } // ← initMap関数を閉じる } が抜けていました！
+        }
+    }
 
     function requestFullscreenAndLock(element) {
         const requestFS = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullScreen || element.msRequestFullscreen;
         if (requestFS) {
             requestFS.call(element).then(() => {
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(() => {});
-                }
+                if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
             }).catch(() => {});
         }
     }
@@ -808,33 +848,27 @@
     function startGame() {
         const container = document.getElementById('game-container');
         requestFullscreenAndLock(container);
-
-        bgm.currentTime = 0;
-        bgm.play().catch(() => {});
+        bgm.currentTime = 0; bgm.play().catch(() => {});
 
         titleScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
-        
         document.getElementById('status-ui').classList.remove('hidden');
         updateStatusUI();
 
-        // ＝＝＝ ★変更：途中再開データがあるかどうかの分岐 ＝＝＝
         if (savedDistance > 0) {
-            // 【途中から再開する場合】直接「PLAYING」状態へ
             gateActionUI.classList.add('hidden');
-            scoreDisplay.classList.remove('hidden'); // 距離表示を出す
+            multiGateActionUI.classList.add('hidden');
+            scoreDisplay.classList.remove('hidden'); 
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
             
             gameState = 'PLAYING';
-            initMap(true); // 前回追加した「途中再開フラグ(true)」を渡す
-            
-            savedDistance = 0; // ロード後はメモリ上の再開距離をリセット
-            saveGame();        // 即座にセーブして状態を確定
+            initMap(true); 
+            savedDistance = 0; saveGame();        
         } else {
-            // 【新規スタート・ゲームオーバー後の場合】通常通り「村」へ
             scoreDisplay.classList.add('hidden');
             gateActionUI.classList.add('hidden');
+            multiGateActionUI.classList.add('hidden');
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
             stageNameEl.innerText = "始まりの村";
@@ -842,18 +876,201 @@
             gameState = 'VILLAGE';
             initVillage();
         }
-        // ＝＝＝ ★変更ここまで ＝＝＝
 
         lastTime = performance.now();
         animationId = requestAnimationFrame(loop);
     }
-    function enterGate() {
+
+    // ＝＝＝ ★追加：パーティー・マルチプレイ機能 ＝＝＝
+
+    function createParty() {
+        if (!db) return alert("通信エラー：マルチプレイを利用できません。");
+        partyRef = db.ref('parties').push();
+        currentPartyId = partyRef.key;
+        isPartyLeader = true;
+
+        // DBにパーティー情報作成
+        partyRef.set({
+            leaderId: myPlayerId,
+            leaderName: playerName,
+            leaderLevel: playerLevel,
+            status: 'waiting',
+            players: {
+                [myPlayerId]: { name: playerName, level: playerLevel }
+            }
+        });
+
+        partyRef.onDisconnect().remove();
+        showPartyRoom();
+        listenToCurrentParty();
+    }
+
+    function showPartyList() {
+        if (!db) return alert("通信エラー：マルチプレイを利用できません。");
+        partyListScreen.classList.remove('hidden');
+        partyListContainer.innerHTML = "<p style='color:white;'>検索中...</p>";
+        
+        db.ref('parties').once('value', (snapshot) => {
+            partyListContainer.innerHTML = "";
+            let count = 0;
+            snapshot.forEach((child) => {
+                const data = child.val();
+                if (data.status === 'waiting') {
+                    count++;
+                    const playerKeys = Object.keys(data.players || {});
+                    const numPlayers = playerKeys.length;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'party-list-item';
+                    
+                    // パーティー情報
+                    const info = document.createElement('div');
+                    info.style.textAlign = 'left';
+                    info.innerHTML = `
+                        <div style="color: #FFD700; font-weight: bold; font-size: 20px;">${data.leaderName} <span style="font-size:14px; color:#ccc;">(Lv.${data.leaderLevel})</span></div>
+                        <div style="color: white; font-size: 14px;">メンバー: ${numPlayers} / 4人</div>
+                    `;
+                    
+                    const joinBtn = document.createElement('button');
+                    joinBtn.className = 'menu-btn multi-btn';
+                    joinBtn.style.padding = '10px 20px';
+                    joinBtn.style.fontSize = '16px';
+                    if (numPlayers >= 4) {
+                        joinBtn.innerText = '満員';
+                        joinBtn.disabled = true;
+                        joinBtn.style.backgroundColor = '#888';
+                    } else {
+                        joinBtn.innerText = '参加';
+                        joinBtn.onclick = () => joinParty(child.key);
+                    }
+
+                    div.appendChild(info);
+                    div.appendChild(joinBtn);
+                    partyListContainer.appendChild(div);
+                }
+            });
+            if (count === 0) {
+                partyListContainer.innerHTML = "<p style='color:white;'>現在参加可能なパーティーはありません。</p>";
+            }
+        });
+    }
+
+    function hidePartyList() {
+        partyListScreen.classList.add('hidden');
+    }
+
+    function joinParty(partyId) {
+        if (!db) return;
+        currentPartyId = partyId;
+        isPartyLeader = false;
+        partyRef = db.ref('parties/' + partyId);
+
+        // トランザクションで定員チェックしつつ参加
+        partyRef.child('players').transaction((players) => {
+            if (players === null) return players; // パーティーが存在しない
+            if (Object.keys(players).length >= 4) return undefined; // アボート（満員）
+            players[myPlayerId] = { name: playerName, level: playerLevel };
+            return players;
+        }, (error, committed, snapshot) => {
+            if (error) {
+                alert("エラーが発生しました。");
+            } else if (!committed) {
+                alert("パーティーが満員、または解散されました。");
+            } else {
+                hidePartyList();
+                showPartyRoom();
+                partyRef.child('players/' + myPlayerId).onDisconnect().remove();
+                listenToCurrentParty();
+            }
+        });
+    }
+
+    function showPartyRoom() {
+        partyRoomScreen.classList.remove('hidden');
+        if (isPartyLeader) {
+            btnStartMulti.classList.remove('hidden');
+        } else {
+            btnStartMulti.classList.add('hidden');
+        }
+    }
+
+    function leaveParty() {
+        if (!partyRef) return;
+        if (isPartyLeader) {
+            partyRef.remove(); // リーダー退出で解散
+        } else {
+            partyRef.child('players/' + myPlayerId).remove();
+        }
+        cleanupPartyData();
+    }
+
+    function cleanupPartyData() {
+        if (partyListener && partyRef) partyRef.off('value', partyListener);
+        partyRoomScreen.classList.add('hidden');
+        currentPartyId = null;
+        isPartyLeader = false;
+        partyRef = null;
+        partyListener = null;
+    }
+
+    function listenToCurrentParty() {
+        if (!partyRef) return;
+        partyListener = partyRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) {
+                // 解散された
+                alert("パーティーが解散されました。");
+                cleanupPartyData();
+                return;
+            }
+
+            // メンバー表示更新
+            partyMembersContainer.innerHTML = "";
+            const players = data.players || {};
+            for (let pid in players) {
+                const p = players[pid];
+                const div = document.createElement('div');
+                div.className = 'party-member';
+                div.innerHTML = `
+                    <div class="member-avatar"></div>
+                    <div class="member-info">
+                        <div style="color: white; font-size: 18px; font-weight: bold;">${p.name} <span style="font-size:14px; color:#ffd700;">(Lv.${p.level})</span></div>
+                        <div style="color: #aaa; font-size: 12px;">${pid === data.leaderId ? '★リーダー' : 'メンバー'}</div>
+                    </div>
+                `;
+                partyMembersContainer.appendChild(div);
+            }
+
+            // 出発チェック
+            if (data.status === 'playing') {
+                // ゲームスタート！
+                if (partyListener && partyRef) partyRef.off('value', partyListener);
+                partyRoomScreen.classList.add('hidden');
+                executeAdventure(true);
+            }
+        });
+    }
+
+    function startMultiAdventure() {
+        if (!isPartyLeader || !partyRef) return;
+        // DBのステータスを変更し、全員のクライアントを出発させる
+        partyRef.update({ status: 'playing' });
+    }
+    // ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+    function enterSoloGate() {
         if (gameState !== 'VILLAGE') return;
+        executeAdventure(false);
+    }
+
+    function executeAdventure(isMulti) {
         removeMyPosition();
         gateActionUI.classList.add('hidden');
+        multiGateActionUI.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
         stageNameEl.innerText = "アスター平原";
         gameState = 'PLAYING';
+        isMultiplayer = isMulti;
         initMap();
     }
 
@@ -871,15 +1088,16 @@
         cancelAnimationFrame(animationId);
         bgm.pause();
 
-const currentScore = distance; // 最終記録を一時保存
+        const currentScore = distance; 
         distance = 0;
         saveGame();
-        distance = currentScore; // 表示用に一時的に戻す
+        distance = currentScore; 
         
         scoreDisplay.classList.add('hidden');
         gamePad.classList.add('hidden');
         stageDisplay.classList.add('hidden');
         gateActionUI.classList.add('hidden');
+        multiGateActionUI.classList.add('hidden');
         document.getElementById('status-ui').classList.add('hidden');
         gameOverScreen.classList.remove('hidden');
         finalDistanceEl.innerText = Math.floor(distance);
@@ -905,8 +1123,7 @@ const currentScore = distance; // 最終記録を一時保存
 
         if (player.y + player.height > villageGroundY) {
             player.y = villageGroundY - player.height;
-            player.vy = 0;
-            player.isGrounded = true;
+            player.vy = 0; player.isGrounded = true;
         } else {
             player.isGrounded = false;
         }
@@ -918,17 +1135,20 @@ const currentScore = distance; // 最終記録を一時保存
         const playerCenterX = player.x + player.width / 2;
         const gateMargin = 80;
         
-        if (playerCenterX >= GATE_X - gateMargin && playerCenterX <= GATE_X + GATE_WIDTH + gateMargin) {
-            if (!isNearGate) {
-                isNearGate = true;
-                gateActionUI.classList.remove('hidden');
-            }
+        // ソロ門判定
+        if (playerCenterX >= SOLO_GATE_X - gateMargin && playerCenterX <= SOLO_GATE_X + GATE_WIDTH + gateMargin) {
+            if (!isNearSoloGate) { isNearSoloGate = true; gateActionUI.classList.remove('hidden'); }
         } else {
-            if (isNearGate) {
-                isNearGate = false;
-                gateActionUI.classList.add('hidden');
-            }
+            if (isNearSoloGate) { isNearSoloGate = false; gateActionUI.classList.add('hidden'); }
         }
+
+        // ★マルチ門判定
+        if (playerCenterX >= MULTI_GATE_X - gateMargin && playerCenterX <= MULTI_GATE_X + GATE_WIDTH + gateMargin) {
+            if (!isNearMultiGate) { isNearMultiGate = true; multiGateActionUI.classList.remove('hidden'); }
+        } else {
+            if (isNearMultiGate) { isNearMultiGate = false; multiGateActionUI.classList.add('hidden'); }
+        }
+        
         syncMyPosition();
     }
 
@@ -936,45 +1156,47 @@ const currentScore = distance; // 最終記録を一時保存
         const now = Date.now();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (villageBg1.complete && villageBg1.width > 0) {
-            ctx.drawImage(villageBg1, 0 - cameraX, 0, 1280, canvas.height);
-        }
-        if (villageBg2.complete && villageBg2.width > 0) {
-            ctx.drawImage(villageBg2, 1280 - cameraX, 0, 1280, canvas.height);
-        }
-
-        const gateScreenX = GATE_X - cameraX;
-        const gateY = canvas.height - 110 - GATE_HEIGHT;
-
-        ctx.fillStyle = '#4A2E18';
-        ctx.fillRect(gateScreenX, gateY, 20, GATE_HEIGHT);
-        ctx.fillRect(gateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
-        ctx.fillRect(gateScreenX, gateY, GATE_WIDTH, 30);
-
-        ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('冒険の門', gateScreenX + GATE_WIDTH / 2, gateY + 22);
-
-        if (isNearGate) {
-            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-            ctx.beginPath();
-            ctx.arc(gateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true);
-            ctx.fill();
-        }
+        if (villageBg1.complete && villageBg1.width > 0) ctx.drawImage(villageBg1, 0 - cameraX, 0, 1280, canvas.height);
+        if (villageBg2.complete && villageBg2.width > 0) ctx.drawImage(villageBg2, 1280 - cameraX, 0, 1280, canvas.height);
 
         const villageGroundY = canvas.height - 110;
+        const gateY = villageGroundY - GATE_HEIGHT;
 
+        // ★ソロ冒険の門 描画
+        const soloGateScreenX = SOLO_GATE_X - cameraX;
+        ctx.fillStyle = '#4A2E18';
+        ctx.fillRect(soloGateScreenX, gateY, 20, GATE_HEIGHT);
+        ctx.fillRect(soloGateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
+        ctx.fillRect(soloGateScreenX, gateY, GATE_WIDTH, 30);
+        ctx.fillStyle = '#FFD700'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('冒険の門', soloGateScreenX + GATE_WIDTH / 2, gateY + 22);
+
+        if (isNearSoloGate) {
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)'; ctx.beginPath();
+            ctx.arc(soloGateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
+        }
+
+        // ★マルチ冒険の門 描画
+        const multiGateScreenX = MULTI_GATE_X - cameraX;
+        ctx.fillStyle = '#2a4b7c'; // マルチ用は少し青っぽい色
+        ctx.fillRect(multiGateScreenX, gateY, 20, GATE_HEIGHT);
+        ctx.fillRect(multiGateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
+        ctx.fillRect(multiGateScreenX, gateY, GATE_WIDTH, 30);
+        ctx.fillStyle = '#00FFFF'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('共闘の門(マルチ)', multiGateScreenX + GATE_WIDTH / 2, gateY + 22);
+
+        if (isNearMultiGate) {
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.3)'; ctx.beginPath();
+            ctx.arc(multiGateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
+        }
+
+        // 他プレイヤー描画
         for (let key in otherPlayers) {
             const op = otherPlayers[key];
             if (now - op.updatedAt > 5000) continue;
 
-            if (op.targetX !== undefined) {
-                op.drawX += (op.targetX - op.drawX) * 0.2; 
-            }
-            if (op.targetYOffset !== undefined) {
-                op.drawYOffset += (op.targetYOffset - op.drawYOffset) * 0.2;
-            }
+            if (op.targetX !== undefined) op.drawX += (op.targetX - op.drawX) * 0.2; 
+            if (op.targetYOffset !== undefined) op.drawYOffset += (op.targetYOffset - op.drawYOffset) * 0.2;
 
             const opDrawX = op.drawX - cameraX;
             const opDrawY = villageGroundY - (op.drawYOffset || 0);
@@ -992,21 +1214,18 @@ const currentScore = distance; // 最終記録を一時保存
                         ctx.drawImage(opImg, -player.width / 2, -player.height / 2, player.width, player.height);
                     }
                 } else {
-                    ctx.fillStyle = 'orange';
-                    ctx.fillRect(opDrawX, opDrawY, player.width, player.height);
+                    ctx.fillStyle = 'orange'; ctx.fillRect(opDrawX, opDrawY, player.width, player.height);
                 }
                 ctx.restore();
 
-                ctx.fillStyle = '#00FFCC';
-                ctx.font = 'bold 14px sans-serif';
-                ctx.textAlign = 'center';
-                // データがない場合は初期値を設定して表示
+                ctx.fillStyle = '#00FFCC'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
                 const opName = op.name || "プレイヤー";
                 const opLevel = op.level || 1;
                 ctx.fillText(opName + " Lv." + opLevel, opDrawX + player.width / 2, opDrawY - 8);
             }
         }
 
+        // 自分描画
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         const drawX = player.x - cameraX;
 
@@ -1021,21 +1240,17 @@ const currentScore = distance; // 最終記録を一時保存
             }
             ctx.restore();
         } else {
-            ctx.fillStyle = 'blue';
-            ctx.fillRect(drawX, player.y, player.width, player.height);
+            ctx.fillStyle = 'blue'; ctx.fillRect(drawX, player.y, player.width, player.height);
         }
 
-        ctx.fillStyle = '#FFFF00';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.textAlign = 'center';
-        // 自分の名前とレベルを表示
+        ctx.fillStyle = '#FFFF00'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(playerName + " Lv." + playerLevel, drawX + player.width / 2, player.y - 8);
     }
 
     function generateMap() {
         const lastPlatform = platforms[platforms.length - 1];
         if (lastPlatform.x + lastPlatform.width < canvas.width + 500) {
-            const isStage6 = (distance >= STAGE6_DISTANCE && distance < STAGE7_DISTANCE);
+            const isStage6 = (distance >= getDistance('s6') && distance < getDistance('s7'));
             const gap = isStage6 ? -2 : Math.random() * 100 + 50; 
             const yOffset = isStage6 ? 0 : (Math.random() - 0.5) * 150;
             
@@ -1050,9 +1265,9 @@ const currentScore = distance; // 最終記録を一時保存
 
             if (Math.random() < 0.5) {
                 let enemyType = 'normal';
-                if (distance >= STAGE4_DISTANCE && distance < STAGE5_DISTANCE) {
+                if (distance >= getDistance('s4') && distance < getDistance('s5')) {
                     enemyType = Math.random() < 0.5 ? 'normal' : 'hopper';
-                } else if (distance >= STAGE2_DISTANCE) {
+                } else if (distance >= getDistance('s2')) {
                     enemyType = 'hopper';
                 }
                 const eWidth = 60;
@@ -1065,84 +1280,64 @@ const currentScore = distance; // 最終記録を一時保存
                     isSquished: false, squishTimer: 0
                 });
             } else if (isStage6 && Math.random() < 0.7) {
-                const cactusSize = 70;
-                const embedAmount = 37; 
-                cacti.push({
-                    x: newX + width / 2, y: newY - cactusSize + embedAmount, width: cactusSize, height: cactusSize
-                });
+                const cactusSize = 70; const embedAmount = 37; 
+                cacti.push({ x: newX + width / 2, y: newY - cactusSize + embedAmount, width: cactusSize, height: cactusSize });
             }
             
-            const isStage3 = (distance >= STAGE3_DISTANCE && distance < STAGE4_DISTANCE);
+            const isStage3 = (distance >= getDistance('s3') && distance < getDistance('s4'));
             if (isStage3 && Math.random() < 0.4) {
-                icicles.push({
-                    x: newX + Math.random() * (width - 40) + 20, y: 0, width: 30, height: 80, vy: 0, isFalling: false
-                });
+                icicles.push({ x: newX + Math.random() * (width - 40) + 20, y: 0, width: 30, height: 80, vy: 0, isFalling: false });
             }
             
             if (Math.random() < 0.3) {
-                const boxSize = 60;
-                const embedAmount = 45;
-                boxes.push({
-                    x: newX + width / 2 + 80, y: newY - boxSize + embedAmount, width: boxSize, height: boxSize
-                });
+                const boxSize = 60; const embedAmount = 45;
+                boxes.push({ x: newX + width / 2 + 80, y: newY - boxSize + embedAmount, width: boxSize, height: boxSize });
             }
         }
     }
     
     function update() {
-        if (gameState === 'VILLAGE') {
-            updateVillage();
-            return;
-        }
+        if (gameState === 'VILLAGE') { updateVillage(); return; }
         if (gameState !== 'PLAYING') return;
 
-        if (distance >= STAGE5_DISTANCE) {
-            currentBgImage = bgImage5; stageNameEl.innerText = "グリオン砂漠";
-        } else if (distance >= STAGE4_DISTANCE) {
-            currentBgImage = bgImage4; stageNameEl.innerText = "レニリアの森";
-        } else if (distance >= STAGE3_DISTANCE) {
-            currentBgImage = bgImage3; stageNameEl.innerText = "オロ雪原";
-        } else if (distance >= STAGE2_DISTANCE) {
-            currentBgImage = bgImage2; stageNameEl.innerText = "ヴィリカ海岸";
+        // ★距離計算の倍率反映
+        if (distance >= getDistance('s5')) {
+            currentBgImage = bgImage5; stageNameEl.innerText = "グリオン砂漠" + (isMultiplayer ? "(マルチ)" : "");
+        } else if (distance >= getDistance('s4')) {
+            currentBgImage = bgImage4; stageNameEl.innerText = "レニリアの森" + (isMultiplayer ? "(マルチ)" : "");
+        } else if (distance >= getDistance('s3')) {
+            currentBgImage = bgImage3; stageNameEl.innerText = "オロ雪原" + (isMultiplayer ? "(マルチ)" : "");
+        } else if (distance >= getDistance('s2')) {
+            currentBgImage = bgImage2; stageNameEl.innerText = "ヴィリカ海岸" + (isMultiplayer ? "(マルチ)" : "");
         } else {
-            currentBgImage = bgImage1; stageNameEl.innerText = "アスター平原";
+            currentBgImage = bgImage1; stageNameEl.innerText = "アスター平原" + (isMultiplayer ? "(マルチ)" : "");
         }
 
-        if (keys.left) {
-            player.vx = -player.speed; playerFacingRight = false; 
-        } else if (keys.right) {
-            player.vx = player.speed; playerFacingRight = true;  
-        } else {
-            player.vx = 0;
-        }
+        if (keys.left) { player.vx = -player.speed; playerFacingRight = false; } 
+        else if (keys.right) { player.vx = player.speed; playerFacingRight = true; } 
+        else { player.vx = 0; }
 
         player.x += player.vx;
         if (player.x < 0) player.x = 0;
 
-        if (distance >= STAGE5_DISTANCE) {
+        if (distance >= getDistance('s5')) {
             if (!isWindy && !windWarning) {
                 if (Math.random() < 0.005) { windWarning = true; windTimer = 60; }
             } else if (windWarning) {
-                windTimer--;
-                if (windTimer <= 0) { windWarning = false; isWindy = true; windTimer = 150; }
+                windTimer--; if (windTimer <= 0) { windWarning = false; isWindy = true; windTimer = 150; }
             } else if (isWindy) {
-                windTimer--;
-                player.x -= 4.0;
-                if (player.x < 0) player.x = 0;
+                windTimer--; player.x -= 4.0; if (player.x < 0) player.x = 0;
                 if (windTimer <= 0) { isWindy = false; }
             }
         }
 
-        player.vy += player.gravity;
-        player.y += player.vy;
-        player.isGrounded = false;
+        player.vy += player.gravity; player.y += player.vy; player.isGrounded = false;
 
         enemies.forEach(e => {
             if (e.isSquished) { e.squishTimer--; return; }
             if (e.type === 'hopper') {
                 if (e.isGrounded) {
-                    e.jumpTimer--;
-                    if (e.jumpTimer <= 0) { e.vy = -11; e.isGrounded = false; }
+                    e.jumpTimer--; if (e.jumpTimer <= 0) { e.vy = -11; e.isGrounded = false; }
                 } else {
                     e.vy += 0.5; e.y += e.vy;
                     if (e.y >= e.spawnY - e.height) { e.y = e.spawnY - e.height; e.vy = 0; e.isGrounded = true; e.jumpTimer = 80; }
@@ -1151,9 +1346,7 @@ const currentScore = distance; // 最終記録を一時保存
         });
 
         icicles.forEach(icicle => {
-            if (!icicle.isFalling && Math.abs(player.x + player.width / 2 - (icicle.x + icicle.width / 2)) < 150) {
-                icicle.isFalling = true;
-            }
+            if (!icicle.isFalling && Math.abs(player.x + player.width / 2 - (icicle.x + icicle.width / 2)) < 150) { icicle.isFalling = true; }
             if (icicle.isFalling) { icicle.vy += player.gravity * 0.7; icicle.y += icicle.vy; }
 
             const hitboxMargin = 10;
@@ -1169,45 +1362,31 @@ const currentScore = distance; // 最終記録を一時保存
             if (player.x + hitboxMargin < e.x + e.width && player.x + player.width - hitboxMargin > e.x &&
                 player.y + hitboxMargin < e.y + e.height && player.y + player.height - hitboxMargin > e.y) {
                 if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
-                    e.isSquished = true; e.squishTimer = 20; 
-                    player.vy = player.jumpPower * 0.8; player.isGrounded = false;
-                } else {
-                    gameOver();
-                }
+                    e.isSquished = true; e.squishTimer = 20; player.vy = player.jumpPower * 0.8; player.isGrounded = false;
+                } else { gameOver(); }
             }
         });
 
         platforms.forEach(p => {
-            const footOffset = 37; 
-            const marginX = 15;
+            const footOffset = 37; const marginX = 15;
             if (player.x + marginX < p.x + p.width && player.x + player.width - marginX > p.x &&
                 player.y < p.y + p.height && player.y + player.height - footOffset > p.y) {
                 if (player.vy > 0) {
                     player.isGrounded = true; player.vy = 0; player.y = p.y - player.height + footOffset;
-                } else if (player.vy < 0) {
-                    player.vy = 0; player.y = p.y + p.height;
-                }
+                } else if (player.vy < 0) { player.vy = 0; player.y = p.y + p.height; }
             }
         });
 
         const scrollThreshold = canvas.width / 2;
         if (player.x > scrollThreshold) {
-            const offset = player.x - scrollThreshold;
-            player.x = scrollThreshold;
-            
+            const offset = player.x - scrollThreshold; player.x = scrollThreshold;
             let addedDist = offset * 0.05;
-            distance += addedDist;
-            playerExp += addedDist;
+            distance += addedDist; playerExp += addedDist;
             distanceEl.innerText = Math.floor(distance);
             
             checkLevelUp();
-
-            platforms.forEach(p => p.x -= offset);
-            enemies.forEach(e => e.x -= offset);
-            icicles.forEach(i => i.x -= offset);
-            boxes.forEach(b => b.x -= offset);
-            cacti.forEach(c => c.x -= offset);
-
+            platforms.forEach(p => p.x -= offset); enemies.forEach(e => e.x -= offset);
+            icicles.forEach(i => i.x -= offset); boxes.forEach(b => b.x -= offset); cacti.forEach(c => c.x -= offset);
             bgOffset += offset * 0.5;
         }
 
@@ -1243,16 +1422,11 @@ const currentScore = distance; // 最終記録を一時保存
         
         generateMap();
 
-        if (player.y > canvas.height) {
-            gameOver();
-        }
+        if (player.y > canvas.height) gameOver();
     }
 
     function draw() {
-        if (gameState === 'VILLAGE') {
-            drawVillage();
-            return;
-        }
+        if (gameState === 'VILLAGE') { drawVillage(); return; }
 
         if (currentBgImage.complete && currentBgImage.width > 0) {
             const scale = canvas.height / currentBgImage.height;
@@ -1264,17 +1438,13 @@ const currentScore = distance; // 最終記録を一時保存
             if (scaledWidth - xOffset < canvas.width) {
                 ctx.drawImage(currentBgImage, -xOffset + scaledWidth * 2, 0, scaledWidth, canvas.height);
             }
-        } else {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
+        } else { ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
         platforms.forEach(p => {
             const imgHeight = 100; 
             if (platformImg.complete && platformImg.width > 0) {
                 ctx.drawImage(platformImg, p.x, p.y, p.width, imgHeight);
-                if (p.height > imgHeight) {
-                    ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x, p.y + imgHeight, p.width, p.height - imgHeight);
-                }
+                if (p.height > imgHeight) { ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x, p.y + imgHeight, p.width, p.height - imgHeight); }
             } else {
                 ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x, p.y, p.width, p.height);
                 ctx.fillStyle = '#228B22'; ctx.fillRect(p.x, p.y, p.width, 15);
@@ -1287,24 +1457,18 @@ const currentScore = distance; // 最終記録を一時保存
                 if (currentEnemyImg.complete && currentEnemyImg.width > 0) {
                     if (e.isSquished) {
                         const squishedHeight = e.height * 0.25; ctx.drawImage(currentEnemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
-                    } else {
-                        ctx.drawImage(currentEnemyImg, e.x, e.y, e.width, e.height);
-                    }
+                    } else { ctx.drawImage(currentEnemyImg, e.x, e.y, e.width, e.height); }
                 } else {
                     ctx.fillStyle = 'green';
                     if (e.isSquished) {
                         const squishedHeight = e.height * 0.25; ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
-                    } else {
-                        ctx.fillRect(e.x, e.y, e.width, e.height);
-                    }
+                    } else { ctx.fillRect(e.x, e.y, e.width, e.height); }
                 }
             } else {
                 if (enemyImg.complete && enemyImg.width > 0) {
                     if (e.isSquished) {
                         const squishedHeight = e.height * 0.25; ctx.drawImage(enemyImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
-                    } else {
-                        ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
-                    }
+                    } else { ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height); }
                 } else {
                     if (e.isSquished) {
                         const squishedHeight = e.height * 0.25; ctx.fillStyle = 'red'; ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
@@ -1317,11 +1481,9 @@ const currentScore = distance; // 最終記録を一時保存
         });
 
         icicles.forEach(icicle => {
-            ctx.fillStyle = '#E0FFFF';
-            ctx.beginPath();
+            ctx.fillStyle = '#E0FFFF'; ctx.beginPath();
             ctx.moveTo(icicle.x, icicle.y); ctx.lineTo(icicle.x + icicle.width, icicle.y); ctx.lineTo(icicle.x + icicle.width / 2, icicle.y + icicle.height);
-            ctx.closePath(); ctx.fill();
-            ctx.strokeStyle = '#B0E0E6'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#B0E0E6'; ctx.lineWidth = 2; ctx.stroke();
         });
 
         boxes.forEach(b => {
@@ -1337,17 +1499,14 @@ const currentScore = distance; // 最終記録を一時保存
         let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
         if (currentImg.complete && currentImg.width > 0) {
             ctx.save();
-            if (playerFacingRight) {
-                ctx.drawImage(currentImg, player.x, player.y, player.width, player.height);
-            } else {
+            if (playerFacingRight) { ctx.drawImage(currentImg, player.x, player.y, player.width, player.height); } 
+            else {
                 ctx.translate(player.x + player.width / 2, player.y + player.height / 2); 
                 ctx.scale(-1, 1); 
                 ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
             }
             ctx.restore(); 
-        } else {
-            ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height);
-        }
+        } else { ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height); }
 
         if (windWarning) {
             ctx.fillStyle = "rgba(255, 69, 0, 0.8)"; ctx.font = "bold 50px sans-serif"; ctx.textAlign = "center";
