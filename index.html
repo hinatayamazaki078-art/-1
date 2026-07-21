@@ -252,13 +252,36 @@
 
         playersRef.on('child_added', (snapshot) => {
             if (snapshot.key !== myPlayerId) {
-                otherPlayers[snapshot.key] = snapshot.val();
+                const data = snapshot.val();
+                otherPlayers[snapshot.key] = {
+                    ...data,
+                    drawX: data.x, // ★追加: アニメーション用の現在X座標
+                    drawYOffset: data.yOffset || 0, // ★追加: アニメーション用の現在Yオフセット
+                    targetX: data.x,
+                    targetYOffset: data.yOffset || 0
+                };
             }
         });
 
         playersRef.on('child_changed', (snapshot) => {
             if (snapshot.key !== myPlayerId) {
-                otherPlayers[snapshot.key] = snapshot.val();
+                const data = snapshot.val();
+                if (otherPlayers[snapshot.key]) {
+                    // ★変更: 既存プレイヤーは「目標値」だけを更新する
+                    otherPlayers[snapshot.key].targetX = data.x;
+                    otherPlayers[snapshot.key].targetYOffset = data.yOffset || 0;
+                    otherPlayers[snapshot.key].facingRight = data.facingRight;
+                    otherPlayers[snapshot.key].isGrounded = data.isGrounded;
+                    otherPlayers[snapshot.key].updatedAt = data.updatedAt;
+                } else {
+                    otherPlayers[snapshot.key] = {
+                        ...data,
+                        drawX: data.x,
+                        drawYOffset: data.yOffset || 0,
+                        targetX: data.x,
+                        targetYOffset: data.yOffset || 0
+                    };
+                }
             }
         });
 
@@ -280,12 +303,16 @@ function syncMyPosition() {
 
     if (!myPlayerRef) {
         myPlayerRef = db.ref('village_players/' + myPlayerId);
-        myPlayerRef.onDisconnect().remove(); // 接続切断時に自動で消去
+        myPlayerRef.onDisconnect().remove(); 
     }
+
+    // ★追加: 地面を基準とした相対Y座標（高さ）を計算
+    const villageGroundY = canvas.height - 110;
+    const yOffset = villageGroundY - player.y;
 
     myPlayerRef.set({
         x: player.x,
-        y: player.y,
+        yOffset: yOffset, // ★変更: y の代わりに yOffset を送信
         facingRight: playerFacingRight,
         isGrounded: player.isGrounded,
         updatedAt: now
@@ -633,13 +660,25 @@ function syncMyPosition() {
         // ==========================================
         // オンラインの他プレイヤーを描画
         // ==========================================
+        const villageGroundY = canvas.height - 110; // ★自分の画面の地面Y座標
+
         for (let key in otherPlayers) {
             const op = otherPlayers[key];
             
             // 5秒以上更新がないプレイヤー（古いデータ）は描画をスキップ
             if (now - op.updatedAt > 5000) continue;
 
-            const opDrawX = op.x - cameraX;
+            // ★追加: 補間(Lerp)処理。現在の位置から目標位置へ滑らかに近づける
+            if (op.targetX !== undefined) {
+                op.drawX += (op.targetX - op.drawX) * 0.2; 
+            }
+            if (op.targetYOffset !== undefined) {
+                op.drawYOffset += (op.targetYOffset - op.drawYOffset) * 0.2;
+            }
+
+            const opDrawX = op.drawX - cameraX;
+            // ★追加: 相手のY座標を自分の画面サイズに合わせて計算し直す
+            const opDrawY = villageGroundY - (op.drawYOffset || 0);
 
             if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
                 let opImg = op.isGrounded ? playerImgWalk : playerImgJump;
@@ -647,15 +686,15 @@ function syncMyPosition() {
                 ctx.save();
                 if (opImg.complete && opImg.width > 0) {
                     if (op.facingRight) {
-                        ctx.drawImage(opImg, opDrawX, op.y, player.width, player.height);
+                        ctx.drawImage(opImg, opDrawX, opDrawY, player.width, player.height); // ★op.y を opDrawY に変更
                     } else {
-                        ctx.translate(opDrawX + player.width / 2, op.y + player.height / 2);
+                        ctx.translate(opDrawX + player.width / 2, opDrawY + player.height / 2); // ★op.y を opDrawY に変更
                         ctx.scale(-1, 1);
                         ctx.drawImage(opImg, -player.width / 2, -player.height / 2, player.width, player.height);
                     }
                 } else {
                     ctx.fillStyle = 'orange';
-                    ctx.fillRect(opDrawX, op.y, player.width, player.height);
+                    ctx.fillRect(opDrawX, opDrawY, player.width, player.height); // ★op.y を opDrawY に変更
                 }
                 ctx.restore();
 
@@ -663,7 +702,7 @@ function syncMyPosition() {
                 ctx.fillStyle = '#00FFCC';
                 ctx.font = 'bold 14px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText("PLAYER", opDrawX + player.width / 2, op.y - 8);
+                ctx.fillText("PLAYER", opDrawX + player.width / 2, opDrawY - 8); // ★op.y を opDrawY に変更
             }
         }
 
