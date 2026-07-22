@@ -45,14 +45,12 @@
     top: 10px;
     left: 20px;
     width: 320px;
-    max-width: 85vw; /* スマホ等での幅のはみ出し・潰れ防止 */
+    max-width: 85vw; /* スマホ等での幅のはみ出し防止のみ残す */
     height: 110px;
     background-image: url('ステータス表示.png');
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    background-color: rgba(245, 245, 245, 0.85); /* 画像透過時や未読込時に暗くなるのを防ぐ下地 */
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.4); /* UIを浮かせて視認性向上 */
+    /* 余計な背景色や影（box-shadow）は削除し、イラストをそのまま表示 */
     z-index: 30;
     pointer-events: none;
     box-sizing: border-box;
@@ -68,8 +66,7 @@
     background-image: url('si1.png');
     background-size: 180%;
     background-position: center;
-    background-color: white;
-    border: 2px solid #ccc; /* アバターの境界をくっきりさせる */
+    /* イラストの枠に合うよう、余計なボーダーと背景色を削除（必要に応じて戻してください） */
     box-sizing: border-box;
 }
 
@@ -77,28 +74,40 @@
     position: absolute;
     top: 15%; 
     left: 38%; 
-    width: 58%; /* はみ出しを防ぐため幅を少し広げる */
+    width: 58%;
     color: #5a3c11; 
     font-weight: bold; 
     font-size: 18px;
     cursor: pointer;
     pointer-events: auto;
-    text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+    /* イラストが暗くても文字が読めるよう、白いフチドリ（光彩）を強めに設定 */
+    text-shadow: 
+        1px 1px 0px rgba(255,255,255,0.9),
+        -1px -1px 0px rgba(255,255,255,0.9),
+        1px -1px 0px rgba(255,255,255,0.9),
+        -1px 1px 0px rgba(255,255,255,0.9),
+        0px 0px 5px rgba(255,255,255,1);
     white-space: nowrap; /* 文字の折り返しによる潰れを防止 */
-    overflow: hidden; /* 枠外にはみ出した分を隠す */
+    overflow: hidden; 
     text-overflow: ellipsis; /* 長すぎる場合は「...」で省略 */
 }
 
-/* ★追加：コイン表示スタイル */
+/* コイン表示スタイル */
 #status-coins {
     position: absolute;
     top: 40%;
     left: 38%;
-    width: 58%; /* 名前と同じく幅を指定 */
+    width: 58%;
     color: #FFD700;
     font-weight: bold;
     font-size: 16px;
-    text-shadow: 1px 1px 2px black;
+    /* コインも同様に黒いフチドリを強めにして視認性をアップ */
+    text-shadow: 
+        1px 1px 0px #000,
+        -1px -1px 0px #000,
+        1px -1px 0px #000,
+        -1px 1px 0px #000,
+        0px 0px 3px rgba(0,0,0,0.8);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -107,12 +116,11 @@
 .status-bar-container {
     position: absolute;
     left: 42%; 
-    width: 50%; /* バーが右枠からはみ出さないよう調整 */
+    width: 50%;
     height: 10px;
-    background: rgba(0,0,0,0.6); /* 下地を少し濃くしてバーを際立たせる */
+    background: rgba(0,0,0,0.6); 
     border-radius: 5px;
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.2);
 }
 
 .stamina-bar-container { top: 65%; }
