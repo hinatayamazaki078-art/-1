@@ -678,7 +678,7 @@
                 updatedAt: now,
                 name: playerName,
                 level: playerLevel,
-                avatar: currentAvatar // ★アバター情報を追加
+                avatar: currentAvatar, // ★アバター情報を追加
                 isTyping: myIsTyping,
                 message: myLatestMessage,
                 msgId: myMsgId
@@ -1675,6 +1675,16 @@
                 const opName = op.name || "プレイヤー";
                 const opLevel = op.level || 1;
                 ctx.fillText(opName + " Lv." + opLevel, opDrawX + player.width / 2, opDrawY - 8);
+
+                // 吹き出しの描画（他プレイヤー）
+                if (op.isTyping) {
+                    drawSpeechBubble(ctx, "", opDrawX + player.width / 2, opDrawY - 15, 1, true);
+                } else if (op.messageTimer > 0) {
+                    op.messageTimer--;
+                    // 残り30フレーム(0.5秒)を切ったら徐々に透明にする（フェードアウト）
+                    let alpha = op.messageTimer > 30 ? 1 : op.messageTimer / 30;
+                    drawSpeechBubble(ctx, op.message, opDrawX + player.width / 2, opDrawY - 15, alpha, false);
+                }
             }
         }
 
@@ -2108,16 +2118,6 @@
         });
         inventoryModal.classList.remove('hidden');
     });
-
-    // 吹き出しの描画（他プレイヤー）
-                if (op.isTyping) {
-                    drawSpeechBubble(ctx, "", opDrawX + player.width / 2, opDrawY - 15, 1, true);
-                } else if (op.messageTimer > 0) {
-                    op.messageTimer--;
-                    // 残り30フレーム(0.5秒)を切ったら徐々に透明にする（フェードアウト）
-                    let alpha = op.messageTimer > 30 ? 1 : op.messageTimer / 30;
-                    drawSpeechBubble(ctx, op.message, opDrawX + player.width / 2, opDrawY - 15, alpha, false);
-                }
 
     document.getElementById('btn-close-inventory').addEventListener('click', () => {
         inventoryModal.classList.add('hidden');
