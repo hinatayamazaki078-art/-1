@@ -381,6 +381,20 @@
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
     <div id="stage-display" class="hidden"><span id="stage-name">始まりの村</span></div>
 
+<!-- ステータスUIの横に配置するバッグボタン -->
+    <button id="btn-bag" class="menu-btn" style="position: absolute; top: 10px; left: 350px; z-index: 35; padding: 10px; font-size: 20px;">👜</button>
+
+    <!-- 素材一覧モーダル -->
+    <div id="inventory-modal" class="screen hidden" style="z-index: 75;">
+        <div class="modal-box" style="border-color: #32cd32;">
+            <h2 style="color: #FFD700; margin-bottom: 10px;">所持素材</h2>
+            <div id="inventory-items-container" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+                <!-- ここに素材一覧が生成されます -->
+            </div>
+            <button id="btn-close-inventory" class="menu-btn" style="background-color: #555;">閉じる</button>
+        </div>
+    </div>
+    
     <!-- ショップアクション -->
     <div id="shop-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
         <button id="btn-open-shop" class="menu-btn" style="background-color: #9932CC;">ショップを見る</button>
@@ -404,6 +418,7 @@
             <div id="btn-right" class="action-btn">▶</div>
         </div>
         <div class="pad-group">
+            <div id="btn-collect" class="action-btn" style="background-color: rgba(50, 205, 50, 0.5);">✋</div>
             <div id="btn-jump" class="action-btn">▲</div>
         </div>
     </div>
@@ -597,7 +612,8 @@
             distance: (gameState === 'PLAYING') ? distance : 0,
             coins: coins,
             ownedAvatars: ownedAvatars,
-            currentAvatar: currentAvatar
+            currentAvatar: currentAvatar,
+            inventory: myInventory
         };
         localStorage.setItem('actionGameSaveData', JSON.stringify(saveData));
     }
@@ -618,6 +634,7 @@
                 coins = data.coins || 0;
                 ownedAvatars = data.ownedAvatars || ['default'];
                 currentAvatar = data.currentAvatar || 'default';
+                myInventory = data.inventory || { yumeyuri: 0, blueButterfly: 0, hikariFruit: 0 };
             } catch(e) {
                 console.error("セーブデータの読み込みに失敗", e);
             }
@@ -1002,6 +1019,20 @@
     const hopperJumpImg = new Image(); hopperJumpImg.src = 'バッタジャンプ.png';
     const cactusImg = new Image(); cactusImg.src = 'サボテン.png';
 
+    // 素材画像の読み込み
+    const yumeyuriImg = new Image(); yumeyuriImg.src = 'ユメユリ.png';
+    const blueButterflyImg = new Image(); blueButterflyImg.src = 'ブルーバタフライ.png';
+    const hikariFruitImg = new Image(); hikariFruitImg.src = 'ヒカリノ果実.jpg';
+
+    // マップ上の素材と、所持している素材の変数
+    let mapMaterials = [];
+    let myInventory = {
+        yumeyuri: 0,
+        blueButterfly: 0,
+        hikariFruit: 0
+    };
+    const MATERIAL_SIZE = 35; // 敵より少し小さめ
+    
     const bgm = new Audio('伝承の丘.mp3'); bgm.loop = true; bgm.volume = 0.5;
     const jumpSound = new Audio('jump.mp3'); jumpSound.volume = 0.4;
 
@@ -1577,6 +1608,29 @@
 
             const newX = lastPlatform.x + lastPlatform.width + gap;
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
+            // 0m〜3000mの間のみ出現判定を行う
+            if (distance >= 0 && distance <= 3000) {
+                let spawnRoll = gameRandom();
+                let matType = null;
+
+                if (spawnRoll < 0.005) {
+                    matType = 'hikariFruit'; // 超低確率 (0.5%)
+                } else if (spawnRoll < 0.035) {
+                    matType = 'blueButterfly'; // 低確率 (3%)
+                } else if (spawnRoll < 0.135) {
+                    matType = 'yumeyuri'; // たまに (10%)
+                }
+
+                if (matType) {
+                    mapMaterials.push({
+                        type: matType,
+                        x: newX + width / 2 - (MATERIAL_SIZE / 2),
+                        y: newY - MATERIAL_SIZE, // 足場の上に乗せる
+                        width: MATERIAL_SIZE,
+                        height: MATERIAL_SIZE
+                    });
+                }
+            }
 
             if (gameRandom() < 0.5) { 
                 let enemyType = 'normal';
@@ -1717,6 +1771,7 @@
             checkLevelUp();
             platforms.forEach(p => p.x -= offset); enemies.forEach(e => e.x -= offset);
             icicles.forEach(i => i.x -= offset); boxes.forEach(b => b.x -= offset); cacti.forEach(c => c.x -= offset);
+            mapMaterials.forEach(m => m.x -= offset);
             bgOffset += offset * 0.5;
         }
 
@@ -1726,6 +1781,7 @@
         icicles = icicles.filter(i => (i.x + i.width >= -100) && i.y < canvas.height);
         boxes = boxes.filter(b => b.x + b.width >= -100);
         cacti = cacti.filter(c => c.x + c.width >= -100);
+        mapMaterials = mapMaterials.filter(m => m.x + m.width >= -100);
 
         cacti.forEach(c => {
             const hitboxMargin = 15;
@@ -1879,6 +1935,21 @@
             ctx.restore(); 
         } else { ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height); }
 
+　　　　// 素材の描画
+        mapMaterials.forEach(m => {
+            let img;
+            if (m.type === 'yumeyuri') img = yumeyuriImg;
+            else if (m.type === 'blueButterfly') img = blueButterflyImg;
+            else if (m.type === 'hikariFruit') img = hikariFruitImg;
+
+            if (img.complete && img.width > 0) {
+                ctx.drawImage(img, m.x, m.y, m.width, m.height);
+            } else {
+                ctx.fillStyle = 'pink'; // 画像読み込み前の代用
+                ctx.fillRect(m.x, m.y, m.width, m.height);
+            }
+        });
+        
         if (windWarning) {
             ctx.fillStyle = "rgba(255, 69, 0, 0.8)"; ctx.font = "bold 50px sans-serif"; ctx.textAlign = "center";
             ctx.fillText("⚠️ 突風注意！", canvas.width / 2, canvas.height / 3);
@@ -1893,6 +1964,83 @@
         }
     } 
 
+// === バッグ画面の開閉ロジック ===
+    const inventoryModal = document.getElementById('inventory-modal');
+    const inventoryContainer = document.getElementById('inventory-items-container');
+
+    document.getElementById('btn-bag').addEventListener('click', () => {
+        inventoryContainer.innerHTML = '';
+        const itemsInfo = [
+            { id: 'yumeyuri', name: 'ユメユリ', img: yumeyuriImg.src, count: myInventory.yumeyuri },
+            { id: 'blueButterfly', name: 'ブルーバタフライ', img: blueButterflyImg.src, count: myInventory.blueButterfly },
+            { id: 'hikariFruit', name: 'ヒカリノ果実', img: hikariFruitImg.src, count: myInventory.hikariFruit }
+        ];
+
+        itemsInfo.forEach(item => {
+            const div = document.createElement('div');
+            div.style.background = 'rgba(255,255,255,0.1)';
+            div.style.padding = '10px';
+            div.style.borderRadius = '8px';
+            div.style.textAlign = 'center';
+            div.style.width = '100px';
+            div.innerHTML = `
+                <img src="${item.img}" style="width: 50px; height: 50px; object-fit: contain; margin-bottom: 5px;">
+                <div style="color:white; font-size: 12px; font-weight:bold; margin-bottom:5px;">${item.name}</div>
+                <div style="color:#FFD700; font-weight:bold;">x ${item.count}</div>
+            `;
+            inventoryContainer.appendChild(div);
+        });
+        inventoryModal.classList.remove('hidden');
+    });
+
+    document.getElementById('btn-close-inventory').addEventListener('click', () => {
+        inventoryModal.classList.add('hidden');
+    });
+
+    // === 採集ロジック ===
+    function tryCollectMaterial() {
+        if (gameState !== 'PLAYING' && gameState !== 'VILLAGE') return;
+        
+        const collectRange = 60; // 採集できる距離
+        const playerCenterX = player.x + player.width / 2;
+        const playerCenterY = player.y + player.height / 2;
+
+        for (let i = 0; i < mapMaterials.length; i++) {
+            let m = mapMaterials[i];
+            const matCenterX = m.x + m.width / 2;
+            const matCenterY = m.y + m.height / 2;
+
+            // プレイヤーと素材の距離をチェック
+            if (Math.abs(playerCenterX - matCenterX) < collectRange &&
+                Math.abs(playerCenterY - matCenterY) < collectRange) {
+                
+                // インベントリに追加
+                myInventory[m.type]++;
+                // マップから削除
+                mapMaterials.splice(i, 1);
+                
+                // 必要ならここで「ゲットした！」などの音を鳴らす
+                saveGame();
+                break; // 1回につき1個だけ採集
+            }
+        }
+    }
+
+    // パッドのボタン、およびPCの「C」キーで採集できるようにする
+    document.getElementById('btn-collect').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        tryCollectMaterial();
+    });
+    document.getElementById('btn-collect').addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        tryCollectMaterial();
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'c' || e.key === 'C') { // Cキーでも採集可能に
+            tryCollectMaterial();
+        }
+    });
+    
     function loop(timestamp) {
         if (gameState === 'PLAYING' || gameState === 'VILLAGE') {
             animationId = requestAnimationFrame(loop);
