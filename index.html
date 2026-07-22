@@ -62,13 +62,13 @@
             border-radius: 50%;
             background-image: url('si1.png');
             background-size: 180%;
-            background-position: top center;
+            background-position: center;
             background-color: white;
         }
 
         .status-name-level {
             position: absolute;
-            top: 25%; 
+            top: 15%; 
             left: 38%; 
             width: 55%;
             color: #5a3c11; 
@@ -77,6 +77,17 @@
             cursor: pointer;
             pointer-events: auto;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+
+        /* ★追加：コイン表示スタイル */
+        #status-coins {
+            position: absolute;
+            top: 40%;
+            left: 38%;
+            color: #FFD700;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 1px 1px 2px black;
         }
 
         .status-bar-container {
@@ -89,7 +100,7 @@
             overflow: hidden;
         }
 
-        .stamina-bar-container { top: 62%; }
+        .stamina-bar-container { top: 65%; }
         .magic-bar-container { top: 82%; }
 
         .status-bar {
@@ -115,7 +126,6 @@
             z-index: 40;
         }
 
-        /* タイトル画面の設定 */
         #title-screen {
             background-image: url('タイトル画面.png');
             background-size: cover;
@@ -124,7 +134,6 @@
             cursor: pointer;
         }
 
-        /* カスタム名前入力画面用スタイル */
         #name-input-field {
             font-size: 5vw;
             padding: 10px;
@@ -163,7 +172,6 @@
             transform: translateY(2px);
         }
 
-        /* ★マルチ用のボタンスタイル追加 */
         button.multi-btn {
             background-color: #4169E1;
         }
@@ -205,7 +213,6 @@
             pointer-events: none;
         }
 
-        /* ★追加：冒険中の村へ帰るボタン（右上・小） */
         #btn-return-village {
             position: absolute;
             top: 15px;
@@ -225,7 +232,6 @@
             background-color: rgba(255, 255, 255, 0.3);
         }
 
-        /* ★追加：確認ダイアログ用のボタン設定 */
         .confirm-btn-group {
             display: flex;
             gap: 20px;
@@ -286,7 +292,6 @@
             background-color: rgba(255, 255, 255, 0.4);
         }
 
-        /* ＝＝＝ パーティーUI用スタイル ＝＝＝ */
         .modal-box {
             background: rgba(20, 20, 40, 0.9);
             border: 4px solid #4169E1;
@@ -354,15 +359,17 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- ★追加：冒険中用「村に帰る」ボタン -->
     <button id="btn-return-village" class="hidden">村に帰る</button>
     
     <div id="status-ui" class="hidden">
-        <div class="status-avatar"></div>
+        <div class="status-avatar" id="main-status-avatar"></div>
         <div class="status-name-level" onclick="changePlayerName()">
             <span id="status-name">プレイヤー</span> 
             <span id="status-level" style="margin-left: 5px;">Lv.1</span>
         </div>
+        <!-- コイン表示追加 -->
+        <div id="status-coins">💰 コイン: <span id="coin-amount">0</span></div>
+
         <div class="status-bar-container stamina-bar-container">
             <div id="stamina-fill" class="status-bar bar-green"></div>
         </div>
@@ -373,6 +380,11 @@
 
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
     <div id="stage-display" class="hidden"><span id="stage-name">始まりの村</span></div>
+
+    <!-- ショップアクション -->
+    <div id="shop-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
+        <button id="btn-open-shop" class="menu-btn" style="background-color: #9932CC;">ショップを見る</button>
+    </div>
 
     <!-- ソロ冒険の門アクション -->
     <div id="gate-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
@@ -406,7 +418,7 @@
         <button id="btn-name-decide" class="menu-btn">決定</button>
     </div>
 
-    <!-- ★追加：村に帰る確認ダイアログ -->
+    <!-- 村に帰る確認ダイアログ -->
     <div id="return-confirm-modal" class="screen hidden" style="z-index: 60;">
         <div class="modal-box" style="max-width: 400px; border-color: #ff4500;">
             <h2 style="color: #FFD700; margin-bottom: 10px;">本当に帰りますか？</h2>
@@ -418,12 +430,23 @@
         </div>
     </div>
 
+    <!-- ショップ画面 -->
+    <div id="shop-modal" class="screen hidden" style="z-index: 70;">
+        <div class="modal-box" style="border-color: #9932CC;">
+            <h2 style="color: #FFD700; margin-bottom: 10px;">アバターショップ</h2>
+            <p style="color: white; margin-bottom: 20px;">所持コイン: <span id="shop-coin-display" style="color:#FFD700; font-weight:bold;">0</span></p>
+            <div id="shop-items-container" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+                <!-- ここにアバター一覧が生成されます -->
+            </div>
+            <button id="btn-close-shop" class="menu-btn" style="background-color: #555;">閉じる</button>
+        </div>
+    </div>
+
     <!-- パーティー参加リスト画面 -->
     <div id="party-list-screen" class="screen hidden" style="z-index: 50;">
         <div class="modal-box">
             <h2 style="color: #FFD700; margin-bottom: 10px;">参加可能なパーティー</h2>
             <div id="party-list-container" style="min-height: 200px; max-height: 300px; overflow-y: auto;">
-                <!-- ここにリストが生成されます -->
             </div>
             <button id="btn-close-party-list" class="menu-btn" style="background-color: #555;">キャンセル</button>
         </div>
@@ -434,7 +457,6 @@
         <div class="modal-box">
             <h2 style="color: #FFD700; margin-bottom: 10px;">待機ルーム (最大4人)</h2>
             <div id="party-members-container">
-                <!-- ここにメンバー一覧が生成されます -->
             </div>
             <div style="margin-top: 20px;">
                 <button id="btn-start-multi" class="menu-btn multi-start-btn hidden">冒険開始！</button>
@@ -446,6 +468,7 @@
     <div id="game-over-screen" class="screen hidden">
         <h1 style="color: #ff4d4d;">GAME OVER</h1>
         <p style="font-size: 5vw; margin-bottom: 20px;">記録: <span id="final-distance">0</span>m</p>
+        <p style="color: #FFD700; font-size: 3vw; margin-bottom: 20px;">獲得コイン: <span id="earned-coins">0</span> 💰</p>
         <button id="btn-restart" class="menu-btn">タイトルへ戻る</button>
     </div>
 
@@ -477,7 +500,6 @@
     const myPlayerId = 'user_' + Math.random().toString(36).substr(2, 9);
     let otherPlayers = {};
 
-    // マルチプレイ用変数
     let isMultiplayer = false; 
     let currentPartyId = null;
     let isPartyLeader = false;
@@ -517,6 +539,7 @@
                     otherPlayers[snapshot.key].facingRight = data.facingRight;
                     otherPlayers[snapshot.key].isGrounded = data.isGrounded;
                     otherPlayers[snapshot.key].updatedAt = data.updatedAt;
+                    otherPlayers[snapshot.key].avatar = data.avatar; // アバター情報更新
                 } else {
                     otherPlayers[snapshot.key] = {
                         ...data, drawX: data.x, drawYOffset: data.yOffset || 0, targetX: data.x, targetYOffset: data.yOffset || 0
@@ -534,10 +557,24 @@
     const SYNC_INTERVAL = 100;
 
     // ==========================================
-    // セーブ＆ロード機能
+    // アバター・ショップ・セーブ機能
     // ==========================================
-    let savedDistance = 0;
+    const playerImgWalk = new Image(); playerImgWalk.src = 'si1.png';
+    const playerImgJump = new Image(); playerImgJump.src = 'si2.png';
+    const sparrowWalk = new Image(); sparrowWalk.src = '雀歩き.png';
+    const sparrowJump = new Image(); sparrowJump.src = '雀ジャンプ.jpg';
+    const shopImg = new Image(); shopImg.src = 'アバター変更ショップ.jpg';
 
+    const avatars = {
+        'default': { name: 'デフォルト', walk: playerImgWalk, jump: playerImgJump, cost: 0 },
+        'sparrow': { name: 'スズメ', walk: sparrowWalk, jump: sparrowJump, cost: 500 }
+    };
+
+    let coins = 0;
+    let ownedAvatars = ['default'];
+    let currentAvatar = 'default';
+
+    let savedDistance = 0;
     let mapSeed = 1;
     let currentPartyMapSeed = 1;
 
@@ -557,7 +594,10 @@
             nextLevelTotalExp: nextLevelTotalExp,
             maxStamina: maxStamina,
             currentStamina: currentStamina,
-            distance: (gameState === 'PLAYING') ? distance : 0
+            distance: (gameState === 'PLAYING') ? distance : 0,
+            coins: coins,
+            ownedAvatars: ownedAvatars,
+            currentAvatar: currentAvatar
         };
         localStorage.setItem('actionGameSaveData', JSON.stringify(saveData));
     }
@@ -575,6 +615,9 @@
                 maxStamina = data.maxStamina || 100;
                 currentStamina = data.currentStamina || 100;
                 savedDistance = data.distance || 0;
+                coins = data.coins || 0;
+                ownedAvatars = data.ownedAvatars || ['default'];
+                currentAvatar = data.currentAvatar || 'default';
             } catch(e) {
                 console.error("セーブデータの読み込みに失敗", e);
             }
@@ -602,7 +645,8 @@
                 isGrounded: player.isGrounded,
                 updatedAt: now,
                 name: playerName,
-                level: playerLevel
+                level: playerLevel,
+                avatar: currentAvatar // ★アバター情報を追加
             });
         } 
         else if (gameState === 'PLAYING' && isMultiplayer && currentPartyId) {
@@ -618,7 +662,8 @@
                 isGrounded: player.isGrounded,
                 updatedAt: now,
                 name: playerName,
-                level: playerLevel
+                level: playerLevel,
+                avatar: currentAvatar // ★アバター情報を追加
             });
         }
     }
@@ -641,13 +686,13 @@
     const gamePad = document.getElementById('game-pad');
     const distanceEl = document.getElementById('distance');
     const finalDistanceEl = document.getElementById('final-distance');
+    const earnedCoinsEl = document.getElementById('earned-coins');
     const stageDisplay = document.getElementById('stage-display');
     const stageNameEl = document.getElementById('stage-name');
     const gateActionUI = document.getElementById('gate-action');
     const multiGateActionUI = document.getElementById('multi-gate-action');
     const fadeOverlay = document.getElementById('fade-overlay'); 
 
-    // ★追加：村に戻るUIの要素取得
     const btnReturnVillage = document.getElementById('btn-return-village');
     const returnConfirmModal = document.getElementById('return-confirm-modal');
     const btnReturnYes = document.getElementById('btn-return-yes');
@@ -660,26 +705,26 @@
     const partyMembersContainer = document.getElementById('party-members-container');
     const btnStartMulti = document.getElementById('btn-start-multi');
 
+    // ショップUI
+    const shopActionUI = document.getElementById('shop-action');
+    const shopModal = document.getElementById('shop-modal');
+    const shopItemsContainer = document.getElementById('shop-items-container');
+    const shopCoinDisplay = document.getElementById('shop-coin-display');
+
     // ボタンイベント
     document.getElementById('btn-enter-gate').addEventListener('click', enterSoloGate);
     document.getElementById('btn-restart').addEventListener('click', showTitle);
+    document.getElementById('btn-open-shop').addEventListener('click', openShop);
+    document.getElementById('btn-close-shop').addEventListener('click', () => shopModal.classList.add('hidden'));
     
-    // マルチ用イベント
     document.getElementById('btn-create-party').addEventListener('click', createParty);
     document.getElementById('btn-join-party').addEventListener('click', showPartyList);
     document.getElementById('btn-close-party-list').addEventListener('click', hidePartyList);
     document.getElementById('btn-leave-party').addEventListener('click', leaveParty);
     btnStartMulti.addEventListener('click', startMultiAdventure);
 
-    // ★追加：村に帰る処理のイベントリスナー
-    btnReturnVillage.addEventListener('click', () => {
-        returnConfirmModal.classList.remove('hidden');
-    });
-
-    btnReturnNo.addEventListener('click', () => {
-        returnConfirmModal.classList.add('hidden');
-    });
-
+    btnReturnVillage.addEventListener('click', () => { returnConfirmModal.classList.remove('hidden'); });
+    btnReturnNo.addEventListener('click', () => { returnConfirmModal.classList.add('hidden'); });
     btnReturnYes.addEventListener('click', () => {
         returnConfirmModal.classList.add('hidden');
         returnToVillage();
@@ -712,10 +757,7 @@
 
     const setupMouseBtn = (id, action) => {
         const btn = document.getElementById(id);
-        btn.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            if (action === 'jump') doJump(); else keys[action] = true;
-        });
+        btn.addEventListener('mousedown', (e) => { e.preventDefault(); if (action === 'jump') doJump(); else keys[action] = true; });
         btn.addEventListener('mouseup', (e) => { e.preventDefault(); if (action !== 'jump') keys[action] = false; });
         btn.addEventListener('mouseleave', (e) => { e.preventDefault(); if (action !== 'jump') keys[action] = false; });
     };
@@ -758,10 +800,78 @@
     function updateStatusUI() {
         document.getElementById('status-name').innerText = playerName;
         document.getElementById('status-level').innerText = "Lv." + playerLevel;
+        document.getElementById('coin-amount').innerText = coins; // コイン更新
+        
+        // ステータスUIの顔アイコンを現在のアバターに変更
+        const avWalkImgSrc = avatars[currentAvatar] ? avatars[currentAvatar].walk.src : playerImgWalk.src;
+        document.getElementById('main-status-avatar').style.backgroundImage = `url('${avWalkImgSrc}')`;
+
         const staminaPercent = (currentStamina / maxStamina) * 100;
         document.getElementById('stamina-fill').style.width = Math.max(0, staminaPercent) + '%';
         document.getElementById('magic-fill').style.width = '100%';
     }
+
+    // ショップ機能関連の関数
+    function openShop() {
+        shopCoinDisplay.innerText = coins;
+        shopItemsContainer.innerHTML = '';
+        
+        for (let key in avatars) {
+            const av = avatars[key];
+            const isOwned = ownedAvatars.includes(key);
+            const isEquipped = (currentAvatar === key);
+            
+            const div = document.createElement('div');
+            div.style.background = 'rgba(255,255,255,0.1)';
+            div.style.padding = '15px';
+            div.style.borderRadius = '8px';
+            div.style.border = isEquipped ? '3px solid #32cd32' : '1px solid #aaa';
+            div.style.textAlign = 'center';
+            div.style.width = '130px';
+            
+            let btnHtml = '';
+            if (isEquipped) {
+                btnHtml = `<button disabled style="padding:8px; background:gray; color:white; border:none; border-radius:5px; width:100%;">装備中</button>`;
+            } else if (isOwned) {
+                btnHtml = `<button onclick="equipAvatar('${key}')" style="padding:8px; background:#32cd32; color:white; border:none; border-radius:5px; cursor:pointer; width:100%; font-weight:bold;">装備する</button>`;
+            } else {
+                const canBuy = coins >= av.cost;
+                const btnColor = canBuy ? '#FFD700' : 'gray';
+                btnHtml = `<button ${canBuy?'':'disabled'} onclick="buyAvatar('${key}')" style="padding:8px; background:${btnColor}; color:black; font-weight:bold; border:none; border-radius:5px; cursor:pointer; width:100%;">${av.cost} コイン</button>`;
+            }
+            
+            div.innerHTML = `
+                <img src="${av.walk.src}" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 10px;">
+                <div style="color:white; font-weight:bold; margin-bottom:10px;">${av.name}</div>
+                ${btnHtml}
+            `;
+            shopItemsContainer.appendChild(div);
+        }
+        shopModal.classList.remove('hidden');
+    }
+
+    window.buyAvatar = function(key) {
+        const av = avatars[key];
+        if (coins >= av.cost && !ownedAvatars.includes(key)) {
+            coins -= av.cost;
+            ownedAvatars.push(key);
+            currentAvatar = key;
+            saveGame();
+            updateStatusUI();
+            openShop(); // 表示をリフレッシュ
+            syncMyPosition();
+        }
+    };
+
+    window.equipAvatar = function(key) {
+        if (ownedAvatars.includes(key)) {
+            currentAvatar = key;
+            saveGame();
+            updateStatusUI();
+            openShop(); // 表示をリフレッシュ
+            syncMyPosition();
+        }
+    };
 
     const nameInputModal = document.getElementById('name-input-modal');
     const nameInputField = document.getElementById('name-input-field');
@@ -853,10 +963,14 @@
     const GATE_HEIGHT = 180;
     const SOLO_GATE_X = 1280 - (GATE_WIDTH / 2); 
     const MULTI_GATE_X = 700; 
+    const SHOP_X = 200; // ショップのX座標
+    const SHOP_WIDTH = 250;
+    const SHOP_HEIGHT = 200;
     
     let cameraX = 0;
     let isNearSoloGate = false;
     let isNearMultiGate = false;
+    let isNearShop = false;
 
     const BASE_DISTANCES = {
         s2: 1000, s3: 2000, s4: 3000, s5: 4000, s6: 5000, s7: 6000, s8: 7000, s9: 9000
@@ -881,9 +995,6 @@
 
     let currentBgImage = bgImage1;
     let bgOffset = 0;
-
-    const playerImgWalk = new Image(); playerImgWalk.src = 'si1.png';
-    const playerImgJump = new Image(); playerImgJump.src = 'si2.png';
     let playerFacingRight = true;
 
     const enemyImg = new Image(); enemyImg.src = 'ku.png';
@@ -898,10 +1009,10 @@
     let animationId;
     let distance = 0;
     let lastTime = 0;
-    let totalScrollX = 0;              // 正確なスクロール量の記録用
-let enemiesGeneratedCount = 0;     // 敵に割り振る通し番号（ID）
-let defeatedEnemies = new Set();   // 倒された敵のIDリスト
-let enemiesDefeatedListener = null;// Firebaseのリスナー
+    let totalScrollX = 0;              
+    let enemiesGeneratedCount = 0;     
+    let defeatedEnemies = new Set();   
+    let enemiesDefeatedListener = null;
     const FPS = 60;
     const frameInterval = 1000 / FPS;
     
@@ -922,9 +1033,11 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         playerFacingRight = true;
         isNearSoloGate = false;
         isNearMultiGate = false;
+        isNearShop = false;
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
-        btnReturnVillage.classList.add('hidden'); // 村にいるときはボタンを消す
+        shopActionUI.classList.add('hidden');
+        btnReturnVillage.classList.add('hidden');
         isMultiplayer = false; 
     }
 
@@ -968,10 +1081,11 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         if (savedDistance > 0) {
             gateActionUI.classList.add('hidden');
             multiGateActionUI.classList.add('hidden');
+            shopActionUI.classList.add('hidden');
             scoreDisplay.classList.remove('hidden'); 
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
-            btnReturnVillage.classList.remove('hidden'); // 冒険再開時はボタン表示
+            btnReturnVillage.classList.remove('hidden');
             
             gameState = 'PLAYING';
             initMap(true); 
@@ -980,6 +1094,7 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
             scoreDisplay.classList.add('hidden');
             gateActionUI.classList.add('hidden');
             multiGateActionUI.classList.add('hidden');
+            shopActionUI.classList.add('hidden');
             btnReturnVillage.classList.add('hidden');
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
@@ -993,16 +1108,12 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         animationId = requestAnimationFrame(loop);
     }
 
-    // ＝＝＝ パーティー・マルチプレイ機能 ＝＝＝
-
     function createParty() {
         if (!db) return alert("通信エラー：マルチプレイを利用できません。");
         partyRef = db.ref('parties').push();
         currentPartyId = partyRef.key;
         isPartyLeader = true;
-
         const newMapSeed = Math.floor(Math.random() * 1000000);
-
         partyRef.set({
             leaderId: myPlayerId,
             leaderName: playerName,
@@ -1013,11 +1124,11 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
                 [myPlayerId]: { name: playerName, level: playerLevel }
             }
         });
-
         partyRef.onDisconnect().remove();
         showPartyRoom();
         listenToCurrentParty();
     }
+    
     function showPartyList() {
         if (!db) return alert("通信エラー：マルチプレイを利用できません。");
         partyListScreen.classList.remove('hidden');
@@ -1055,7 +1166,6 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
                         joinBtn.innerText = '参加';
                         joinBtn.onclick = () => joinParty(child.key);
                     }
-
                     div.appendChild(info);
                     div.appendChild(joinBtn);
                     partyListContainer.appendChild(div);
@@ -1067,9 +1177,7 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         });
     }
 
-    function hidePartyList() {
-        partyListScreen.classList.add('hidden');
-    }
+    function hidePartyList() { partyListScreen.classList.add('hidden'); }
 
     function joinParty(partyId) {
         if (!db) return;
@@ -1083,11 +1191,9 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
             players[myPlayerId] = { name: playerName, level: playerLevel };
             return players;
         }, (error, committed, snapshot) => {
-            if (error) {
-                alert("エラーが発生しました。");
-            } else if (!committed) {
-                alert("パーティーが満員、または解散されました。");
-            } else {
+            if (error) { alert("エラーが発生しました。"); } 
+            else if (!committed) { alert("パーティーが満員、または解散されました。"); } 
+            else {
                 hidePartyList();
                 showPartyRoom();
                 partyRef.child('players/' + myPlayerId).onDisconnect().remove();
@@ -1098,29 +1204,23 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
 
     function showPartyRoom() {
         partyRoomScreen.classList.remove('hidden');
-        if (isPartyLeader) {
-            btnStartMulti.classList.remove('hidden');
-        } else {
-            btnStartMulti.classList.add('hidden');
-        }
+        if (isPartyLeader) { btnStartMulti.classList.remove('hidden'); } 
+        else { btnStartMulti.classList.add('hidden'); }
     }
 
     function leaveParty() {
         if (!partyRef) return;
-        if (isPartyLeader) {
-            partyRef.remove(); 
-        } else {
-            partyRef.child('players/' + myPlayerId).remove();
-        }
+        if (isPartyLeader) { partyRef.remove(); } 
+        else { partyRef.child('players/' + myPlayerId).remove(); }
         cleanupPartyData();
     }
 
     function cleanupPartyData() {
         if (partyListener && partyRef) partyRef.off('value', partyListener);
         if (enemiesDefeatedListener && currentPartyId && db) {
-        db.ref('parties/' + currentPartyId + '/enemiesDefeated').off('child_added', enemiesDefeatedListener);
-    }
-    enemiesDefeatedListener = null;
+            db.ref('parties/' + currentPartyId + '/enemiesDefeated').off('child_added', enemiesDefeatedListener);
+        }
+        enemiesDefeatedListener = null;
         partyRoomScreen.classList.add('hidden');
         currentPartyId = null;
         isPartyLeader = false;
@@ -1134,13 +1234,10 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
             const data = snapshot.val();
             if (!data) {
                 alert("パーティーが解散されました。");
-                cleanupPartyData();
-                return;
+                cleanupPartyData(); return;
             }
 
-            if (data.mapSeed !== undefined) {
-                currentPartyMapSeed = data.mapSeed;
-            }
+            if (data.mapSeed !== undefined) { currentPartyMapSeed = data.mapSeed; }
 
             partyMembersContainer.innerHTML = "";
             const players = data.players || {};
@@ -1184,9 +1281,7 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         posRef.on('child_added', (snapshot) => {
             if (snapshot.key !== myPlayerId) {
                 const data = snapshot.val();
-                partyPositions[snapshot.key] = {
-                    ...data, drawAbsX: data.absX, drawY: data.y
-                };
+                partyPositions[snapshot.key] = { ...data, drawAbsX: data.absX, drawY: data.y };
             }
         });
 
@@ -1199,37 +1294,33 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
                     partyPositions[snapshot.key].facingRight = data.facingRight;
                     partyPositions[snapshot.key].isGrounded = data.isGrounded;
                     partyPositions[snapshot.key].updatedAt = data.updatedAt;
+                    partyPositions[snapshot.key].avatar = data.avatar;
                 } else {
-                    partyPositions[snapshot.key] = {
-                        ...data, drawAbsX: data.absX, drawY: data.y
-                    };
+                    partyPositions[snapshot.key] = { ...data, drawAbsX: data.absX, drawY: data.y };
                 }
             }
         });
 
-        posRef.on('child_removed', (snapshot) => {
-            delete partyPositions[snapshot.key];
-        });
+        posRef.on('child_removed', (snapshot) => { delete partyPositions[snapshot.key]; });
+        
         const enemiesRef = db.ref('parties/' + currentPartyId + '/enemiesDefeated');
-    enemiesDefeatedListener = enemiesRef.on('child_added', (snapshot) => {
-        const enemyId = parseInt(snapshot.key);
-        defeatedEnemies.add(enemyId); // 倒されたリストに記録
-
-        // 自分の画面にまだその敵がいたら、潰すアニメーションを発動
-        const enemy = enemies.find(e => e.id === enemyId);
-        if (enemy && !enemy.isSquished) {
-            enemy.isSquished = true;
-            enemy.squishTimer = 20;
-        }
-    });
+        enemiesDefeatedListener = enemiesRef.on('child_added', (snapshot) => {
+            const enemyId = parseInt(snapshot.key);
+            defeatedEnemies.add(enemyId); 
+            const enemy = enemies.find(e => e.id === enemyId);
+            if (enemy && !enemy.isSquished) {
+                enemy.isSquished = true; enemy.squishTimer = 20;
+            }
+        });
     }
 
     function executeAdventure(isMulti) {
         removeMyPosition();
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
+        shopActionUI.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
-        btnReturnVillage.classList.remove('hidden'); // ★冒険スタートでボタン表示
+        btnReturnVillage.classList.remove('hidden'); 
         stageNameEl.innerText = "アスター平原";
         gameState = 'PLAYING';
         isMultiplayer = isMulti;
@@ -1240,40 +1331,29 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         } else {
             mapSeed = Math.floor(Math.random() * 1000000);
         }
-        
         initMap();
     }
 
-    // ★追加：暗転して村に戻る処理
     function returnToVillage() {
-        // 暗転フェードアウトの開始
         fadeOverlay.classList.remove('hidden');
         requestAnimationFrame(() => {
             requestAnimationFrame(() => { fadeOverlay.style.opacity = '1'; });
         });
 
         setTimeout(() => {
-            // 位置情報・マルチプレイの後始末
             removeMyPosition();
-            if (isMultiplayer && currentPartyId) {
-                leaveParty();
-            }
+            if (isMultiplayer && currentPartyId) { leaveParty(); }
 
-            // UI切り替え
             btnReturnVillage.classList.add('hidden');
             scoreDisplay.classList.add('hidden');
             stageNameEl.innerText = "始まりの村";
             
-            // 村状態へ変更と初期化
             gameState = 'VILLAGE';
             initVillage();
             saveGame();
 
-            // 明るく戻す
             fadeOverlay.style.opacity = '0';
-            setTimeout(() => { 
-                fadeOverlay.classList.add('hidden'); 
-            }, 2000);
+            setTimeout(() => { fadeOverlay.classList.add('hidden'); }, 2000);
         }, 2000);
     }
 
@@ -1293,6 +1373,8 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         bgm.pause();
 
         const currentScore = distance; 
+        const earnedCoins = Math.floor(currentScore); // 1m = 1コイン獲得
+        coins += earnedCoins;
         distance = 0;
         saveGame();
         distance = currentScore; 
@@ -1302,10 +1384,13 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         stageDisplay.classList.add('hidden');
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
-        btnReturnVillage.classList.add('hidden'); // ゲームオーバー時は非表示
+        shopActionUI.classList.add('hidden');
+        btnReturnVillage.classList.add('hidden'); 
         document.getElementById('status-ui').classList.add('hidden');
+        
         gameOverScreen.classList.remove('hidden');
         finalDistanceEl.innerText = Math.floor(distance);
+        earnedCoinsEl.innerText = earnedCoins; // リザルト画面でコイン表示
     }
 
     function updateVillage() {
@@ -1354,6 +1439,14 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
             if (isNearMultiGate) { isNearMultiGate = false; multiGateActionUI.classList.add('hidden'); }
         }
         
+        // ★ショップ判定
+        const shopMargin = 50;
+        if (playerCenterX >= SHOP_X - shopMargin && playerCenterX <= SHOP_X + SHOP_WIDTH + shopMargin) {
+            if (!isNearShop) { isNearShop = true; shopActionUI.classList.remove('hidden'); }
+        } else {
+            if (isNearShop) { isNearShop = false; shopActionUI.classList.add('hidden'); }
+        }
+        
         syncMyPosition();
     }
 
@@ -1366,8 +1459,23 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
 
         const villageGroundY = canvas.height - 110;
         const gateY = villageGroundY - GATE_HEIGHT;
+        const shopY = villageGroundY - SHOP_HEIGHT;
 
-        // ソロ冒険の門 描画
+        // ★ショップ描画
+        const shopScreenX = SHOP_X - cameraX;
+        if (shopImg.complete && shopImg.width > 0) {
+            ctx.drawImage(shopImg, shopScreenX, shopY, SHOP_WIDTH, SHOP_HEIGHT);
+        } else {
+            ctx.fillStyle = 'purple'; ctx.fillRect(shopScreenX, shopY, SHOP_WIDTH, SHOP_HEIGHT);
+        }
+        ctx.fillStyle = '#FFD700'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('アバター変更', shopScreenX + SHOP_WIDTH / 2, shopY - 10);
+        if (isNearShop) {
+            ctx.fillStyle = 'rgba(153, 50, 204, 0.3)'; ctx.beginPath();
+            ctx.arc(shopScreenX + SHOP_WIDTH / 2, shopY + SHOP_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
+        }
+
+        // ソロ門描画
         const soloGateScreenX = SOLO_GATE_X - cameraX;
         ctx.fillStyle = '#4A2E18';
         ctx.fillRect(soloGateScreenX, gateY, 20, GATE_HEIGHT);
@@ -1381,7 +1489,7 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
             ctx.arc(soloGateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
         }
 
-        // マルチ冒険の門 描画
+        // マルチ門描画
         const multiGateScreenX = MULTI_GATE_X - cameraX;
         ctx.fillStyle = '#2a4b7c'; 
         ctx.fillRect(multiGateScreenX, gateY, 20, GATE_HEIGHT);
@@ -1407,7 +1515,8 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
             const opDrawY = villageGroundY - (op.drawYOffset || 0);
 
             if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
-                let opImg = op.isGrounded ? playerImgWalk : playerImgJump;
+                const opAvatarKey = (op.avatar && avatars[op.avatar]) ? op.avatar : 'default';
+                let opImg = op.isGrounded ? avatars[opAvatarKey].walk : avatars[opAvatarKey].jump;
 
                 ctx.save();
                 if (opImg.complete && opImg.width > 0) {
@@ -1431,7 +1540,8 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         }
 
         // 自分描画
-        let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
+        const myAv = avatars[currentAvatar] || avatars['default'];
+        let currentImg = player.isGrounded ? myAv.walk : myAv.jump;
         const drawX = player.x - cameraX;
 
         if (currentImg.complete && currentImg.width > 0) {
@@ -1456,7 +1566,6 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
         const lastPlatform = platforms[platforms.length - 1];
         if (lastPlatform.x + lastPlatform.width < canvas.width + 500) {
             const isStage6 = (distance >= getDistance('s6') && distance < getDistance('s7'));
-            
             const gap = isStage6 ? -2 : gameRandom() * 100 + 50; 
             const yOffset = isStage6 ? 0 : (gameRandom() - 0.5) * 150;
             
@@ -1470,30 +1579,27 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
             platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
             if (gameRandom() < 0.5) { 
-            let enemyType = 'normal';
-            if (distance >= getDistance('s4') && distance < getDistance('s5')) {
-                enemyType = gameRandom() < 0.5 ? 'normal' : 'hopper'; 
-            } else if (distance >= getDistance('s2')) {
-                enemyType = 'hopper';
-            }
-            const eWidth = 60;
-            const eHeight = (enemyType === 'hopper') ? 50 : 40;
-            const enemyOffset = 37; 
+                let enemyType = 'normal';
+                if (distance >= getDistance('s4') && distance < getDistance('s5')) {
+                    enemyType = gameRandom() < 0.5 ? 'normal' : 'hopper'; 
+                } else if (distance >= getDistance('s2')) {
+                    enemyType = 'hopper';
+                }
+                const eWidth = 60;
+                const eHeight = (enemyType === 'hopper') ? 50 : 40;
+                const enemyOffset = 37; 
+                const eId = enemiesGeneratedCount++; 
+                const alreadyDefeated = defeatedEnemies.has(eId); 
 
-            // ▼▼▼ 追加・変更 ▼▼▼
-            const eId = enemiesGeneratedCount++; // 敵にIDを割り当て
-            const alreadyDefeated = defeatedEnemies.has(eId); // すでに倒されているか？
-
-            enemies.push({
-                id: eId, // ← IDを保存
-                type: enemyType, x: newX + width / 2, y: newY - eHeight + enemyOffset,
-                width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
-                vy: 0, isGrounded: true, 
-                jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, 
-                isSquished: alreadyDefeated, // ← 変更：倒されていれば最初から潰れ判定
-                squishTimer: alreadyDefeated ? 0 : 0 // ← 変更
-            });
-            // ▲▲▲ ここまで ▲▲▲
+                enemies.push({
+                    id: eId, 
+                    type: enemyType, x: newX + width / 2, y: newY - eHeight + enemyOffset,
+                    width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
+                    vy: 0, isGrounded: true, 
+                    jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, 
+                    isSquished: alreadyDefeated, 
+                    squishTimer: alreadyDefeated ? 0 : 0 
+                });
             } else if (isStage6 && gameRandom() < 0.7) { 
                 const cactusSize = 70; const embedAmount = 37; 
                 cacti.push({ x: newX + width / 2, y: newY - cactusSize + embedAmount, width: cactusSize, height: cactusSize });
@@ -1736,7 +1842,9 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
                 const opDrawY = op.drawY;
 
                 if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
-                    let opImg = op.isGrounded ? playerImgWalk : playerImgJump;
+                    const opAvatarKey = (op.avatar && avatars[op.avatar]) ? op.avatar : 'default';
+                    let opImg = op.isGrounded ? avatars[opAvatarKey].walk : avatars[opAvatarKey].jump;
+                    
                     ctx.save();
                     if (opImg.complete && opImg.width > 0) {
                         if (op.facingRight) {
@@ -1758,7 +1866,8 @@ let enemiesDefeatedListener = null;// Firebaseのリスナー
             }
         }
         
-        let currentImg = player.isGrounded ? playerImgWalk : playerImgJump;
+        const myAv = avatars[currentAvatar] || avatars['default'];
+        let currentImg = player.isGrounded ? myAv.walk : myAv.jump;
         if (currentImg.complete && currentImg.width > 0) {
             ctx.save();
             if (playerFacingRight) { ctx.drawImage(currentImg, player.x, player.y, player.width, player.height); } 
