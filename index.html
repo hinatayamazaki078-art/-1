@@ -1097,7 +1097,7 @@
         blueButterfly: 0,
         hikariFruit: 0
     };
-    const MATERIAL_SIZE = 35; // 敵より少し小さめ
+    const MATERIAL_SIZE = 40; // 敵より少し小さめ
     
     const bgm = new Audio('伝承の丘.mp3'); bgm.loop = true; bgm.volume = 0.5;
     const jumpSound = new Audio('jump.mp3'); jumpSound.volume = 0.4;
@@ -1748,10 +1748,11 @@
                 }
 
                 if (matType) {
+                    const materialOffset = 37; // 足場の見た目に合わせるためのオフセット
                     mapMaterials.push({
                         type: matType,
                         x: newX + width / 2 - (MATERIAL_SIZE / 2),
-                        y: newY - MATERIAL_SIZE, // 足場の上に乗せる
+                        y: newY - MATERIAL_SIZE + materialOffset, // オフセットを追加して足場に接地させる
                         width: MATERIAL_SIZE,
                         height: MATERIAL_SIZE
                     });
