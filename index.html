@@ -411,6 +411,15 @@
         <button id="btn-join-party" class="menu-btn multi-btn">パーティー参加</button>
     </div>
 
+<!-- チャットUI -->
+    <div id="chat-container" class="hidden" style="position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 55; display: flex; gap: 5px; width: 80%; max-width: 400px;">
+        <input type="text" id="chat-input" maxlength="20" placeholder="チャットを入力..." style="flex-grow: 1; padding: 10px; border-radius: 8px; border: 2px solid #fff; font-size: 16px; background: rgba(0,0,0,0.7); color: white;">
+        <button id="btn-chat-send" class="menu-btn" style="margin: 0; padding: 10px 15px; font-size: 16px;">送信</button>
+    </div>
+    
+    <!-- チャットを開くためのボタン（バッグボタンの並びに追加） -->
+    <button id="btn-chat-open" class="menu-btn" style="position: absolute; top: 10px; right: 65px; z-index: 35; padding: 10px; font-size: 20px; margin: 0;">💬</button>
+    
     <div id="game-pad" class="hidden">
         <div class="pad-group">
             <div id="btn-left" class="action-btn">◀</div>
@@ -554,6 +563,13 @@
                     otherPlayers[snapshot.key].isGrounded = data.isGrounded;
                     otherPlayers[snapshot.key].updatedAt = data.updatedAt;
                     otherPlayers[snapshot.key].avatar = data.avatar; // アバター情報更新
+                    // 他のプレイヤーが新しいメッセージを送信したかチェック
+                    if (data.msgId && otherPlayers[snapshot.key].msgId !== data.msgId) {
+                        otherPlayers[snapshot.key].message = data.message;
+                        otherPlayers[snapshot.key].messageTimer = 180; // 新しいメッセージが来たらタイマーをリセット
+                        otherPlayers[snapshot.key].msgId = data.msgId;
+                    }
+                    otherPlayers[snapshot.key].isTyping = data.isTyping;
                 } else {
                     otherPlayers[snapshot.key] = {
                         ...data, drawX: data.x, drawYOffset: data.yOffset || 0, targetX: data.x, targetYOffset: data.yOffset || 0
@@ -663,6 +679,9 @@
                 name: playerName,
                 level: playerLevel,
                 avatar: currentAvatar // ★アバター情報を追加
+                isTyping: myIsTyping,
+                message: myLatestMessage,
+                msgId: myMsgId
             });
         } 
         else if (gameState === 'PLAYING' && isMultiplayer && currentPartyId) {
@@ -812,6 +831,54 @@
     let currentStamina = 100;
 
     loadGame();
+
+    // チャット用変数
+    let myIsTyping = false;
+    let myLatestMessage = "";
+    let myMsgId = 0;
+    let myMessageTimer = 0; // フェードアウト用のタイマー
+
+    const chatContainer = document.getElementById('chat-container');
+    const chatInput = document.getElementById('chat-input');
+    const btnChatSend = document.getElementById('btn-chat-send');
+    const btnChatOpen = document.getElementById('btn-chat-open');
+
+    // チャットの開閉
+    btnChatOpen.addEventListener('click', () => {
+        chatContainer.classList.toggle('hidden');
+        if (!chatContainer.classList.contains('hidden')) {
+            chatInput.focus();
+        }
+    });
+
+    // 入力中の検知
+    chatInput.addEventListener('input', () => {
+        myIsTyping = chatInput.value.length > 0;
+        syncMyPosition(); // Firebaseに即時同期
+    });
+    chatInput.addEventListener('blur', () => {
+        myIsTyping = false;
+        syncMyPosition();
+    });
+
+    // 送信処理
+    function sendChat() {
+        if(chatInput.value.trim() === "") return;
+        myLatestMessage = chatInput.value.trim();
+        myMsgId = Date.now();
+        myMessageTimer = 180; // 60FPSで約3秒間表示
+        
+        chatInput.value = "";
+        myIsTyping = false;
+        chatContainer.classList.add('hidden'); // 送信したら閉じる
+        chatInput.blur(); 
+        syncMyPosition();
+    }
+
+    btnChatSend.addEventListener('click', sendChat);
+    chatInput.addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') sendChat();
+    });
 
     function updateStatusUI() {
         document.getElementById('status-name').innerText = playerName;
@@ -1325,6 +1392,13 @@
                     partyPositions[snapshot.key].isGrounded = data.isGrounded;
                     partyPositions[snapshot.key].updatedAt = data.updatedAt;
                     partyPositions[snapshot.key].avatar = data.avatar;
+                    // 他のプレイヤーが新しいメッセージを送信したかチェック
+                    if (data.msgId && partyPositions[snapshot.key].msgId !== data.msgId) {
+                        partyPositions[snapshot.key].message = data.message;
+                        partyPositions[snapshot.key].messageTimer = 180; // 新しいメッセージが来たらタイマーをリセット
+                        partyPositions[snapshot.key].msgId = data.msgId;
+                    }
+                    partyPositions[snapshot.key].isTyping = data.isTyping;
                 } else {
                     partyPositions[snapshot.key] = { ...data, drawAbsX: data.absX, drawY: data.y };
                 }
@@ -1480,6 +1554,41 @@
         syncMyPosition();
     }
 
+// 吹き出しを描画する関数
+    function drawSpeechBubble(ctx, text, x, y, alpha, isTyping) {
+        if (alpha <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = "bold 14px sans-serif";
+        
+        const displayText = isTyping ? "・・・" : text;
+        const textWidth = ctx.measureText(displayText).width;
+        const padding = 10;
+        const bubbleWidth = textWidth + padding * 2;
+        const bubbleHeight = 26;
+
+        // 吹き出しの背景（白）
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.beginPath();
+        ctx.roundRect(x - bubbleWidth / 2, y - bubbleHeight - 10, bubbleWidth, bubbleHeight, 8);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+        ctx.stroke();
+
+        // 吹き出しのしっぽ（下向きの三角形）
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y - 10);
+        ctx.lineTo(x + 6, y - 10);
+        ctx.lineTo(x, y - 2);
+        ctx.fill();
+
+        // テキストの描画
+        ctx.fillStyle = "#333"; // 文字色
+        ctx.textAlign = "center";
+        ctx.fillText(displayText, x, y - bubbleHeight / 2 - 4);
+        ctx.restore();
+    }
+    
     function drawVillage() {
         const now = Date.now();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1590,6 +1699,14 @@
 
         ctx.fillStyle = '#FFFF00'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(playerName + " Lv." + playerLevel, drawX + player.width / 2, player.y - 8);
+        // 吹き出しの描画（自分）
+        if (myIsTyping) {
+            drawSpeechBubble(ctx, "", drawX + player.width / 2, player.y - 15, 1, true);
+        } else if (myMessageTimer > 0) {
+            myMessageTimer--;
+            let alpha = myMessageTimer > 30 ? 1 : myMessageTimer / 30;
+            drawSpeechBubble(ctx, myLatestMessage, drawX + player.width / 2, player.y - 15, alpha, false);
+        }
     }
 
     function generateMap() {
@@ -1991,6 +2108,16 @@
         });
         inventoryModal.classList.remove('hidden');
     });
+
+    // 吹き出しの描画（他プレイヤー）
+                if (op.isTyping) {
+                    drawSpeechBubble(ctx, "", opDrawX + player.width / 2, opDrawY - 15, 1, true);
+                } else if (op.messageTimer > 0) {
+                    op.messageTimer--;
+                    // 残り30フレーム(0.5秒)を切ったら徐々に透明にする（フェードアウト）
+                    let alpha = op.messageTimer > 30 ? 1 : op.messageTimer / 30;
+                    drawSpeechBubble(ctx, op.message, opDrawX + player.width / 2, opDrawY - 15, alpha, false);
+                }
 
     document.getElementById('btn-close-inventory').addEventListener('click', () => {
         inventoryModal.classList.add('hidden');
