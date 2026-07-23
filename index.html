@@ -1111,6 +1111,11 @@ collectBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryColle
     let currentBgImage = bgImage1;
     let bgOffset = 0;
     let playerFacingRight = true;
+    // === ステージフェード切替用の変数 ===
+let targetBgImage = bgImage1;
+let nextStageName = "アスター平原";
+let whiteFadeAlpha = 0;        // 白の透明度（0.0～1.0）
+let fadeState = 'none';        // 'none', 'fadeout' (白くなる), 'fadein' (透明に戻る)
 
     const enemyImg = new Image(); enemyImg.src = 'ku.png';
     const hopperGroundImg = new Image(); hopperGroundImg.src = 'バッタ地上.png';
@@ -1176,6 +1181,10 @@ const collectEffectImg = document.getElementById('collect-effect');
     function initMap(isResume = false) {
         platforms = []; enemies = []; icicles = []; boxes = []; cacti = [];
         enemiesGeneratedCount = 0;
+
+        whiteFadeAlpha = 0;
+    fadeState = 'none';
+    targetBgImage = bgImage1;
         
         if (isResume && savedDistance > 0) {
             distance = savedDistance; bgOffset = distance * 10;
@@ -1842,23 +1851,50 @@ function gameOver() {
         if (gameState === 'VILLAGE') { updateVillage(); return; }
         if (gameState !== 'PLAYING') return;
 
+        // === ここから変更：ステージ切り替え判定 & ホワイトフェード処理 ===
+        let newBgImage = bgImage1;
+        let newStageNameText = "アスター平原";
+
         if (distance >= getDistance('s9')) {
-            currentBgImage = bgImage9; stageNameEl.innerText = "ロイズの館～入り口～" + (isMultiplayer ? "(マルチ)" : "");
+            newBgImage = bgImage9; newStageNameText = "ロイズの館～入り口～";
         } else if (distance >= getDistance('s8')) {
-            currentBgImage = bgImage8; stageNameEl.innerText = "パライドタウン" + (isMultiplayer ? "(マルチ)" : "");
+            newBgImage = bgImage8; newStageNameText = "パライドタウン";
         } else if (distance >= getDistance('s7')) {
-            currentBgImage = bgImage7; stageNameEl.innerText = "ディングルの森" + (isMultiplayer ? "(マルチ)" : "");
+            newBgImage = bgImage7; newStageNameText = "ディングルの森";
         } else if (distance >= getDistance('s5')) {
-            currentBgImage = bgImage5; stageNameEl.innerText = "グリオン砂漠" + (isMultiplayer ? "(マルチ)" : "");
+            newBgImage = bgImage5; newStageNameText = "グリオン砂漠";
         } else if (distance >= getDistance('s4')) {
-            currentBgImage = bgImage4; stageNameEl.innerText = "レニリアの森" + (isMultiplayer ? "(マルチ)" : "");
+            newBgImage = bgImage4; newStageNameText = "レニリアの森";
         } else if (distance >= getDistance('s3')) {
-            currentBgImage = bgImage3; stageNameEl.innerText = "オロ雪原" + (isMultiplayer ? "(マルチ)" : "");
+            newBgImage = bgImage3; newStageNameText = "オロ雪原";
         } else if (distance >= getDistance('s2')) {
-            currentBgImage = bgImage2; stageNameEl.innerText = "ヴィリカ海岸" + (isMultiplayer ? "(マルチ)" : "");
-        } else {
-            currentBgImage = bgImage1; stageNameEl.innerText = "アスター平原" + (isMultiplayer ? "(マルチ)" : "");
+            newBgImage = bgImage2; newStageNameText = "ヴィリカ海岸";
         }
+
+        // 新しいステージの境界に入ったらフェードアウトを開始
+        if (newBgImage !== targetBgImage && fadeState === 'none') {
+            targetBgImage = newBgImage;
+            nextStageName = newStageNameText;
+            fadeState = 'fadeout';
+        }
+
+        // フェードアニメーション計算
+        if (fadeState === 'fadeout') {
+            whiteFadeAlpha += 0.02;
+            if (whiteFadeAlpha >= 1) {
+                whiteFadeAlpha = 1;
+                currentBgImage = targetBgImage; // 画面が真っ白になった瞬間に背景を切り替え
+                stageNameEl.innerText = nextStageName + (isMultiplayer ? "(マルチ)" : "");
+                fadeState = 'fadein';
+            }
+        } else if (fadeState === 'fadein') {
+            whiteFadeAlpha -= 0.02;
+            if (whiteFadeAlpha <= 0) {
+                whiteFadeAlpha = 0;
+                fadeState = 'none';
+            }
+        }
+        // === 変更ここまで ===
 
         if (keys.left) { player.vx = -player.speed; playerFacingRight = false; } 
         else if (keys.right) { player.vx = player.speed; playerFacingRight = true; } 
@@ -1998,6 +2034,11 @@ function gameOver() {
                 ctx.drawImage(currentBgImage, -xOffset + scaledWidth * 2, 0, scaledWidth, canvas.height);
             }
         } else { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        if (whiteFadeAlpha > 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${whiteFadeAlpha})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
         platforms.forEach(p => {
             const imgHeight = 100; 
