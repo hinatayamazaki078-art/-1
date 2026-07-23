@@ -2125,27 +2125,51 @@ function gameOver() {
     const inventoryContainer = document.getElementById('inventory-items-container');
 
     document.getElementById('btn-bag').addEventListener('click', () => {
+        // コンテナの中身をリセット
         inventoryContainer.innerHTML = '';
-        const itemsInfo = [
+        
+        // 全アイテムの定義（今後新しいアイテムが増えたらここに追加します）
+        const allItemsInfo = [
             { id: 'yumeyuri', name: 'ユメユリ', img: yumeyuriImg.src, count: myInventory.yumeyuri },
             { id: 'blueButterfly', name: 'ブルーバタフライ', img: blueButterflyImg.src, count: myInventory.blueButterfly },
             { id: 'hikariFruit', name: 'ヒカリノ果実', img: hikariFruitImg.src, count: myInventory.hikariFruit }
         ];
 
-        itemsInfo.forEach(item => {
+        // 1個以上持っている（未知ではない）アイテムだけを抽出する
+        const ownedItems = allItemsInfo.filter(item => item.count > 0);
+
+        // インベントリの最大枠数
+        const MAX_SLOTS = 50; 
+
+        // 50枠分ループして生成する
+        for (let i = 0; i < MAX_SLOTS; i++) {
             const div = document.createElement('div');
+            // 全体的にサイズを小さくし、枠線をつけて四角いマス目を意識
             div.style.background = 'rgba(255,255,255,0.1)';
-            div.style.padding = '10px';
+            div.style.padding = '5px';
             div.style.borderRadius = '8px';
             div.style.textAlign = 'center';
-            div.style.width = '100px';
-            div.innerHTML = `
-                <img src="${item.img}" style="width: 50px; height: 50px; object-fit: contain; margin-bottom: 5px;">
-                <div style="color:white; font-size: 12px; font-weight:bold; margin-bottom:5px;">${item.name}</div>
-                <div style="color:#FFD700; font-weight:bold;">x ${item.count}</div>
-            `;
+            div.style.width = '75px';
+            div.style.height = '85px'; // 高さを固定して空欄時の形を維持
+            div.style.boxSizing = 'border-box';
+            div.style.border = '1px solid #aaa';
+
+            if (i < ownedItems.length) {
+                // 既に持っているアイテムがある場合は画像・名前・数量を表示
+                const item = ownedItems[i];
+                div.innerHTML = `
+                    <img src="${item.img}" style="width: 35px; height: 35px; object-fit: contain; margin-bottom: 2px;">
+                    <div style="color:white; font-size: 10px; font-weight:bold; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
+                    <div style="color:#FFD700; font-size: 12px; font-weight:bold;">x ${item.count}</div>
+                `;
+            } else {
+                // 持っていない（空き枠）の場合は中身を空にして背景を少し暗くする
+                div.innerHTML = '';
+                div.style.background = 'rgba(0,0,0,0.3)';
+            }
+            
             inventoryContainer.appendChild(div);
-        });
+        }
         inventoryModal.classList.remove('hidden');
     });
 
