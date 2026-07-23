@@ -381,8 +381,6 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
-    <img id="collect-effect" src="tktk_Recovery_17.gif" class="hidden" style="position: absolute; pointer-events: none; z-index: 80; transform: translate(-50%, -50%); width: 100px; height: 100px; mix-blend-mode: screen;">
-
     <button id="btn-return-village" class="hidden">村に帰る</button>
     
     <div id="status-ui" class="hidden">
@@ -828,8 +826,7 @@
     const jumpBtn = document.getElementById('btn-jump');
     jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); doJump(); });
     const collectBtn = document.getElementById('btn-collect');
-    collectBtn.addEventListener('mousedown', (e) => { e.preventDefault(); tryCollectMaterial(); });
-    collectBtn.addEventListener('touchstart', (e) => { e.preventDefault(); tryCollectMaterial(); });
+collectBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryCollectMaterial(); });
 
     function handleTouchControls(e) {
         let left = false, right = false;
@@ -1936,6 +1933,7 @@ function gameOver() {
             platforms.forEach(p => p.x -= offset); enemies.forEach(e => e.x -= offset);
             icicles.forEach(i => i.x -= offset); boxes.forEach(b => b.x -= offset); cacti.forEach(c => c.x -= offset);
             mapMaterials.forEach(m => m.x -= offset);
+            activeCollectEffects.forEach(e => e.x -= offset);
             bgOffset += offset * 0.5;
         }
 
@@ -2126,6 +2124,9 @@ function gameOver() {
                 ctx.beginPath(); ctx.moveTo(windX, windY); ctx.lineTo(windX - (100 + Math.random() * 150), windY); ctx.stroke();
             }
         }
+        if (typeof updateEffectsPosition === 'function') {
+            updateEffectsPosition();
+        }
     } 
 
 // === バッグ画面の開閉ロジック ===
@@ -2204,15 +2205,16 @@ function gameOver() {
                 
                 // インベントリに追加
                 myInventory[m.type]++;
-                // マップから削除
-                mapMaterials.splice(i, 1);
                 
-                // ★効果音を鳴らす
+                // 効果音を鳴らす
                 collectSound.currentTime = 0;
                 collectSound.play().catch(err => { console.warn("Collect sound failed:", err); });
 
-                // ★エフェクトを表示する
-                showCollectEffect();
+                // 素材のあった場所（画面座標）でエフェクト表示
+                showCollectEffect(matCenterX, matCenterY);
+
+                // マップから削除
+                mapMaterials.splice(i, 1);
                 
                 saveGame();
                 break; // 1回につき1個だけ採集
@@ -2220,34 +2222,57 @@ function gameOver() {
         }
     }
 
-    // ★新しく追加する関数：プレイヤーの位置に合わせてエフェクトを表示する
-    function showCollectEffect() {
-        // キャンバスの内部座標と実際の画面表示サイズの比率を計算
-        const scaleX = canvas.clientWidth / canvas.width;
-        const scaleY = canvas.clientHeight / canvas.height;
+    let activeCollectEffects = [];
 
-        let screenX = player.x;
-        // 村の場合はカメラのスクロール分を引く
-        if (gameState === 'VILLAGE') {
-            screenX = player.x - cameraX;
+// 素材があった位置（x, y）にエフェクトを発生させる関数
+function showCollectEffect(x, y) {
+    const container = document.getElementById('game-container');
+    const img = document.createElement('img');
+    
+    // キャッシュ対策用のクエリパラメータを付けて毎回最初からGIFを再生
+    img.src = "tktk_Recovery_17.gif?" + Date.now();
+    img.style.position = 'absolute';
+    img.style.pointerEvents = 'none';
+    img.style.zIndex = '80';
+    img.style.transform = 'translate(-50%, -50%)';
+    img.style.width = '100px';
+    img.style.height = '100px';
+    img.style.mixBlendMode = 'screen';
+
+    container.appendChild(img);
+
+    const effectObj = {
+        element: img,
+        x: x,
+        y: y,
+        worldX: (gameState === 'VILLAGE') ? x + cameraX : 0
+    };
+
+    activeCollectEffects.push(effectObj);
+
+    // 1秒後に自動削除
+    setTimeout(() => {
+        if (img.parentNode) {
+            img.parentNode.removeChild(img);
         }
+        activeCollectEffects = activeCollectEffects.filter(e => e !== effectObj);
+    }, 1000);
+}
 
-        // プレイヤーの中心座標に変換
-        const targetX = (screenX + player.width / 2) * scaleX;
-        const targetY = (player.y + player.height / 2) * scaleY;
+// 毎フレーム、キャンバス上の描画位置を更新する関数
+function updateEffectsPosition() {
+    const scaleX = canvas.clientWidth / canvas.width;
+    const scaleY = canvas.clientHeight / canvas.height;
 
-        collectEffectImg.style.left = targetX + 'px';
-        collectEffectImg.style.top = targetY + 'px';
-        
-        // GIFアニメーションを最初から再生させるためのリセット処理
-        collectEffectImg.src = "tktk_Recovery_17.gif";
-        collectEffectImg.classList.remove('hidden');
-
-        // 指定時間後にエフェクトを隠す（GIFの長さに合わせて1000の部分を調整してください）
-        setTimeout(() => {
-            collectEffectImg.classList.add('hidden');
-        }, 1000); 
-    }
+    activeCollectEffects.forEach(e => {
+        let currentX = e.x;
+        if (gameState === 'VILLAGE') {
+            currentX = e.worldX - cameraX;
+        }
+        e.element.style.left = (currentX * scaleX) + 'px';
+        e.element.style.top = (e.y * scaleY) + 'px';
+    });
+}
     
     function loop(timestamp) {
         if (gameState === 'PLAYING' || gameState === 'VILLAGE') {
