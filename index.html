@@ -424,7 +424,7 @@
     <!-- ソロ冒険の門アクション -->
     <div id="gate-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
         <button id="btn-enter-gate" class="menu-btn">ソロ冒険に出発！</button>
-        <p style="color: white; font-weight: bold; text-shadow: 2px 2px 2px black; font-size: 2vw; margin-top: 10px;">▲ボタン（キー）でも出発</p>
+        <!-- 案内テキストの<p>タグを削除 -->
     </div>
 
     <!-- マルチ冒険の門アクション -->
@@ -1026,10 +1026,7 @@
     }, 5000);
 
     function doJump() {
-        if (gameState === 'VILLAGE') {
-            if (isNearSoloGate) { enterSoloGate(); return; }
-        }
-
+        // 村のゲート付近で出発する処理（if文）を削除しました
         if (gameState !== 'PLAYING' && gameState !== 'VILLAGE') return;
         
         if (player.isGrounded) {
