@@ -827,6 +827,9 @@
 
     const jumpBtn = document.getElementById('btn-jump');
     jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); doJump(); });
+    const collectBtn = document.getElementById('btn-collect');
+    collectBtn.addEventListener('mousedown', (e) => { e.preventDefault(); tryCollectMaterial(); });
+    collectBtn.addEventListener('touchstart', (e) => { e.preventDefault(); tryCollectMaterial(); });
 
     function handleTouchControls(e) {
         let left = false, right = false;
