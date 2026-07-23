@@ -381,6 +381,8 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
+    <img id="collect-effect" src="tktk_Recovery_17.gif" class="hidden" style="position: absolute; pointer-events: none; z-index: 80; transform: translate(-50%, -50%); width: 100px; height: 100px;">
+
     <button id="btn-return-village" class="hidden">村に帰る</button>
     
     <div id="status-ui" class="hidden">
@@ -1121,6 +1123,9 @@
     
     const bgm = new Audio('伝承の丘.mp3'); bgm.loop = true; bgm.volume = 0.5;
     const jumpSound = new Audio('jump.mp3'); jumpSound.volume = 0.4;
+    const collectSound = new Audio('採集音.mp3'); // ※実際のファイル名に変更してください
+collectSound.volume = 0.5;
+const collectEffectImg = document.getElementById('collect-effect');
 
     let gameState = 'TITLE';
     let animationId;
@@ -2199,27 +2204,47 @@ function gameOver() {
                 // マップから削除
                 mapMaterials.splice(i, 1);
                 
-                // 必要ならここで「ゲットした！」などの音を鳴らす
+                // ★効果音を鳴らす
+                collectSound.currentTime = 0;
+                collectSound.play().catch(err => { console.warn("Collect sound failed:", err); });
+
+                // ★エフェクトを表示する
+                showCollectEffect();
+                
                 saveGame();
                 break; // 1回につき1個だけ採集
             }
         }
     }
 
-    // パッドのボタン、およびPCの「C」キーで採集できるようにする
-    document.getElementById('btn-collect').addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        tryCollectMaterial();
-    });
-    document.getElementById('btn-collect').addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        tryCollectMaterial();
-    });
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'c' || e.key === 'C') { // Cキーでも採集可能に
-            tryCollectMaterial();
+    // ★新しく追加する関数：プレイヤーの位置に合わせてエフェクトを表示する
+    function showCollectEffect() {
+        // キャンバスの内部座標と実際の画面表示サイズの比率を計算
+        const scaleX = canvas.clientWidth / canvas.width;
+        const scaleY = canvas.clientHeight / canvas.height;
+
+        let screenX = player.x;
+        // 村の場合はカメラのスクロール分を引く
+        if (gameState === 'VILLAGE') {
+            screenX = player.x - cameraX;
         }
-    });
+
+        // プレイヤーの中心座標に変換
+        const targetX = (screenX + player.width / 2) * scaleX;
+        const targetY = (player.y + player.height / 2) * scaleY;
+
+        collectEffectImg.style.left = targetX + 'px';
+        collectEffectImg.style.top = targetY + 'px';
+        
+        // GIFアニメーションを最初から再生させるためのリセット処理
+        collectEffectImg.src = "tktk_Recovery_17.gif";
+        collectEffectImg.classList.remove('hidden');
+
+        // 指定時間後にエフェクトを隠す（GIFの長さに合わせて1000の部分を調整してください）
+        setTimeout(() => {
+            collectEffectImg.classList.add('hidden');
+        }, 1000); 
+    }
     
     function loop(timestamp) {
         if (gameState === 'PLAYING' || gameState === 'VILLAGE') {
