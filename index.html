@@ -682,7 +682,10 @@
                 coins = data.coins || 0;
                 ownedAvatars = data.ownedAvatars || ['default'];
                 currentAvatar = data.currentAvatar || 'default';
-                myInventory = data.inventory || { yumeyuri: 0, blueButterfly: 0, hikariFruit: 0 };
+                // デフォルトの素材（今後新しい素材を追加したらここにも追記する）
+const defaultInventory = { yumeyuri: 0, blueButterfly: 0, hikariFruit: 0 };
+// 過去のセーブデータとデフォルト値をマージ（合成）する
+myInventory = { ...defaultInventory, ...(data.inventory || {}) };
             } catch(e) {
                 console.error("セーブデータの読み込みに失敗", e);
             }
