@@ -1464,25 +1464,38 @@ const collectEffectImg = document.getElementById('collect-effect');
 
     // === 修正・追加箇所 2 ===
 function executeAdventure(isMulti) {
-    removeMyPosition();
-    gateActionUI.classList.add('hidden');
-    multiGateActionUI.classList.add('hidden');
-    shopActionUI.classList.add('hidden');
-    scoreDisplay.classList.remove('hidden');
-    btnReturnVillage.classList.remove('hidden'); 
-    stageNameEl.innerText = "アスター平原";
-    gameState = 'PLAYING';
-    isMultiplayer = isMulti;
+    // 1. ゆっくり暗くする（フェードアウト開始）
+    fadeOverlay.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => { fadeOverlay.style.opacity = '1'; });
+    });
 
-    earnedCoinsInRun = 0; // ← この行を追加（獲得コインを0からカウント）
-    
-    if (isMultiplayer) {
-        mapSeed = currentPartyMapSeed; 
-        setupPartyPositionsListener();
-    } else {
-        mapSeed = Math.floor(Math.random() * 1000000);
-    }
-    initMap();
+    // 2. 2秒後（完全に暗くなったタイミング）でステージへの移行処理を実行
+    setTimeout(() => {
+        removeMyPosition();
+        gateActionUI.classList.add('hidden');
+        multiGateActionUI.classList.add('hidden');
+        shopActionUI.classList.add('hidden');
+        scoreDisplay.classList.remove('hidden');
+        btnReturnVillage.classList.remove('hidden'); 
+        stageNameEl.innerText = "アスター平原";
+        gameState = 'PLAYING';
+        isMultiplayer = isMulti;
+
+        earnedCoinsInRun = 0; 
+        
+        if (isMultiplayer) {
+            mapSeed = currentPartyMapSeed; 
+            setupPartyPositionsListener();
+        } else {
+            mapSeed = Math.floor(Math.random() * 1000000);
+        }
+        initMap();
+
+        // 3. ゆっくり明るくする（フェードイン開始）
+        fadeOverlay.style.opacity = '0';
+        setTimeout(() => { fadeOverlay.classList.add('hidden'); }, 2000);
+    }, 2000); // CSSで設定されている transition の2秒に合わせる
 }
 
     function returnToVillage() {
