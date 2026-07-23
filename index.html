@@ -211,6 +211,16 @@
             animation: pulse 1.5s infinite;
         }
 
+        /* 指定のアクションボタンを小さくする設定 */
+        #btn-enter-gate,
+        #btn-create-party,
+        #btn-join-party,
+        #btn-open-shop {
+            padding: 8px 16px;       /* ボタン内の余白を小さく */
+            font-size: max(2vw, 14px); /* 文字サイズを小さく（最低14pxを保証） */
+            margin: 5px;             /* ボタン周りの間隔を小さく */
+        }
+
         #score-display {
             position: absolute;
             top: 130px;
