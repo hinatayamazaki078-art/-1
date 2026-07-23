@@ -623,6 +623,7 @@
     };
 
     let coins = 0;
+    let earnedCoinsInRun = 0;
     let ownedAvatars = ['default'];
     let currentAvatar = 'default';
 
@@ -1437,25 +1438,28 @@
         });
     }
 
-    function executeAdventure(isMulti) {
-        removeMyPosition();
-        gateActionUI.classList.add('hidden');
-        multiGateActionUI.classList.add('hidden');
-        shopActionUI.classList.add('hidden');
-        scoreDisplay.classList.remove('hidden');
-        btnReturnVillage.classList.remove('hidden'); 
-        stageNameEl.innerText = "アスター平原";
-        gameState = 'PLAYING';
-        isMultiplayer = isMulti;
-        
-        if (isMultiplayer) {
-            mapSeed = currentPartyMapSeed; 
-            setupPartyPositionsListener();
-        } else {
-            mapSeed = Math.floor(Math.random() * 1000000);
-        }
-        initMap();
+    // === 修正・追加箇所 2 ===
+function executeAdventure(isMulti) {
+    removeMyPosition();
+    gateActionUI.classList.add('hidden');
+    multiGateActionUI.classList.add('hidden');
+    shopActionUI.classList.add('hidden');
+    scoreDisplay.classList.remove('hidden');
+    btnReturnVillage.classList.remove('hidden'); 
+    stageNameEl.innerText = "アスター平原";
+    gameState = 'PLAYING';
+    isMultiplayer = isMulti;
+
+    earnedCoinsInRun = 0; // ← この行を追加（獲得コインを0からカウント）
+    
+    if (isMultiplayer) {
+        mapSeed = currentPartyMapSeed; 
+        setupPartyPositionsListener();
+    } else {
+        mapSeed = Math.floor(Math.random() * 1000000);
     }
+    initMap();
+}
 
     function returnToVillage() {
         fadeOverlay.classList.remove('hidden');
@@ -1489,33 +1493,35 @@
         gameState = 'TITLE';
     }
 
-    function gameOver() {
-        removeMyPosition();
-        gameState = 'GAMEOVER';
-        cancelAnimationFrame(animationId);
-        bgm.pause();
+    // === 修正・追加箇所 4 ===
+function gameOver() {
+    removeMyPosition();
+    gameState = 'GAMEOVER';
+    cancelAnimationFrame(animationId);
+    bgm.pause();
 
-        const currentScore = distance; 
-        const earnedCoins = Math.floor(currentScore); // 1m = 1コイン獲得
-        coins += earnedCoins;
-        distance = 0;
-        saveGame();
-        distance = currentScore; 
-        
-        scoreDisplay.classList.add('hidden');
-        gamePad.classList.add('hidden');
-        stageDisplay.classList.add('hidden');
-        gateActionUI.classList.add('hidden');
-        multiGateActionUI.classList.add('hidden');
-        shopActionUI.classList.add('hidden');
-        btnReturnVillage.classList.add('hidden'); 
-        document.getElementById('status-ui').classList.add('hidden');
-        
-        gameOverScreen.classList.remove('hidden');
-        finalDistanceEl.innerText = Math.floor(distance);
-        earnedCoinsEl.innerText = earnedCoins; // リザルト画面でコイン表示
-    }
-
+    const currentScore = distance; 
+    
+    // ↓ 距離からコインを加算していた2行を削除して、セーブだけに修正します
+    distance = 0;
+    saveGame();
+    distance = currentScore; 
+    
+    scoreDisplay.classList.add('hidden');
+    gamePad.classList.add('hidden');
+    stageDisplay.classList.add('hidden');
+    gateActionUI.classList.add('hidden');
+    multiGateActionUI.classList.add('hidden');
+    shopActionUI.classList.add('hidden');
+    btnReturnVillage.classList.add('hidden'); 
+    document.getElementById('status-ui').classList.add('hidden');
+    
+    gameOverScreen.classList.remove('hidden');
+    finalDistanceEl.innerText = Math.floor(distance);
+    
+    // ↓ プレイ中に敵から稼いだコインを表示するように変更
+    earnedCoinsEl.innerText = earnedCoinsInRun; 
+}
     function updateVillage() {
         if (keys.left) {
             player.vx = -player.speed; playerFacingRight = false;
@@ -1889,6 +1895,10 @@
                 player.y + hitboxMargin < e.y + e.height && player.y + player.height - hitboxMargin > e.y) {
                 if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
                     e.isSquished = true; e.squishTimer = 20; player.vy = player.jumpPower * 0.8; player.isGrounded = false;
+                    const coinValue = (e.type === 'hopper') ? 15 : 8; // バッタなら15、それ以外（蜘蛛）なら8
+            coins += coinValue;
+            earnedCoinsInRun += coinValue;
+            updateStatusUI();
                     if (isMultiplayer && currentPartyId && db) {
                         db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
                     }
