@@ -859,14 +859,6 @@ collectBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryColle
     window.addEventListener('touchend', handleTouchControls, { passive: false });
     window.addEventListener('touchcancel', handleTouchControls, { passive: false });
 
-    // マップ上の素材と、所持している素材の変数
-    let mapMaterials = [];
-    let myInventory = {
-        yumeyuri: 0,
-        blueButterfly: 0,
-        hikariFruit: 0
-    };
-
     // プレイヤー変数
     let playerName = "プレイヤー";
     let playerLevel = 1;
