@@ -1128,6 +1128,8 @@ let fadeState = 'none';        // 'none', 'fadeout' (白くなる), 'fadein' (�
     const hopperGroundImg = new Image(); hopperGroundImg.src = 'バッタ地上.png';
     const hopperJumpImg = new Image(); hopperJumpImg.src = 'バッタジャンプ.png';
     const cactusImg = new Image(); cactusImg.src = 'サボテン.png';
+    const kinokoImg = new Image(); kinokoImg.src = 'きのこマン.jpg';
+    let enemyProjectiles = [];
 
     // 素材画像の読み込み
     const yumeyuriImg = new Image(); yumeyuriImg.src = 'ユメユリ.png';
@@ -1183,6 +1185,7 @@ const collectEffectImg = document.getElementById('collect-effect');
 
     function initMap(isResume = false) {
         platforms = []; enemies = []; icicles = []; boxes = []; cacti = [];
+        enemyProjectiles = [];
         enemiesGeneratedCount = 0;
 
         whiteFadeAlpha = 0;
@@ -1826,13 +1829,22 @@ function gameOver() {
 
             if (gameRandom() < 0.5) { 
                 let enemyType = 'normal';
-                if (distance >= getDistance('s4') && distance < getDistance('s5')) {
+                
+                // === 変更: ステージごとの出現敵判定 ===
+                if (distance >= getDistance('s7')) {
+                    let rand = gameRandom();
+                    if (rand < 0.3) enemyType = 'kinoko'; // 30%できのこマン
+                    else if (rand < 0.6) enemyType = 'hopper';
+                    else enemyType = 'normal';
+                } else if (distance >= getDistance('s4') && distance < getDistance('s5')) {
                     enemyType = gameRandom() < 0.5 ? 'normal' : 'hopper'; 
                 } else if (distance >= getDistance('s2')) {
                     enemyType = 'hopper';
                 }
-                const eWidth = 60;
-                const eHeight = (enemyType === 'hopper') ? 50 : 40;
+                
+                // 敵のサイズを種類ごとに調整 (きのこマンは少し大きめの70x65に設定)
+                const eWidth = (enemyType === 'kinoko') ? 70 : 60;
+                const eHeight = (enemyType === 'hopper') ? 50 : ((enemyType === 'kinoko') ? 65 : 40);
                 const enemyOffset = 37; 
                 const eId = enemiesGeneratedCount++; 
                 const alreadyDefeated = defeatedEnemies.has(eId); 
@@ -1843,10 +1855,13 @@ function gameOver() {
                     width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
                     vy: 0, isGrounded: true, 
                     jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, 
+                    hp: (enemyType === 'kinoko') ? 2 : 1, // ★追加: きのこマンは2回踏むためHP2
+                    shootTimer: (enemyType === 'kinoko') ? 60 : 0, // ★追加: 初回発射までの時間
                     isSquished: alreadyDefeated, 
                     squishTimer: alreadyDefeated ? 0 : 0 
                 });
-            } else if (isStage6 && gameRandom() < 0.7) { 
+                // ======================================
+            } else if (isStage6 && gameRandom() < 0.7) {
                 const cactusSize = 70; const embedAmount = 37; 
                 cacti.push({ x: newX + width / 2, y: newY - cactusSize + embedAmount, width: cactusSize, height: cactusSize });
             }
@@ -1932,6 +1947,7 @@ function gameOver() {
 
         player.vy += player.gravity; player.y += player.vy; player.isGrounded = false;
 
+        // 1. 敵の挙動更新（ジャンプと弾の発射）
         enemies.forEach(e => {
             if (e.isSquished) { e.squishTimer--; return; }
             if (e.type === 'hopper') {
@@ -1941,35 +1957,69 @@ function gameOver() {
                     e.vy += 0.5; e.y += e.vy;
                     if (e.y >= e.spawnY - e.height) { e.y = e.spawnY - e.height; e.vy = 0; e.isGrounded = true; e.jumpTimer = 80; }
                 }
+            } else if (e.type === 'kinoko') {
+                // プレイヤーとの距離を計算（X座標の差が800以内なら「見つけた」と判定）
+                const distToPlayerX = Math.abs((player.x + player.width / 2) - (e.x + e.width / 2));
+                if (distToPlayerX < 800) {
+                    e.shootTimer--;
+                    if (e.shootTimer <= 0) {
+                        e.shootTimer = 150; // 次の弾を撃つまでの間隔 (約2.5秒)
+                        // プレイヤーの方向に向けて弾を飛ばす
+                        const dx = (player.x + player.width / 2) - (e.x + e.width / 2);
+                        const dy = (player.y + player.height / 2) - (e.y + e.height / 2);
+                        const angle = Math.atan2(dy, dx);
+                        const speed = 4; // 弾のスピード
+                        enemyProjectiles.push({
+                            x: e.x + e.width / 2,
+                            y: e.y + e.height / 2,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed,
+                            radius: 8
+                        });
+                    }
+                }
             }
         });
 
-        icicles.forEach(icicle => {
-            if (!icicle.isFalling && Math.abs(player.x + player.width / 2 - (icicle.x + icicle.width / 2)) < 150) { icicle.isFalling = true; }
-            if (icicle.isFalling) { icicle.vy += player.gravity * 0.7; icicle.y += icicle.vy; }
-
-            const hitboxMargin = 10;
-            if (player.x + hitboxMargin < icicle.x + icicle.width && player.x + player.width - hitboxMargin > icicle.x &&
-                player.y + hitboxMargin < icicle.y + icicle.height && player.y + player.height - hitboxMargin > icicle.y) {
+        // 2. 弾の移動とプレイヤーへの当たり判定
+        enemyProjectiles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            const hitMargin = 8;
+            if (p.x + p.radius > player.x + hitMargin && p.x - p.radius < player.x + player.width - hitMargin &&
+                p.y + p.radius > player.y + hitMargin && p.y - p.radius < player.y + player.height - hitMargin) {
                 gameOver();
             }
         });
 
+        // 3. 敵との接触・踏みつけ判定
         enemies.forEach(e => {
             if (e.isSquished) return;
             const hitboxMargin = 10; 
             if (player.x + hitboxMargin < e.x + e.width && player.x + player.width - hitboxMargin > e.x &&
                 player.y + hitboxMargin < e.y + e.height && player.y + player.height - hitboxMargin > e.y) {
+                
+                // プレイヤーが落下中で、敵の上部を踏んだ場合
                 if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
-                    e.isSquished = true; e.squishTimer = 20; player.vy = player.jumpPower * 0.8; player.isGrounded = false;
-                    const coinValue = (e.type === 'hopper') ? 15 : 8; // バッタなら15、それ以外（蜘蛛）なら8
-            coins += coinValue;
-            earnedCoinsInRun += coinValue;
-            updateStatusUI();
-                    if (isMultiplayer && currentPartyId && db) {
-                        db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
+                    e.hp--; // HPを減らす
+                    player.vy = player.jumpPower * 0.8; // プレイヤーはバウンドする
+                    player.isGrounded = false;
+                    
+                    if (e.hp <= 0) {
+                        e.isSquished = true; 
+                        e.squishTimer = 20; 
+                        // きのこマンなら20コイン、バッタは15、通常は8
+                        const coinValue = (e.type === 'kinoko') ? 20 : ((e.type === 'hopper') ? 15 : 8); 
+                        coins += coinValue;
+                        earnedCoinsInRun += coinValue;
+                        updateStatusUI();
+                        if (isMultiplayer && currentPartyId && db) {
+                            db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
+                        }
                     }
-                } else { gameOver(); }
+                } else { 
+                    gameOver(); 
+                }
             }
         });
 
@@ -1996,10 +2046,13 @@ function gameOver() {
             icicles.forEach(i => i.x -= offset); boxes.forEach(b => b.x -= offset); cacti.forEach(c => c.x -= offset);
             mapMaterials.forEach(m => m.x -= offset);
             activeCollectEffects.forEach(e => e.x -= offset);
+            enemyProjectiles.forEach(p => p.x -= offset);
             bgOffset += offset * 0.5;
         }
 
         if (platforms[0].x + platforms[0].width < -100) platforms.shift();
+
+        enemyProjectiles = enemyProjectiles.filter(p => p.x + p.radius >= -100 && p.x - p.radius <= canvas.width + 100 && p.y <= canvas.height + 100);
         
         enemies = enemies.filter(e => (e.x + e.width >= -100) && (!e.isSquished || e.squishTimer > 0));
         icicles = icicles.filter(i => (i.x + i.width >= -100) && i.y < canvas.height);
@@ -2067,6 +2120,7 @@ function gameOver() {
             }
         });
         
+        // ▼▼▼ ここから敵の描画処理を更新 ▼▼▼
         enemies.forEach(e => {
             if (e.type === 'hopper') {
                 let currentEnemyImg = e.isGrounded ? hopperGroundImg : hopperJumpImg;
@@ -2076,6 +2130,26 @@ function gameOver() {
                     } else { ctx.drawImage(currentEnemyImg, e.x, e.y, e.width, e.height); }
                 } else {
                     ctx.fillStyle = 'green';
+                    if (e.isSquished) {
+                        const squishedHeight = e.height * 0.25; ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                    } else { ctx.fillRect(e.x, e.y, e.width, e.height); }
+                }
+            } else if (e.type === 'kinoko') {
+                // === 追加: きのこマンの描画 ===
+                if (kinokoImg.complete && kinokoImg.width > 0) {
+                    if (e.isSquished) {
+                        const squishedHeight = e.height * 0.25; 
+                        ctx.drawImage(kinokoImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
+                    } else {
+                        // 1回踏まれてHPが1になった場合、点滅させてダメージを表現
+                        if (e.hp === 1 && Math.floor(Date.now() / 150) % 2 === 0) {
+                            ctx.globalAlpha = 0.5;
+                        }
+                        ctx.drawImage(kinokoImg, e.x, e.y, e.width, e.height);
+                        ctx.globalAlpha = 1.0;
+                    }
+                } else {
+                    ctx.fillStyle = (e.hp === 1) ? 'orange' : 'brown';
                     if (e.isSquished) {
                         const squishedHeight = e.height * 0.25; ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
                     } else { ctx.fillRect(e.x, e.y, e.width, e.height); }
@@ -2096,12 +2170,25 @@ function gameOver() {
             }
         });
 
+        // === 追加: 敵の弾の描画 ===
+        if (typeof enemyProjectiles !== 'undefined') {
+            enemyProjectiles.forEach(p => {
+                ctx.fillStyle = '#FF4500'; // 弾の色
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#FFD700'; // 弾の枠線
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+        // ▲▲▲ ここまで ▲▲▲
+
         icicles.forEach(icicle => {
             ctx.fillStyle = '#E0FFFF'; ctx.beginPath();
             ctx.moveTo(icicle.x, icicle.y); ctx.lineTo(icicle.x + icicle.width, icicle.y); ctx.lineTo(icicle.x + icicle.width / 2, icicle.y + icicle.height);
             ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#B0E0E6'; ctx.lineWidth = 2; ctx.stroke();
         });
-
         boxes.forEach(b => {
             if (boxImg.complete && boxImg.width > 0) { ctx.drawImage(boxImg, b.x, b.y, b.width, b.height); } 
             else { ctx.fillStyle = '#8B4513'; ctx.fillRect(b.x, b.y, b.width, b.height); }
