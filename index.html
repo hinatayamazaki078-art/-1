@@ -1129,6 +1129,9 @@ let fadeState = 'none';        // 'none', 'fadeout' (白くなる), 'fadein' (�
     const hopperJumpImg = new Image(); hopperJumpImg.src = 'バッタジャンプ.png';
     const cactusImg = new Image(); cactusImg.src = 'サボテン.png';
     const kinokoImg = new Image(); kinokoImg.src = 'きのこマン.jpg';
+    const yoroiStandImg = new Image(); yoroiStandImg.src = '鎧立.png';
+    const yoroiReadyImg = new Image(); yoroiReadyImg.src = '鎧構え.jpg';
+    const yoroiAttackImg = new Image(); yoroiAttackImg.src = '鎧攻撃.png';
     let enemyProjectiles = [];
 
     // 素材画像の読み込み
@@ -1857,6 +1860,9 @@ function gameOver() {
                     jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, 
                     hp: (enemyType === 'kinoko') ? 2 : 1, // ★追加: きのこマンは2回踏むためHP2
                     shootTimer: (enemyType === 'kinoko') ? 60 : 0, // ★追加: 初回発射までの時間
+                    yoroiState: (enemyType === 'yoroi') ? 'stand' : null,
+                    stateTimer: 0,
+                    yoroiFacingLeft: true,
                     isSquished: alreadyDefeated, 
                     squishTimer: alreadyDefeated ? 0 : 0 
                 });
@@ -1978,6 +1984,49 @@ function gameOver() {
                         });
                     }
                 }
+           } else if (e.type === 'yoroi') {
+                const distX = (player.x + player.width / 2) - (e.x + e.width / 2);
+                const absDistX = Math.abs(distX);
+                
+                // 攻撃中以外は常にプレイヤーの方向を向く
+                if (e.yoroiState !== 'attack') {
+                    e.yoroiFacingLeft = (distX < 0);
+                }
+
+                if (e.yoroiState === 'stand') {
+                    // プレイヤーが近づいたら（距離300以内）構え状態へ
+                    if (absDistX <= 300) {
+                        e.yoroiState = 'ready';
+                        e.stateTimer = 30; // 構え時間（0.5秒）
+                    }
+                } else if (e.yoroiState === 'ready') {
+                    e.stateTimer--;
+                    if (e.stateTimer <= 0) {
+                        e.yoroiState = 'attack';
+                        e.stateTimer = 40; // 攻撃時間
+                    }
+                } else if (e.yoroiState === 'attack') {
+                    e.stateTimer--;
+                    
+                    // 攻撃判定枠の生成 (向いている方向の前方120pxに攻撃判定)
+                    const attackRangeX = 120;
+                    let attackRect = {
+                        x: e.yoroiFacingLeft ? e.x - attackRangeX : e.x + e.width,
+                        y: e.y,
+                        width: attackRangeX,
+                        height: e.height
+                    };
+                    
+                    // プレイヤーが攻撃範囲内に入っていればゲームオーバー
+                    if (player.x < attackRect.x + attackRect.width && player.x + player.width > attackRect.x &&
+                        player.y < attackRect.y + attackRect.height && player.y + player.height > attackRect.y) {
+                        gameOver();
+                    }
+
+                    if (e.stateTimer <= 0) {
+                        e.yoroiState = 'stand'; // 攻撃が終わったら立ち状態へ戻る
+                    }
+                }
             }
         });
 
@@ -1998,6 +2047,11 @@ function gameOver() {
             const hitboxMargin = 10; 
             if (player.x + hitboxMargin < e.x + e.width && player.x + player.width - hitboxMargin > e.x &&
                 player.y + hitboxMargin < e.y + e.height && player.y + player.height - hitboxMargin > e.y) {
+
+if (e.type === 'yoroi') {
+                    gameOver();
+                    return;
+                }
                 
                 // プレイヤーが落下中で、敵の上部を踏んだ場合
                 if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
@@ -2157,6 +2211,40 @@ function gameOver() {
                         const squishedHeight = e.height * 0.25; ctx.fillRect(e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
                     } else { ctx.fillRect(e.x, e.y, e.width, e.height); }
                 }
+
+} else if (e.type === 'yoroi') {
+                let imgToDraw = yoroiStandImg;
+                if (e.yoroiState === 'ready') imgToDraw = yoroiReadyImg;
+                else if (e.yoroiState === 'attack') imgToDraw = yoroiAttackImg;
+
+                if (imgToDraw.complete && imgToDraw.width > 0) {
+                    ctx.save();
+                    
+                    // 攻撃時は武器を振るため、描画の幅を広げる（当たり判定本体はそのまま）
+                    let drawWidth = e.width;
+                    let drawX = e.x;
+                    if (e.yoroiState === 'attack') {
+                        drawWidth = e.width + 120; // 攻撃のリーチ分、描画サイズを大きく
+                        if (e.yoroiFacingLeft) {
+                            drawX = e.x - 120; // 左向きの場合は左へずらす
+                        }
+                    }
+
+                    if (e.yoroiFacingLeft) {
+                        ctx.drawImage(imgToDraw, drawX, e.y, drawWidth, e.height);
+                    } else {
+                        // 右向き時は反転描画
+                        ctx.translate(drawX + drawWidth / 2, e.y + e.height / 2);
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(imgToDraw, -drawWidth / 2, -e.height / 2, drawWidth, e.height);
+                    }
+                    ctx.restore();
+                } else {
+                    // 画像読み込み失敗時の代用色
+                    ctx.fillStyle = (e.yoroiState === 'attack') ? 'red' : ((e.yoroiState === 'ready') ? 'yellow' : 'gray');
+                    ctx.fillRect(e.x, e.y, e.width, e.height);
+                }
+                
             } else if (e.type === 'kinoko') {
                 // === 追加: きのこマンの描画 ===
                 if (kinokoImg.complete && kinokoImg.width > 0) {
