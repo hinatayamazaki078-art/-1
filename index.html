@@ -497,6 +497,27 @@
         </div>
     </div>
 
+    <!-- 衣装ショップアクション -->
+    <div id="costume-shop-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
+        <button id="btn-open-costume-shop" class="menu-btn" style="background-color: #ff69b4;">衣装ショップを見る</button>
+    </div>
+
+    <!-- 衣装ショップ画面 -->
+    <div id="costume-shop-modal" class="screen hidden" style="z-index: 70;">
+        <div class="modal-box" style="border-color: #ff69b4;">
+            <h2 style="color: #FFD700; margin-bottom: 10px;">衣装ショップ</h2>
+            <p style="color: white; margin-bottom: 20px; font-size: 14px;">
+                コイン: <span id="costume-coin-display" style="color:#FFD700; font-weight:bold;">0</span> 💰<br>
+                ユメユリ: <span id="costume-yumeyuri-display" style="color:#FF69B4; font-weight:bold;">0</span> 個 / 
+                ヒカリノ果実: <span id="costume-hikari-display" style="color:#FFD700; font-weight:bold;">0</span> 個
+            </p>
+            <div id="costume-shop-items-container" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+                <!-- ここに素材交換アバター一覧が生成されます -->
+            </div>
+            <button id="btn-close-costume-shop" class="menu-btn" style="background-color: #555;">閉じる</button>
+        </div>
+    </div>
+
     <!-- パーティー参加リスト画面 -->
     <div id="party-list-screen" class="screen hidden" style="z-index: 50;">
         <div class="modal-box">
@@ -625,11 +646,21 @@
     const playerImgJump = new Image(); playerImgJump.src = 'si2.png';
     const sparrowWalk = new Image(); sparrowWalk.src = '雀歩き.png';
     const sparrowJump = new Image(); sparrowJump.src = '雀ジャンプ.png';
+    const costumeShopImg = new Image(); costumeShopImg.src = '衣装ショップ.png';
+    const maenagaWalk = new Image(); maenagaWalk.src = '魔エナガ立.png';
+    const maenagaJump = new Image(); maenagaJump.src = '魔エナガジャンプ.png';
     const shopImg = new Image(); shopImg.src = 'アバター変更ショップ.png';
 
     const avatars = {
         'default': { name: 'デフォルト', walk: playerImgWalk, jump: playerImgJump, cost: 0 },
-        'sparrow': { name: 'スズメ', walk: sparrowWalk, jump: sparrowJump, cost: 500 }
+        'sparrow': { name: 'スズメ', walk: sparrowWalk, jump: sparrowJump, cost: 500 },
+        'maenaga': { 
+            name: '魔エナガ', 
+            walk: maenagaWalk, 
+            jump: maenagaJump, 
+            cost: 2000, 
+            reqMaterials: { yumeyuri: 30, hikariFruit: 5 } // 必要な素材を設定
+        }
     };
 
     let coins = 0;
@@ -781,11 +812,19 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
     const shopModal = document.getElementById('shop-modal');
     const shopItemsContainer = document.getElementById('shop-items-container');
     const shopCoinDisplay = document.getElementById('shop-coin-display');
+    const costumeShopActionUI = document.getElementById('costume-shop-action');
+    const costumeShopModal = document.getElementById('costume-shop-modal');
+    const costumeShopItemsContainer = document.getElementById('costume-shop-items-container');
+    const costumeCoinDisplay = document.getElementById('costume-coin-display');
+    const costumeYumeyuriDisplay = document.getElementById('costume-yumeyuri-display');
+    const costumeHikariDisplay = document.getElementById('costume-hikari-display');
 
     // ボタンイベント
     document.getElementById('btn-enter-gate').addEventListener('click', enterSoloGate);
     document.getElementById('btn-restart').addEventListener('click', showTitle);
     document.getElementById('btn-open-shop').addEventListener('click', openShop);
+    document.getElementById('btn-open-costume-shop').addEventListener('click', openCostumeShop);
+    document.getElementById('btn-close-costume-shop').addEventListener('click', () => costumeShopModal.classList.add('hidden'));
     document.getElementById('btn-close-shop').addEventListener('click', () => shopModal.classList.add('hidden'));
     
     document.getElementById('btn-create-party').addEventListener('click', createParty);
@@ -993,7 +1032,11 @@ collectBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryColle
             currentAvatar = key;
             saveGame();
             updateStatusUI();
-            openShop(); // 表示をリフレッシュ
+            
+            // 開いているショップの表示をリフレッシュ
+            if (!shopModal.classList.contains('hidden')) openShop(); 
+            if (!costumeShopModal.classList.contains('hidden')) openCostumeShop();
+            
             syncMyPosition();
         }
     };
@@ -1088,6 +1131,10 @@ collectBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryColle
     const SHOP_X = 200; // ショップのX座標
     const SHOP_WIDTH = 250;
     const SHOP_HEIGHT = 200;
+    const COSTUME_SHOP_X = 950; // 通常のショップや門に被らない位置に設定
+    const COSTUME_SHOP_WIDTH = 250;
+    const COSTUME_SHOP_HEIGHT = 200;
+    let isNearCostumeShop = false;
     
     let cameraX = 0;
     let isNearSoloGate = false;
@@ -1182,6 +1229,7 @@ const collectEffectImg = document.getElementById('collect-effect');
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
         shopActionUI.classList.add('hidden');
+        costumeShopActionUI.classList.add('hidden');
         btnReturnVillage.classList.add('hidden');
         isMultiplayer = false; 
     }
@@ -1232,6 +1280,7 @@ const collectEffectImg = document.getElementById('collect-effect');
             gateActionUI.classList.add('hidden');
             multiGateActionUI.classList.add('hidden');
             shopActionUI.classList.add('hidden');
+            costumeShopActionUI.classList.add('hidden');
             scoreDisplay.classList.remove('hidden'); 
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
@@ -1245,6 +1294,7 @@ const collectEffectImg = document.getElementById('collect-effect');
             gateActionUI.classList.add('hidden');
             multiGateActionUI.classList.add('hidden');
             shopActionUI.classList.add('hidden');
+            costumeShopActionUI.classList.add('hidden');
             btnReturnVillage.classList.add('hidden');
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
@@ -1485,6 +1535,7 @@ function executeAdventure(isMulti) {
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
         shopActionUI.classList.add('hidden');
+        costumeShopActionUI.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
         btnReturnVillage.classList.remove('hidden'); 
         stageNameEl.innerText = "アスター平原";
@@ -1559,6 +1610,7 @@ function gameOver() {
     gateActionUI.classList.add('hidden');
     multiGateActionUI.classList.add('hidden');
     shopActionUI.classList.add('hidden');
+    costumeShopActionUI.classList.add('hidden');
     btnReturnVillage.classList.add('hidden'); 
     document.getElementById('status-ui').classList.add('hidden');
     
@@ -1625,6 +1677,14 @@ function gameOver() {
         syncMyPosition();
     }
 
+    // 衣装ショップ判定
+        const costumeShopMargin = 50;
+        if (playerCenterX >= COSTUME_SHOP_X - costumeShopMargin && playerCenterX <= COSTUME_SHOP_X + COSTUME_SHOP_WIDTH + costumeShopMargin) {
+            if (!isNearCostumeShop) { isNearCostumeShop = true; costumeShopActionUI.classList.remove('hidden'); }
+        } else {
+            if (isNearCostumeShop) { isNearCostumeShop = false; costumeShopActionUI.classList.add('hidden'); }
+        }
+
 // 吹き出しを描画する関数
     function drawSpeechBubble(ctx, text, x, y, alpha, isTyping) {
         if (alpha <= 0) return;
@@ -1685,6 +1745,20 @@ function gameOver() {
             ctx.arc(shopScreenX + SHOP_WIDTH / 2, shopY + SHOP_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
         }
 
+// 衣装ショップ描画
+        const costumeShopScreenX = COSTUME_SHOP_X - cameraX;
+        if (costumeShopImg.complete && costumeShopImg.width > 0) {
+            ctx.drawImage(costumeShopImg, costumeShopScreenX, shopY, COSTUME_SHOP_WIDTH, COSTUME_SHOP_HEIGHT);
+        } else {
+            ctx.fillStyle = 'pink'; ctx.fillRect(costumeShopScreenX, shopY, COSTUME_SHOP_WIDTH, COSTUME_SHOP_HEIGHT);
+        }
+        ctx.fillStyle = '#FF69B4'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('衣装ショップ', costumeShopScreenX + COSTUME_SHOP_WIDTH / 2, shopY - 10);
+        if (isNearCostumeShop) {
+            ctx.fillStyle = 'rgba(255, 105, 180, 0.3)'; ctx.beginPath();
+            ctx.arc(costumeShopScreenX + COSTUME_SHOP_WIDTH / 2, shopY + COSTUME_SHOP_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
+        }
+        
         // ソロ門描画
         const soloGateScreenX = SOLO_GATE_X - cameraX;
         ctx.fillStyle = '#4A2E18';
@@ -2166,6 +2240,82 @@ if (e.type === 'yoroi') {
         syncMyPosition();
     }
 
+    function openCostumeShop() {
+        costumeCoinDisplay.innerText = coins;
+        costumeYumeyuriDisplay.innerText = myInventory.yumeyuri;
+        costumeHikariDisplay.innerText = myInventory.hikariFruit;
+        costumeShopItemsContainer.innerHTML = '';
+        
+        for (let key in avatars) {
+            const av = avatars[key];
+            // 素材要求 (reqMaterials) が設定されていないアバターは表示しない
+            if (!av.reqMaterials) continue; 
+
+            const isOwned = ownedAvatars.includes(key);
+            const isEquipped = (currentAvatar === key);
+            
+            const div = document.createElement('div');
+            div.style.background = 'rgba(255,255,255,0.1)';
+            div.style.padding = '15px';
+            div.style.borderRadius = '8px';
+            div.style.border = isEquipped ? '3px solid #ff69b4' : '1px solid #aaa';
+            div.style.textAlign = 'center';
+            div.style.width = '200px'; // 必要な文字が入るよう少し広めに
+            
+            let reqText = `<div style="font-size:12px; margin-bottom:10px; color:#ddd;">必要素材:<br>`;
+            reqText += `🪙 コイン ${av.cost}<br>`;
+            if (av.reqMaterials.yumeyuri) reqText += `🌸 ユメユリ ${av.reqMaterials.yumeyuri}個<br>`;
+            if (av.reqMaterials.hikariFruit) reqText += `✨ ヒカリノ果実 ${av.reqMaterials.hikariFruit}個<br>`;
+            reqText += `</div>`;
+
+            let btnHtml = '';
+            if (isEquipped) {
+                btnHtml = `<button disabled style="padding:8px; background:gray; color:white; border:none; border-radius:5px; width:100%;">装備中</button>`;
+            } else if (isOwned) {
+                btnHtml = `<button onclick="equipAvatar('${key}')" style="padding:8px; background:#ff69b4; color:white; border:none; border-radius:5px; cursor:pointer; width:100%; font-weight:bold;">装備する</button>`;
+            } else {
+                // コインと素材が全て足りているか判定
+                const canBuy = coins >= av.cost && 
+                               myInventory.yumeyuri >= (av.reqMaterials.yumeyuri || 0) &&
+                               myInventory.hikariFruit >= (av.reqMaterials.hikariFruit || 0);
+                               
+                const btnColor = canBuy ? '#FFD700' : 'gray';
+                btnHtml = `<button ${canBuy?'':'disabled'} onclick="exchangeCostume('${key}')" style="padding:8px; background:${btnColor}; color:black; font-weight:bold; border:none; border-radius:5px; cursor:pointer; width:100%;">交換する</button>`;
+            }
+            
+            div.innerHTML = `
+                <img src="${av.walk.src}" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 5px;">
+                <div style="color:white; font-weight:bold; margin-bottom:5px;">${av.name}</div>
+                ${reqText}
+                ${btnHtml}
+            `;
+            costumeShopItemsContainer.appendChild(div);
+        }
+        costumeShopModal.classList.remove('hidden');
+    }
+
+    // 衣装ショップ専用の交換関数
+    window.exchangeCostume = function(key) {
+        const av = avatars[key];
+        const canBuy = coins >= av.cost && 
+                       myInventory.yumeyuri >= (av.reqMaterials.yumeyuri || 0) &&
+                       myInventory.hikariFruit >= (av.reqMaterials.hikariFruit || 0);
+                       
+        if (canBuy && !ownedAvatars.includes(key)) {
+            // コインと素材を消費
+            coins -= av.cost;
+            myInventory.yumeyuri -= (av.reqMaterials.yumeyuri || 0);
+            myInventory.hikariFruit -= (av.reqMaterials.hikariFruit || 0);
+            
+            ownedAvatars.push(key);
+            currentAvatar = key;
+            saveGame();
+            updateStatusUI();
+            openCostumeShop(); // 表示をリフレッシュ
+            syncMyPosition();
+        }
+    };
+    
     function draw() {
         if (gameState === 'VILLAGE') { drawVillage(); return; }
 
