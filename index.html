@@ -2068,6 +2068,29 @@ function gameOver() {
             }
         });
 
+        // つららの落下・当たり判定処理
+        icicles.forEach(icicle => {
+            // プレイヤーが近づいたら落下開始（X座標の距離が300px以内）
+            if (!icicle.isFalling && Math.abs((player.x + player.width / 2) - (icicle.x + icicle.width / 2)) < 300) {
+                icicle.isFalling = true;
+            }
+
+            // 落下中の移動処理
+            if (icicle.isFalling) {
+                icicle.vy += 0.6; // 加速度（落下の速さ）
+                icicle.y += icicle.vy;
+            }
+
+            // プレイヤーとの当たり判定
+            const hitMargin = 5;
+            if (player.x + hitMargin < icicle.x + icicle.width &&
+                player.x + player.width - hitMargin > icicle.x &&
+                player.y + hitMargin < icicle.y + icicle.height &&
+                player.y + player.height - hitMargin > icicle.y) {
+                gameOver();
+            }
+        });
+
         boxes.forEach(b => {
             const marginX = 15; const footOffset = 37; const standOffset = 20;
             const pLeft = player.x + marginX; const pRight = player.x + player.width - marginX;
