@@ -46,7 +46,7 @@
     left: 20px;
     width: 320px;
     max-width: 85vw; /* スマホ等での幅のはみ出し防止のみ残す */
-    height: 110px;
+    height: 135px;
     background-image: url('ステータス表示.png');
     background-size: 100% 100%;
     background-repeat: no-repeat;
@@ -123,13 +123,17 @@
     overflow: hidden;
 }
 
-.stamina-bar-container { top: 65%; }
-.magic-bar-container { top: 82%; }
-
-.status-bar {
-    height: 100%;
-    width: 100%;
-    transition: width 0.2s ease-out;
+.stamina-bar-container { top: 58%; }
+.magic-bar-container { top: 73%; }
+.guard-bar-container { 
+    position: absolute;
+    left: 42%; 
+    width: 50%;
+    height: 10px;
+    background: rgba(0,0,0,0.6); 
+    border-radius: 5px;
+    overflow: hidden;
+    top: 88%; 
 }
 .bar-green { background-color: #32cd32; box-shadow: 0 0 5px #32cd32; }
 .bar-yellow { background-color: #ffd700; box-shadow: 0 0 5px #ffd700; }
@@ -408,6 +412,9 @@
         <div class="status-bar-container magic-bar-container">
             <div id="magic-fill" class="status-bar bar-yellow"></div>
         </div>
+        <div class="status-bar-container guard-bar-container">
+    <div id="guard-fill" class="status-bar" style="background-color: #ff4500; box-shadow: 0 0 5px #ff4500; width: 0%;"></div>
+</div>
     </div>
 
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
@@ -459,6 +466,7 @@
         </div>
         <div class="pad-group">
             <div id="btn-collect" class="action-btn" style="background-color: rgba(50, 205, 50, 0.5);">✋</div>
+            <div id="btn-guard" class="action-btn" style="background-color: rgba(70, 130, 180, 0.5);">🛡️</div>
             <div id="btn-jump" class="action-btn">▲</div>
         </div>
     </div>
@@ -626,6 +634,8 @@
     const sparrowWalk = new Image(); sparrowWalk.src = '雀歩き.png';
     const sparrowJump = new Image(); sparrowJump.src = '雀ジャンプ.png';
     const shopImg = new Image(); shopImg.src = 'アバター変更ショップ.png';
+    const guardImg = new Image(); guardImg.src = 'si守り.png';
+const counterImg = new Image(); counterImg.src = 'siカウンター.png';
 
     const avatars = {
         'default': { name: 'デフォルト', walk: playerImgWalk, jump: playerImgJump, cost: 0 },
@@ -814,32 +824,78 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
         }, 2000);
     });
 
+    // ▼▼▼ キーボード操作（ガード追加） ▼▼▼
     const keys = { left: false, right: false };
     
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') keys.left = true;
         if (e.key === 'ArrowRight') keys.right = true;
         if (e.key === 'ArrowUp' || e.key === ' ') doJump();
+        // Shiftキーまたは下キーでガード
+        if (e.key === 'Shift' || e.key === 'ArrowDown') {
+            if (typeof player !== 'undefined') player.isGuarding = true;
+        }
     });
     window.addEventListener('keyup', (e) => {
         if (e.key === 'ArrowLeft') keys.left = false;
         if (e.key === 'ArrowRight') keys.right = false;
+        // ガード解除
+        if (e.key === 'Shift' || e.key === 'ArrowDown') {
+            if (typeof player !== 'undefined') player.isGuarding = false;
+        }
     });
 
+    // ▼▼▼ 画面上のボタン操作（ガード追加） ▼▼▼
     const setupMouseBtn = (id, action) => {
         const btn = document.getElementById(id);
-        btn.addEventListener('mousedown', (e) => { e.preventDefault(); if (action === 'jump') doJump(); else keys[action] = true; });
-        btn.addEventListener('mouseup', (e) => { e.preventDefault(); if (action !== 'jump') keys[action] = false; });
-        btn.addEventListener('mouseleave', (e) => { e.preventDefault(); if (action !== 'jump') keys[action] = false; });
+        if (!btn) return; // HTML側にボタンがない場合のエラー回避
+        
+        // マウス用イベント
+        btn.addEventListener('mousedown', (e) => { 
+            e.preventDefault(); 
+            if (action === 'jump') doJump(); 
+            else if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = true; }
+            else keys[action] = true; 
+        });
+        btn.addEventListener('mouseup', (e) => { 
+            e.preventDefault(); 
+            if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = false; }
+            else if (action !== 'jump') keys[action] = false; 
+        });
+        btn.addEventListener('mouseleave', (e) => { 
+            e.preventDefault(); 
+            if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = false; }
+            else if (action !== 'jump') keys[action] = false; 
+        });
+        
+        // スマホ（タッチ）用イベントを追加
+        btn.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); 
+            if (action === 'jump') doJump(); 
+            else if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = true; }
+            else keys[action] = true; 
+        });
+        btn.addEventListener('touchend', (e) => { 
+            e.preventDefault(); 
+            if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = false; }
+            else if (action !== 'jump') keys[action] = false; 
+        });
     };
+    
     setupMouseBtn('btn-left', 'left');
     setupMouseBtn('btn-right', 'right');
     setupMouseBtn('btn-jump', 'jump');
+    setupMouseBtn('btn-guard', 'guard'); // スマホ版のガードボタン（id="btn-guard"）を追加
 
     const jumpBtn = document.getElementById('btn-jump');
-    jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); doJump(); });
+    if(jumpBtn) {
+        jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); doJump(); });
+    }
+    
     const collectBtn = document.getElementById('btn-collect');
-collectBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryCollectMaterial(); });
+    if(collectBtn) {
+        collectBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryCollectMaterial(); });
+    }
 
     function handleTouchControls(e) {
         let left = false, right = false;
@@ -934,6 +990,7 @@ collectBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryColle
         const staminaPercent = (currentStamina / maxStamina) * 100;
         document.getElementById('stamina-fill').style.width = Math.max(0, staminaPercent) + '%';
         document.getElementById('magic-fill').style.width = '100%';
+        document.getElementById('guard-fill').style.width = Math.min(100, (postureGauge / MAX_POSTURE) * 100) + '%';
     }
 
     // ショップ機能関連の関数
@@ -1164,11 +1221,14 @@ const collectEffectImg = document.getElementById('collect-effect');
     const player = {
         x: 50, y: 200, width: 60, height: 50,
         vx: 0, vy: 0, speed: 6, gravity: 0.8, jumpPower: -13,
-        isGrounded: false
+        isGrounded: false,
+        isGuarding: false, guardTimer: 0, counterTimer: 0
     };
 
     let platforms = [], enemies = [], icicles = [], cacti = [];
     let isWindy = false, windWarning = false, windTimer = 0;
+    let postureGauge = 0; 
+const MAX_POSTURE = 100;
 
     function initVillage() {
         player.x = SOLO_GATE_X + (GATE_WIDTH / 2) - (player.width / 2);
@@ -1206,6 +1266,10 @@ const collectEffectImg = document.getElementById('collect-effect');
             keys.left = false; keys.right = false; playerFacingRight = true; 
             isWindy = false; windWarning = false; windTimer = 0;
             platforms.push({ x: 0, y: canvas.height - 100, width: canvas.width, height: 100 });
+            postureGauge = 0;
+        player.isGuarding = false;
+        player.guardTimer = 0;
+        player.counterTimer = 0;
         }
     }
 
@@ -1933,9 +1997,26 @@ function gameOver() {
         }
         // === 変更ここまで ===
 
-        if (keys.left) { player.vx = -player.speed; playerFacingRight = false; } 
-        else if (keys.right) { player.vx = player.speed; playerFacingRight = true; } 
-        else { player.vx = 0; }
+        // ▼ 今回追加・変更した処理（ガード中の移動制限） ▼
+        if (keys.guard && player.isGrounded && player.counterTimer <= 0) {
+            player.isGuarding = true;
+            player.vx = 0; // ガード中は移動不可
+        } else {
+            player.isGuarding = false;
+            if (keys.left) { player.vx = -player.speed; playerFacingRight = false; } 
+            else if (keys.right) { player.vx = player.speed; playerFacingRight = true; } 
+            else { player.vx = 0; }
+        }
+
+        // ▼ 今回追加・変更した処理（タイマー更新と体幹ゲージ回復） ▼
+        if (player.guardTimer > 0) player.guardTimer--;
+        if (player.counterTimer > 0) player.counterTimer--;
+        if (postureGauge > 0 && !player.isGuarding && player.counterTimer <= 0) {
+            postureGauge -= 0.5; // 自然回復
+            if (postureGauge < 0) postureGauge = 0;
+            updateStatusUI();
+        }
+        // ▲ ここまで ▲
 
         player.x += player.vx;
         if (player.x < 0) player.x = 0;
@@ -1984,7 +2065,7 @@ function gameOver() {
                         });
                     }
                 }
-           } else if (e.type === 'yoroi') {
+            } else if (e.type === 'yoroi') {
                 const distX = (player.x + player.width / 2) - (e.x + e.width / 2);
                 const absDistX = Math.abs(distX);
                 
@@ -2017,11 +2098,45 @@ function gameOver() {
                         height: e.height
                     };
                     
-                    // プレイヤーが攻撃範囲内に入っていればゲームオーバー
+                    // ▼ 今回追加・変更した処理（ジャストガード・通常ガード判定） ▼
                     if (player.x < attackRect.x + attackRect.width && player.x + player.width > attackRect.x &&
                         player.y < attackRect.y + attackRect.height && player.y + player.height > attackRect.y) {
-                        gameOver();
+                        
+                        if (player.counterTimer > 0) {
+                            // カウンター中（無敵）は何もしない
+                        } else if (player.isGuarding) {
+                            if (player.guardTimer > 0) {
+                                // ★ジャストガード成功（カウンター）★
+                                player.counterTimer = 40; 
+                                e.hp = 0;
+                                e.isSquished = true;
+                                e.squishTimer = 20;
+                                coins += 50; // ボーナスコイン
+                                earnedCoinsInRun += 50;
+                                updateStatusUI();
+                                
+                                if (isMultiplayer && currentPartyId && db) {
+                                    db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
+                                }
+                            } else {
+                                // ★通常ガード（体幹ゲージが溜まる）★
+                                postureGauge += 30;
+                                updateStatusUI();
+                                
+                                if (postureGauge >= MAX_POSTURE) {
+                                    gameOver(); // 体幹崩れ -> ゲームオーバー
+                                } else {
+                                    // ノックバックさせて連続ヒットを防ぐ
+                                    player.x += e.yoroiFacingLeft ? -25 : 25;
+                                    e.yoroiState = 'stand';
+                                    e.stateTimer = 0;
+                                }
+                            }
+                        } else {
+                            gameOver(); // ガードしていなければゲームオーバー
+                        }
                     }
+                    // ▲ ここまで ▲
 
                     if (e.stateTimer <= 0) {
                         e.yoroiState = 'stand'; // 攻撃が終わったら立ち状態へ戻る
@@ -2048,7 +2163,7 @@ function gameOver() {
             if (player.x + hitboxMargin < e.x + e.width && player.x + player.width - hitboxMargin > e.x &&
                 player.y + hitboxMargin < e.y + e.height && player.y + player.height - hitboxMargin > e.y) {
 
-if (e.type === 'yoroi') {
+                if (e.type === 'yoroi') {
                     gameOver();
                     return;
                 }
@@ -2197,7 +2312,7 @@ if (e.type === 'yoroi') {
             }
         });
         
-        // ▼▼▼ ここから敵の描画処理を更新 ▼▼▼
+        // ▼▼▼ 敵の描画処理 ▼▼▼
         enemies.forEach(e => {
             if (e.type === 'hopper') {
                 let currentEnemyImg = e.isGrounded ? hopperGroundImg : hopperJumpImg;
@@ -2212,7 +2327,7 @@ if (e.type === 'yoroi') {
                     } else { ctx.fillRect(e.x, e.y, e.width, e.height); }
                 }
 
-} else if (e.type === 'yoroi') {
+            } else if (e.type === 'yoroi') {
                 let imgToDraw = yoroiStandImg;
                 if (e.yoroiState === 'ready') imgToDraw = yoroiReadyImg;
                 else if (e.yoroiState === 'attack') imgToDraw = yoroiAttackImg;
@@ -2220,39 +2335,34 @@ if (e.type === 'yoroi') {
                 if (imgToDraw.complete && imgToDraw.width > 0) {
                     ctx.save();
                     
-                    // 攻撃時は武器を振るため、描画の幅を広げる（当たり判定本体はそのまま）
                     let drawWidth = e.width;
                     let drawX = e.x;
                     if (e.yoroiState === 'attack') {
-                        drawWidth = e.width + 120; // 攻撃のリーチ分、描画サイズを大きく
+                        drawWidth = e.width + 120; 
                         if (e.yoroiFacingLeft) {
-                            drawX = e.x - 120; // 左向きの場合は左へずらす
+                            drawX = e.x - 120; 
                         }
                     }
 
                     if (e.yoroiFacingLeft) {
                         ctx.drawImage(imgToDraw, drawX, e.y, drawWidth, e.height);
                     } else {
-                        // 右向き時は反転描画
                         ctx.translate(drawX + drawWidth / 2, e.y + e.height / 2);
                         ctx.scale(-1, 1);
                         ctx.drawImage(imgToDraw, -drawWidth / 2, -e.height / 2, drawWidth, e.height);
                     }
                     ctx.restore();
                 } else {
-                    // 画像読み込み失敗時の代用色
                     ctx.fillStyle = (e.yoroiState === 'attack') ? 'red' : ((e.yoroiState === 'ready') ? 'yellow' : 'gray');
                     ctx.fillRect(e.x, e.y, e.width, e.height);
                 }
                 
             } else if (e.type === 'kinoko') {
-                // === 追加: きのこマンの描画 ===
                 if (kinokoImg.complete && kinokoImg.width > 0) {
                     if (e.isSquished) {
                         const squishedHeight = e.height * 0.25; 
                         ctx.drawImage(kinokoImg, e.x, e.y + e.height - squishedHeight, e.width, squishedHeight);
                     } else {
-                        // 1回踏まれてHPが1になった場合、点滅させてダメージを表現
                         if (e.hp === 1 && Math.floor(Date.now() / 150) % 2 === 0) {
                             ctx.globalAlpha = 0.5;
                         }
@@ -2281,14 +2391,14 @@ if (e.type === 'yoroi') {
             }
         });
 
-        // === 追加: 敵の弾の描画 ===
+        // 敵の弾の描画
         if (typeof enemyProjectiles !== 'undefined') {
             enemyProjectiles.forEach(p => {
-                ctx.fillStyle = '#FF4500'; // 弾の色
+                ctx.fillStyle = '#FF4500'; 
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.strokeStyle = '#FFD700'; // 弾の枠線
+                ctx.strokeStyle = '#FFD700'; 
                 ctx.lineWidth = 2;
                 ctx.stroke();
             });
@@ -2349,8 +2459,17 @@ if (e.type === 'yoroi') {
             }
         }
         
+        // ▼▼▼ プレイヤーの描画（ガード・カウンター画像対応版） ▼▼▼
         const myAv = avatars[currentAvatar] || avatars['default'];
         let currentImg = player.isGrounded ? myAv.walk : myAv.jump;
+
+        // ガード中・カウンター中の画像切り替え
+        if (player.counterTimer > 0 && counterImg.complete && counterImg.width > 0) {
+            currentImg = counterImg;
+        } else if (player.isGuarding && guardImg.complete && guardImg.width > 0) {
+            currentImg = guardImg;
+        }
+
         if (currentImg.complete && currentImg.width > 0) {
             ctx.save();
             if (playerFacingRight) { ctx.drawImage(currentImg, player.x, player.y, player.width, player.height); } 
@@ -2360,9 +2479,13 @@ if (e.type === 'yoroi') {
                 ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
             }
             ctx.restore(); 
-        } else { ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y, player.width, player.height); }
+        } else { 
+            ctx.fillStyle = player.counterTimer > 0 ? 'yellow' : (player.isGuarding ? 'gray' : 'blue'); 
+            ctx.fillRect(player.x, player.y, player.width, player.height); 
+        }
+        // ▲▲▲ ここまで ▲▲▲
 
-　　　　// 素材の描画
+        // 素材の描画
         mapMaterials.forEach(m => {
             let img;
             if (m.type === 'yumeyuri') img = yumeyuriImg;
@@ -2372,7 +2495,7 @@ if (e.type === 'yoroi') {
             if (img.complete && img.width > 0) {
                 ctx.drawImage(img, m.x, m.y, m.width, m.height);
             } else {
-                ctx.fillStyle = 'pink'; // 画像読み込み前の代用
+                ctx.fillStyle = 'pink'; 
                 ctx.fillRect(m.x, m.y, m.width, m.height);
             }
         });
@@ -2392,64 +2515,55 @@ if (e.type === 'yoroi') {
         if (typeof updateEffectsPosition === 'function') {
             updateEffectsPosition();
         }
-    } 
+} 
 
 // === バッグ画面の開閉ロジック ===
-    const inventoryModal = document.getElementById('inventory-modal');
-    const inventoryContainer = document.getElementById('inventory-items-container');
+const inventoryModal = document.getElementById('inventory-modal');
+const inventoryContainer = document.getElementById('inventory-items-container');
 
-    document.getElementById('btn-bag').addEventListener('click', () => {
-        // コンテナの中身をリセット
-        inventoryContainer.innerHTML = '';
-        
-        // 全アイテムの定義（今後新しいアイテムが増えたらここに追加します）
-        const allItemsInfo = [
-            { id: 'yumeyuri', name: 'ユメユリ', img: yumeyuriImg.src, count: myInventory.yumeyuri },
-            { id: 'blueButterfly', name: 'ブルーバタフライ', img: blueButterflyImg.src, count: myInventory.blueButterfly },
-            { id: 'hikariFruit', name: 'ヒカリノ果実', img: hikariFruitImg.src, count: myInventory.hikariFruit }
-        ];
+document.getElementById('btn-bag').addEventListener('click', () => {
+    inventoryContainer.innerHTML = '';
+    
+    const allItemsInfo = [
+        { id: 'yumeyuri', name: 'ユメユリ', img: yumeyuriImg.src, count: myInventory.yumeyuri },
+        { id: 'blueButterfly', name: 'ブルーバタフライ', img: blueButterflyImg.src, count: myInventory.blueButterfly },
+        { id: 'hikariFruit', name: 'ヒカリノ果実', img: hikariFruitImg.src, count: myInventory.hikariFruit }
+    ];
 
-        // 1個以上持っている（未知ではない）アイテムだけを抽出する
-        const ownedItems = allItemsInfo.filter(item => item.count > 0);
+    const ownedItems = allItemsInfo.filter(item => item.count > 0);
+    const MAX_SLOTS = 50; 
 
-        // インベントリの最大枠数
-        const MAX_SLOTS = 50; 
+    for (let i = 0; i < MAX_SLOTS; i++) {
+        const div = document.createElement('div');
+        div.style.background = 'rgba(255,255,255,0.1)';
+        div.style.padding = '5px';
+        div.style.borderRadius = '8px';
+        div.style.textAlign = 'center';
+        div.style.width = '75px';
+        div.style.height = '85px'; 
+        div.style.boxSizing = 'border-box';
+        div.style.border = '1px solid #aaa';
 
-        // 50枠分ループして生成する
-        for (let i = 0; i < MAX_SLOTS; i++) {
-            const div = document.createElement('div');
-            // 全体的にサイズを小さくし、枠線をつけて四角いマス目を意識
-            div.style.background = 'rgba(255,255,255,0.1)';
-            div.style.padding = '5px';
-            div.style.borderRadius = '8px';
-            div.style.textAlign = 'center';
-            div.style.width = '75px';
-            div.style.height = '85px'; // 高さを固定して空欄時の形を維持
-            div.style.boxSizing = 'border-box';
-            div.style.border = '1px solid #aaa';
-
-            if (i < ownedItems.length) {
-                // 既に持っているアイテムがある場合は画像・名前・数量を表示
-                const item = ownedItems[i];
-                div.innerHTML = `
-                    <img src="${item.img}" style="width: 35px; height: 35px; object-fit: contain; margin-bottom: 2px;">
-                    <div style="color:white; font-size: 10px; font-weight:bold; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
-                    <div style="color:#FFD700; font-size: 12px; font-weight:bold;">x ${item.count}</div>
-                `;
-            } else {
-                // 持っていない（空き枠）の場合は中身を空にして背景を少し暗くする
-                div.innerHTML = '';
-                div.style.background = 'rgba(0,0,0,0.3)';
-            }
-            
-            inventoryContainer.appendChild(div);
+        if (i < ownedItems.length) {
+            const item = ownedItems[i];
+            div.innerHTML = `
+                <img src="${item.img}" style="width: 35px; height: 35px; object-fit: contain; margin-bottom: 2px;">
+                <div style="color:white; font-size: 10px; font-weight:bold; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
+                <div style="color:#FFD700; font-size: 12px; font-weight:bold;">x ${item.count}</div>
+            `;
+        } else {
+            div.innerHTML = '';
+            div.style.background = 'rgba(0,0,0,0.3)';
         }
-        inventoryModal.classList.remove('hidden');
-    });
+        
+        inventoryContainer.appendChild(div);
+    }
+    inventoryModal.classList.remove('hidden');
+});
 
-    document.getElementById('btn-close-inventory').addEventListener('click', () => {
-        inventoryModal.classList.add('hidden');
-    });
+document.getElementById('btn-close-inventory').addEventListener('click', () => {
+    inventoryModal.classList.add('hidden');
+});
 
     // === 採集ロジック ===
     function tryCollectMaterial() {
