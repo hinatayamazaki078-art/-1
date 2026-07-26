@@ -825,7 +825,7 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
     });
 
     // ▼▼▼ キーボード操作（ガード追加） ▼▼▼
-    const keys = { left: false, right: false };
+    const keys = { left: false, right: false, guard: false }; // keys に guard を追加
     
     window.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') keys.left = true;
@@ -833,7 +833,7 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
         if (e.key === 'ArrowUp' || e.key === ' ') doJump();
         // Shiftキーまたは下キーでガード
         if (e.key === 'Shift' || e.key === 'ArrowDown') {
-            if (typeof player !== 'undefined') player.isGuarding = true;
+            keys.guard = true; // 直接 player を操作せず、keys を更新する
         }
     });
     window.addEventListener('keyup', (e) => {
@@ -841,56 +841,56 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
         if (e.key === 'ArrowRight') keys.right = false;
         // ガード解除
         if (e.key === 'Shift' || e.key === 'ArrowDown') {
-            if (typeof player !== 'undefined') player.isGuarding = false;
+            keys.guard = false; // keys を更新する
         }
     });
 
     // ▼▼▼ 画面上のボタン操作（ガード追加） ▼▼▼
     const setupMouseBtn = (id, action) => {
         const btn = document.getElementById(id);
-        if (!btn) return; // HTML側にボタンがない場合のエラー回避
+        if (!btn) return;
         
         // マウス用イベント
         btn.addEventListener('mousedown', (e) => { 
             e.preventDefault(); 
             if (action === 'jump') doJump(); 
-            else if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = true; }
-            else keys[action] = true; 
+            else keys[action] = true; // guard の特別扱いをなくし、統一する
         });
         btn.addEventListener('mouseup', (e) => { 
             e.preventDefault(); 
-            if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = false; }
-            else if (action !== 'jump') keys[action] = false; 
+            if (action !== 'jump') keys[action] = false; 
         });
         btn.addEventListener('mouseleave', (e) => { 
             e.preventDefault(); 
-            if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = false; }
-            else if (action !== 'jump') keys[action] = false; 
+            if (action !== 'jump') keys[action] = false; 
         });
         
         // スマホ（タッチ）用イベントを追加
         btn.addEventListener('touchstart', (e) => { 
             e.preventDefault(); 
             if (action === 'jump') doJump(); 
-            else if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = true; }
             else keys[action] = true; 
         });
         btn.addEventListener('touchend', (e) => { 
             e.preventDefault(); 
-            if (action === 'guard') { if (typeof player !== 'undefined') player.isGuarding = false; }
-            else if (action !== 'jump') keys[action] = false; 
+            if (action !== 'jump') keys[action] = false; 
         });
     };
     
     setupMouseBtn('btn-left', 'left');
     setupMouseBtn('btn-right', 'right');
     setupMouseBtn('btn-jump', 'jump');
-    setupMouseBtn('btn-guard', 'guard'); // スマホ版のガードボタン（id="btn-guard"）を追加
+    setupMouseBtn('btn-guard', 'guard');
 
+    // ==========================================
+    // ⚠️ 以下のジャンプボタンの二重登録部分は「削除」してください ⚠️
+    // ==========================================
+    /* 
     const jumpBtn = document.getElementById('btn-jump');
     if(jumpBtn) {
         jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); doJump(); });
     }
+    */
     
     const collectBtn = document.getElementById('btn-collect');
     if(collectBtn) {
