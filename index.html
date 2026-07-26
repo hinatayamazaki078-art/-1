@@ -438,6 +438,11 @@
         <button id="btn-open-shop" class="menu-btn" style="background-color: #9932CC;">ショップを見る</button>
     </div>
 
+    <!-- 衣装ショップアクション (未実装) -->
+    <div id="costume-shop-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
+        <button id="btn-open-costume-shop" class="menu-btn" style="background-color: #FF69B4;">衣装ショップを見る</button>
+    </div>
+
     <!-- ソロ冒険の門アクション -->
     <div id="gate-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
         <button id="btn-enter-gate" class="menu-btn">ソロ冒険に出発！</button>
@@ -788,6 +793,7 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
 
     // ショップUI
     const shopActionUI = document.getElementById('shop-action');
+    const costumeShopActionUI = document.getElementById('costume-shop-action');
     const shopModal = document.getElementById('shop-modal');
     const shopItemsContainer = document.getElementById('shop-items-container');
     const shopCoinDisplay = document.getElementById('shop-coin-display');
@@ -798,6 +804,12 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
     document.getElementById('btn-open-shop').addEventListener('click', openShop);
     document.getElementById('btn-close-shop').addEventListener('click', () => shopModal.classList.add('hidden'));
     
+    // ★★★ ここから追加：衣装ショップのボタンイベント ★★★
+    document.getElementById('btn-open-costume-shop').addEventListener('click', () => {
+        alert('衣装ショップは現在準備中です！');
+    });
+    // ★★★ ここまで追加 ★★★
+
     document.getElementById('btn-create-party').addEventListener('click', createParty);
     document.getElementById('btn-join-party').addEventListener('click', showPartyList);
     document.getElementById('btn-close-party-list').addEventListener('click', hidePartyList);
@@ -1151,6 +1163,15 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
     let isNearMultiGate = false;
     let isNearShop = false;
 
+    // ★★★ 追加：衣装ショップの設定 ★★★
+    const costumeShopImg = new Image(); 
+    costumeShopImg.src = '衣装ショップ.png'; // 用意があれば
+    const COSTUME_SHOP_X = 1600; // 衣装ショップのX座標
+    const COSTUME_SHOP_WIDTH = 250;
+    const COSTUME_SHOP_HEIGHT = 200;
+    let isNearCostumeShop = false; // 接近判定用フラグ
+    // ★★★ ここまで ★★★
+
     const BASE_DISTANCES = {
         s2: 1000, s3: 2000, s4: 3000, s5: 4000, s6: 5000, s7: 6000, s8: 7000, s9: 9000
     };
@@ -1242,8 +1263,10 @@ const MAX_POSTURE = 100;
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
         shopActionUI.classList.add('hidden');
+        costumeShopActionUI.classList.add('hidden');
         btnReturnVillage.classList.add('hidden');
         isMultiplayer = false; 
+        isNearCostumeShop = false;
     }
 
     function initMap(isResume = false) {
@@ -1296,6 +1319,7 @@ const MAX_POSTURE = 100;
             gateActionUI.classList.add('hidden');
             multiGateActionUI.classList.add('hidden');
             shopActionUI.classList.add('hidden');
+            costumeShopActionUI.classList.add('hidden');
             scoreDisplay.classList.remove('hidden'); 
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
@@ -1309,6 +1333,7 @@ const MAX_POSTURE = 100;
             gateActionUI.classList.add('hidden');
             multiGateActionUI.classList.add('hidden');
             shopActionUI.classList.add('hidden');
+            costumeShopActionUI.classList.add('hidden');
             btnReturnVillage.classList.add('hidden');
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
@@ -1549,6 +1574,7 @@ function executeAdventure(isMulti) {
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
         shopActionUI.classList.add('hidden');
+        costumeShopActionUI.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
         btnReturnVillage.classList.remove('hidden'); 
         stageNameEl.innerText = "アスター平原";
@@ -1623,6 +1649,7 @@ function gameOver() {
     gateActionUI.classList.add('hidden');
     multiGateActionUI.classList.add('hidden');
     shopActionUI.classList.add('hidden');
+    costumeShopActionUI.classList.add('hidden');
     btnReturnVillage.classList.add('hidden'); 
     document.getElementById('status-ui').classList.add('hidden');
     
@@ -1633,62 +1660,69 @@ function gameOver() {
     earnedCoinsEl.innerText = earnedCoinsInRun; 
 }
     function updateVillage() {
-        if (keys.left) {
-            player.vx = -player.speed; playerFacingRight = false;
-        } else if (keys.right) {
-            player.vx = player.speed; playerFacingRight = true;
-        } else {
-            player.vx = 0;
-        }
-
-        player.x += player.vx;
-
-        if (player.x < 0) player.x = 0;
-        if (player.x > VILLAGE_WIDTH - player.width) player.x = VILLAGE_WIDTH - player.width;
-
-        const villageGroundY = canvas.height - 110;
-        player.vy += player.gravity;
-        player.y += player.vy;
-
-        if (player.y + player.height > villageGroundY) {
-            player.y = villageGroundY - player.height;
-            player.vy = 0; player.isGrounded = true;
-        } else {
-            player.isGrounded = false;
-        }
-
-        cameraX = player.x + player.width / 2 - canvas.width / 2;
-        if (cameraX < 0) cameraX = 0;
-        if (cameraX > VILLAGE_WIDTH - canvas.width) cameraX = VILLAGE_WIDTH - canvas.width;
-
-        const playerCenterX = player.x + player.width / 2;
-        const gateMargin = 80;
-        
-        // ソロ門判定
-        if (playerCenterX >= SOLO_GATE_X - gateMargin && playerCenterX <= SOLO_GATE_X + GATE_WIDTH + gateMargin) {
-            if (!isNearSoloGate) { isNearSoloGate = true; gateActionUI.classList.remove('hidden'); }
-        } else {
-            if (isNearSoloGate) { isNearSoloGate = false; gateActionUI.classList.add('hidden'); }
-        }
-
-        // マルチ門判定
-        if (playerCenterX >= MULTI_GATE_X - gateMargin && playerCenterX <= MULTI_GATE_X + GATE_WIDTH + gateMargin) {
-            if (!isNearMultiGate) { isNearMultiGate = true; multiGateActionUI.classList.remove('hidden'); }
-        } else {
-            if (isNearMultiGate) { isNearMultiGate = false; multiGateActionUI.classList.add('hidden'); }
-        }
-        
-        // ★ショップ判定
-        const shopMargin = 50;
-        if (playerCenterX >= SHOP_X - shopMargin && playerCenterX <= SHOP_X + SHOP_WIDTH + shopMargin) {
-            if (!isNearShop) { isNearShop = true; shopActionUI.classList.remove('hidden'); }
-        } else {
-            if (isNearShop) { isNearShop = false; shopActionUI.classList.add('hidden'); }
-        }
-        
-        syncMyPosition();
+    if (keys.left) {
+        player.vx = -player.speed; playerFacingRight = false;
+    } else if (keys.right) {
+        player.vx = player.speed; playerFacingRight = true;
+    } else {
+        player.vx = 0;
     }
 
+    player.x += player.vx;
+
+    if (player.x < 0) player.x = 0;
+    if (player.x > VILLAGE_WIDTH - player.width) player.x = VILLAGE_WIDTH - player.width;
+
+    const villageGroundY = canvas.height - 110;
+    player.vy += player.gravity;
+    player.y += player.vy;
+
+    if (player.y + player.height > villageGroundY) {
+        player.y = villageGroundY - player.height;
+        player.vy = 0; player.isGrounded = true;
+    } else {
+        player.isGrounded = false;
+    }
+
+    cameraX = player.x + player.width / 2 - canvas.width / 2;
+    if (cameraX < 0) cameraX = 0;
+    if (cameraX > VILLAGE_WIDTH - canvas.width) cameraX = VILLAGE_WIDTH - canvas.width;
+
+    const playerCenterX = player.x + player.width / 2;
+    const gateMargin = 80;
+    
+    // ソロ門判定
+    if (playerCenterX >= SOLO_GATE_X - gateMargin && playerCenterX <= SOLO_GATE_X + GATE_WIDTH + gateMargin) {
+        if (!isNearSoloGate) { isNearSoloGate = true; gateActionUI.classList.remove('hidden'); }
+    } else {
+        if (isNearSoloGate) { isNearSoloGate = false; gateActionUI.classList.add('hidden'); }
+    }
+
+    // マルチ門判定
+    if (playerCenterX >= MULTI_GATE_X - gateMargin && playerCenterX <= MULTI_GATE_X + GATE_WIDTH + gateMargin) {
+        if (!isNearMultiGate) { isNearMultiGate = true; multiGateActionUI.classList.remove('hidden'); }
+    } else {
+        if (isNearMultiGate) { isNearMultiGate = false; multiGateActionUI.classList.add('hidden'); }
+    }
+    
+    // ★ショップ判定
+    const shopMargin = 50;
+    if (playerCenterX >= SHOP_X - shopMargin && playerCenterX <= SHOP_X + SHOP_WIDTH + shopMargin) {
+        if (!isNearShop) { isNearShop = true; shopActionUI.classList.remove('hidden'); }
+    } else {
+        if (isNearShop) { isNearShop = false; shopActionUI.classList.add('hidden'); }
+    }
+
+    // ★★★ ここから追加：衣装ショップ判定 ★★★
+    if (playerCenterX >= COSTUME_SHOP_X - shopMargin && playerCenterX <= COSTUME_SHOP_X + COSTUME_SHOP_WIDTH + shopMargin) {
+        if (!isNearCostumeShop) { isNearCostumeShop = true; costumeShopActionUI.classList.remove('hidden'); }
+    } else {
+        if (isNearCostumeShop) { isNearCostumeShop = false; costumeShopActionUI.classList.add('hidden'); }
+    }
+    // ★★★ ここまで追加 ★★★
+    
+    syncMyPosition();
+}
 // 吹き出しを描画する関数
     function drawSpeechBubble(ctx, text, x, y, alpha, isTyping) {
         if (alpha <= 0) return;
@@ -1725,135 +1759,157 @@ function gameOver() {
     }
     
     function drawVillage() {
-        const now = Date.now();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const now = Date.now();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (villageBg1.complete && villageBg1.width > 0) ctx.drawImage(villageBg1, 0 - cameraX, 0, 1280, canvas.height);
-        if (villageBg2.complete && villageBg2.width > 0) ctx.drawImage(villageBg2, 1280 - cameraX, 0, 1280, canvas.height);
+    if (villageBg1.complete && villageBg1.width > 0) ctx.drawImage(villageBg1, 0 - cameraX, 0, 1280, canvas.height);
+    if (villageBg2.complete && villageBg2.width > 0) ctx.drawImage(villageBg2, 1280 - cameraX, 0, 1280, canvas.height);
 
-        const villageGroundY = canvas.height - 110;
-        const gateY = villageGroundY - GATE_HEIGHT;
-        const shopY = villageGroundY - SHOP_HEIGHT;
+    const villageGroundY = canvas.height - 110;
+    const gateY = villageGroundY - GATE_HEIGHT;
+    const shopY = villageGroundY - SHOP_HEIGHT;
 
-        // ★ショップ描画
-        const shopScreenX = SHOP_X - cameraX;
-        if (shopImg.complete && shopImg.width > 0) {
-            ctx.drawImage(shopImg, shopScreenX, shopY, SHOP_WIDTH, SHOP_HEIGHT);
-        } else {
-            ctx.fillStyle = 'purple'; ctx.fillRect(shopScreenX, shopY, SHOP_WIDTH, SHOP_HEIGHT);
-        }
-        ctx.fillStyle = '#FFD700'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('アバター変更', shopScreenX + SHOP_WIDTH / 2, shopY - 10);
-        if (isNearShop) {
-            ctx.fillStyle = 'rgba(153, 50, 204, 0.3)'; ctx.beginPath();
-            ctx.arc(shopScreenX + SHOP_WIDTH / 2, shopY + SHOP_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
-        }
+    // ★アバター変更ショップ描画
+    const shopScreenX = SHOP_X - cameraX;
+    if (shopImg.complete && shopImg.width > 0) {
+        ctx.drawImage(shopImg, shopScreenX, shopY, SHOP_WIDTH, SHOP_HEIGHT);
+    } else {
+        ctx.fillStyle = 'purple'; ctx.fillRect(shopScreenX, shopY, SHOP_WIDTH, SHOP_HEIGHT);
+    }
+    ctx.fillStyle = '#FFD700'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('アバター変更', shopScreenX + SHOP_WIDTH / 2, shopY - 10);
+    if (isNearShop) {
+        ctx.fillStyle = 'rgba(153, 50, 204, 0.3)'; ctx.beginPath();
+        ctx.arc(shopScreenX + SHOP_WIDTH / 2, shopY + SHOP_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
+    }
 
-        // ソロ門描画
-        const soloGateScreenX = SOLO_GATE_X - cameraX;
-        ctx.fillStyle = '#4A2E18';
-        ctx.fillRect(soloGateScreenX, gateY, 20, GATE_HEIGHT);
-        ctx.fillRect(soloGateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
-        ctx.fillRect(soloGateScreenX, gateY, GATE_WIDTH, 30);
-        ctx.fillStyle = '#FFD700'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('冒険の門', soloGateScreenX + GATE_WIDTH / 2, gateY + 22);
+    // ★★★ ここから追加：衣装ショップ描画 ★★★
+    const costumeShopScreenX = COSTUME_SHOP_X - cameraX;
+    if (costumeShopImg.complete && costumeShopImg.width > 0) {
+        ctx.drawImage(costumeShopImg, costumeShopScreenX, shopY, COSTUME_SHOP_WIDTH, COSTUME_SHOP_HEIGHT);
+    } else {
+        // 画像がない場合の仮の箱（ピンク色）
+        ctx.fillStyle = '#FF69B4'; 
+        ctx.fillRect(costumeShopScreenX, shopY, COSTUME_SHOP_WIDTH, COSTUME_SHOP_HEIGHT);
+    }
+    ctx.fillStyle = '#FFFFFF'; 
+    ctx.font = 'bold 20px sans-serif'; 
+    ctx.textAlign = 'center';
+    ctx.fillText('衣装ショップ(準備中)', costumeShopScreenX + COSTUME_SHOP_WIDTH / 2, shopY - 10);
 
-        if (isNearSoloGate) {
-            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)'; ctx.beginPath();
-            ctx.arc(soloGateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
-        }
+    // 接近時のハイライト表示
+    if (isNearCostumeShop) {
+        ctx.fillStyle = 'rgba(255, 105, 180, 0.3)'; 
+        ctx.beginPath();
+        ctx.arc(costumeShopScreenX + COSTUME_SHOP_WIDTH / 2, shopY + COSTUME_SHOP_HEIGHT, 80, 0, Math.PI, true); 
+        ctx.fill();
+    }
+    // ★★★ ここまで追加 ★★★
 
-        // マルチ門描画
-        const multiGateScreenX = MULTI_GATE_X - cameraX;
-        ctx.fillStyle = '#2a4b7c'; 
-        ctx.fillRect(multiGateScreenX, gateY, 20, GATE_HEIGHT);
-        ctx.fillRect(multiGateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
-        ctx.fillRect(multiGateScreenX, gateY, GATE_WIDTH, 30);
-        ctx.fillStyle = '#00FFFF'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('共闘の門(マルチ)', multiGateScreenX + GATE_WIDTH / 2, gateY + 22);
+    // ソロ門描画
+    const soloGateScreenX = SOLO_GATE_X - cameraX;
+    ctx.fillStyle = '#4A2E18';
+    ctx.fillRect(soloGateScreenX, gateY, 20, GATE_HEIGHT);
+    ctx.fillRect(soloGateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
+    ctx.fillRect(soloGateScreenX, gateY, GATE_WIDTH, 30);
+    ctx.fillStyle = '#FFD700'; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('冒険の門', soloGateScreenX + GATE_WIDTH / 2, gateY + 22);
 
-        if (isNearMultiGate) {
-            ctx.fillStyle = 'rgba(0, 255, 255, 0.3)'; ctx.beginPath();
-            ctx.arc(multiGateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
-        }
+    if (isNearSoloGate) {
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.3)'; ctx.beginPath();
+        ctx.arc(soloGateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
+    }
 
-        // 他プレイヤー描画
-        for (let key in otherPlayers) {
-            const op = otherPlayers[key];
-            if (now - op.updatedAt > 5000) continue;
+    // マルチ門描画
+    const multiGateScreenX = MULTI_GATE_X - cameraX;
+    ctx.fillStyle = '#2a4b7c'; 
+    ctx.fillRect(multiGateScreenX, gateY, 20, GATE_HEIGHT);
+    ctx.fillRect(multiGateScreenX + GATE_WIDTH - 20, gateY, 20, GATE_HEIGHT);
+    ctx.fillRect(multiGateScreenX, gateY, GATE_WIDTH, 30);
+    ctx.fillStyle = '#00FFFF'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('共闘の門(マルチ)', multiGateScreenX + GATE_WIDTH / 2, gateY + 22);
 
-            if (op.targetX !== undefined) op.drawX += (op.targetX - op.drawX) * 0.2; 
-            if (op.targetYOffset !== undefined) op.drawYOffset += (op.targetYOffset - op.drawYOffset) * 0.2;
+    if (isNearMultiGate) {
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.3)'; ctx.beginPath();
+        ctx.arc(multiGateScreenX + GATE_WIDTH / 2, gateY + GATE_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
+    }
 
-            const opDrawX = op.drawX - cameraX;
-            const opDrawY = villageGroundY - (op.drawYOffset || 0);
+    // 他プレイヤー描画
+    for (let key in otherPlayers) {
+        const op = otherPlayers[key];
+        if (now - op.updatedAt > 5000) continue;
 
-            if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
-                const opAvatarKey = (op.avatar && avatars[op.avatar]) ? op.avatar : 'default';
-                let opImg = op.isGrounded ? avatars[opAvatarKey].walk : avatars[opAvatarKey].jump;
+        if (op.targetX !== undefined) op.drawX += (op.targetX - op.drawX) * 0.2; 
+        if (op.targetYOffset !== undefined) op.drawYOffset += (op.targetYOffset - op.drawYOffset) * 0.2;
 
-                ctx.save();
-                if (opImg.complete && opImg.width > 0) {
-                    if (op.facingRight) {
-                        ctx.drawImage(opImg, opDrawX, opDrawY, player.width, player.height);
-                    } else {
-                        ctx.translate(opDrawX + player.width / 2, opDrawY + player.height / 2);
-                        ctx.scale(-1, 1);
-                        ctx.drawImage(opImg, -player.width / 2, -player.height / 2, player.width, player.height);
-                    }
-                } else {
-                    ctx.fillStyle = 'orange'; ctx.fillRect(opDrawX, opDrawY, player.width, player.height);
-                }
-                ctx.restore();
+        const opDrawX = op.drawX - cameraX;
+        const opDrawY = villageGroundY - (op.drawYOffset || 0);
 
-                ctx.fillStyle = '#00FFCC'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
-                const opName = op.name || "プレイヤー";
-                const opLevel = op.level || 1;
-                ctx.fillText(opName + " Lv." + opLevel, opDrawX + player.width / 2, opDrawY - 8);
+        if (opDrawX + player.width > -100 && opDrawX < canvas.width + 100) {
+            const opAvatarKey = (op.avatar && avatars[op.avatar]) ? op.avatar : 'default';
+            let opImg = op.isGrounded ? avatars[opAvatarKey].walk : avatars[opAvatarKey].jump;
 
-                // 吹き出しの描画（他プレイヤー）
-                if (op.isTyping) {
-                    drawSpeechBubble(ctx, "", opDrawX + player.width / 2, opDrawY - 15, 1, true);
-                } else if (op.messageTimer > 0) {
-                    op.messageTimer--;
-                    // 残り30フレーム(0.5秒)を切ったら徐々に透明にする（フェードアウト）
-                    let alpha = op.messageTimer > 30 ? 1 : op.messageTimer / 30;
-                    drawSpeechBubble(ctx, op.message, opDrawX + player.width / 2, opDrawY - 15, alpha, false);
-                }
-            }
-        }
-
-        // 自分描画
-        const myAv = avatars[currentAvatar] || avatars['default'];
-        let currentImg = player.isGrounded ? myAv.walk : myAv.jump;
-        const drawX = player.x - cameraX;
-
-        if (currentImg.complete && currentImg.width > 0) {
             ctx.save();
-            if (playerFacingRight) {
-                ctx.drawImage(currentImg, drawX, player.y, player.width, player.height);
+            if (opImg.complete && opImg.width > 0) {
+                if (op.facingRight) {
+                    ctx.drawImage(opImg, opDrawX, opDrawY, player.width, player.height);
+                } else {
+                    ctx.translate(opDrawX + player.width / 2, opDrawY + player.height / 2);
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(opImg, -player.width / 2, -player.height / 2, player.width, player.height);
+                }
             } else {
-                ctx.translate(drawX + player.width / 2, player.y + player.height / 2);
-                ctx.scale(-1, 1);
-                ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
+                ctx.fillStyle = 'orange'; ctx.fillRect(opDrawX, opDrawY, player.width, player.height);
             }
             ctx.restore();
-        } else {
-            ctx.fillStyle = 'blue'; ctx.fillRect(drawX, player.y, player.width, player.height);
-        }
 
-        ctx.fillStyle = '#FFFF00'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(playerName + " Lv." + playerLevel, drawX + player.width / 2, player.y - 8);
-        // 吹き出しの描画（自分）
-        if (myIsTyping) {
-            drawSpeechBubble(ctx, "", drawX + player.width / 2, player.y - 15, 1, true);
-        } else if (myMessageTimer > 0) {
-            myMessageTimer--;
-            let alpha = myMessageTimer > 30 ? 1 : myMessageTimer / 30;
-            drawSpeechBubble(ctx, myLatestMessage, drawX + player.width / 2, player.y - 15, alpha, false);
+            ctx.fillStyle = '#00FFCC'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+            const opName = op.name || "プレイヤー";
+            const opLevel = op.level || 1;
+            ctx.fillText(opName + " Lv." + opLevel, opDrawX + player.width / 2, opDrawY - 8);
+
+            // 吹き出しの描画（他プレイヤー）
+            if (op.isTyping) {
+                drawSpeechBubble(ctx, "", opDrawX + player.width / 2, opDrawY - 15, 1, true);
+            } else if (op.messageTimer > 0) {
+                op.messageTimer--;
+                let alpha = op.messageTimer > 30 ? 1 : op.messageTimer / 30;
+                drawSpeechBubble(ctx, op.message, opDrawX + player.width / 2, opDrawY - 15, alpha, false);
+            }
         }
     }
 
+    // 自分描画
+    const myAv = avatars[currentAvatar] || avatars['default'];
+    let currentImg = player.isGrounded ? myAv.walk : myAv.jump;
+    const drawX = player.x - cameraX;
+
+    if (currentImg.complete && currentImg.width > 0) {
+        ctx.save();
+        if (playerFacingRight) {
+            ctx.drawImage(currentImg, drawX, player.y, player.width, player.height);
+        } else {
+            ctx.translate(drawX + player.width / 2, player.y + player.height / 2);
+            ctx.scale(-1, 1);
+            ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
+        }
+        ctx.restore();
+    } else {
+        ctx.fillStyle = 'blue'; ctx.fillRect(drawX, player.y, player.width, player.height);
+    }
+
+    ctx.fillStyle = '#FFFF00'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(playerName + " Lv." + playerLevel, drawX + player.width / 2, player.y - 8);
+    
+    // 吹き出しの描画（自分）
+    if (myIsTyping) {
+        drawSpeechBubble(ctx, "", drawX + player.width / 2, player.y - 15, 1, true);
+    } else if (myMessageTimer > 0) {
+        myMessageTimer--;
+        let alpha = myMessageTimer > 30 ? 1 : myMessageTimer / 30;
+        drawSpeechBubble(ctx, myLatestMessage, drawX + player.width / 2, player.y - 15, alpha, false);
+    }
+}
     function generateMap() {
         const lastPlatform = platforms[platforms.length - 1];
         if (lastPlatform.x + lastPlatform.width < canvas.width + 500) {
