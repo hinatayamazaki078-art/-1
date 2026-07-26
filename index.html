@@ -413,15 +413,31 @@
             <div id="magic-fill" class="status-bar bar-yellow"></div>
         </div>
         <div class="status-bar-container guard-bar-container">
-    <div id="guard-fill" class="status-bar" style="background-color: #ff4500; box-shadow: 0 0 5px #ff4500; width: 0%;"></div>
-</div>
+            <div id="guard-fill" class="status-bar" style="background-color: #ff4500; box-shadow: 0 0 5px #ff4500; width: 0%;"></div>
+        </div>
+
+        <!-- ▼ ここから追加: 魔法のクールタイム表示スロット ▼ -->
+        <div id="magic-slots-container" style="display: flex; gap: 10px; margin-top: 10px;">
+            <div id="magic-slot1" style="width: 35px; height: 35px; border: 2px solid #ccc; border-radius: 5px; background-color: rgba(0,0,0,0.6); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <span id="magic1-icon" style="font-size: 20px; z-index: 2;"></span>
+                <!-- クールタイム用オーバーレイ -->
+                <div id="magic1-cooldown" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background-color: rgba(255, 0, 0, 0.6); z-index: 1;"></div>
+            </div>
+            <div id="magic-slot2" style="width: 35px; height: 35px; border: 2px solid #ccc; border-radius: 5px; background-color: rgba(0,0,0,0.6); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <span id="magic2-icon" style="font-size: 20px; z-index: 2;"></span>
+                <!-- クールタイム用オーバーレイ -->
+                <div id="magic2-cooldown" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background-color: rgba(255, 0, 0, 0.6); z-index: 1;"></div>
+            </div>
+        </div>
+        <!-- ▲ ここまで ▲ -->
     </div>
 
     <div id="score-display" class="hidden">距離: <span id="distance">0</span>m</div>
     <div id="stage-display" class="hidden"><span id="stage-name">始まりの村</span></div>
 
-<!-- ステータスUIの横に配置するバッグボタン -->
+    <!-- ステータスUIの横に配置するバッグボタン -->
     <button id="btn-bag" class="menu-btn" style="position: absolute; top: 10px; right: 120px; z-index: 35; padding: 10px; font-size: 20px; margin: 0;">👜</button>
+    
     <!-- 素材一覧モーダル -->
     <div id="inventory-modal" class="screen hidden" style="z-index: 75;">
         <div class="modal-box" style="border-color: #32cd32;">
@@ -438,7 +454,7 @@
         <button id="btn-open-shop" class="menu-btn" style="background-color: #9932CC;">ショップを見る</button>
     </div>
 
-    <!-- 魔法ショップアクション (未実装) -->
+    <!-- 魔法ショップアクション -->
     <div id="magic-shop-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
         <button id="btn-open-magic-shop" class="menu-btn" style="background-color: #FF69B4;">魔法ショップを見る</button>
     </div>
@@ -446,7 +462,6 @@
     <!-- ソロ冒険の門アクション -->
     <div id="gate-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
         <button id="btn-enter-gate" class="menu-btn">ソロ冒険に出発！</button>
-        <!-- 案内テキストの<p>タグを削除 -->
     </div>
 
     <!-- マルチ冒険の門アクション -->
@@ -455,7 +470,7 @@
         <button id="btn-join-party" class="menu-btn multi-btn">パーティー参加</button>
     </div>
 
-<!-- チャットUI -->
+    <!-- チャットUI -->
     <div id="chat-container" class="hidden" style="position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 55; display: flex; gap: 5px; width: 80%; max-width: 400px;">
         <input type="text" id="chat-input" maxlength="20" placeholder="チャットを入力..." style="flex-grow: 1; padding: 10px; border-radius: 8px; border: 2px solid #fff; font-size: 16px; background: rgba(0,0,0,0.7); color: white;">
         <button id="btn-chat-send" class="menu-btn" style="margin: 0; padding: 10px 15px; font-size: 16px;">送信</button>
@@ -473,6 +488,11 @@
             <div id="btn-collect" class="action-btn" style="background-color: rgba(50, 205, 50, 0.5);">✋</div>
             <div id="btn-guard" class="action-btn" style="background-color: rgba(70, 130, 180, 0.5);">🛡️</div>
             <div id="btn-jump" class="action-btn">▲</div>
+            
+            <!-- ▼ ここから追加: 魔法発射用ボタン ▼ -->
+            <div id="btn-magic1" class="action-btn" style="background-color: rgba(255, 105, 180, 0.7); font-size: 16px;">🪄1</div>
+            <div id="btn-magic2" class="action-btn" style="background-color: rgba(147, 112, 219, 0.7); font-size: 16px;">🪄2</div>
+            <!-- ▲ ここまで ▲ -->
         </div>
     </div>
 
@@ -549,6 +569,7 @@
 </div>
 
 <script>
+    
     // ==========================================
     // Firebase 設定
     // ==========================================
@@ -1247,6 +1268,7 @@ const collectEffectImg = document.getElementById('collect-effect');
     };
 
     let platforms = [], enemies = [], icicles = [], cacti = [];
+    let damageTexts = []; // ダメージ表記用配列
     let isWindy = false, windWarning = false, windTimer = 0;
     let postureGauge = 0; 
 const MAX_POSTURE = 100;
@@ -1977,7 +1999,7 @@ function gameOver() {
                     width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
                     vy: 0, isGrounded: true, 
                     jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, 
-                    hp: (enemyType === 'kinoko') ? 2 : 1, // ★追加: きのこマンは2回踏むためHP2
+                    hp: (enemyType === 'kinoko') ? 20 : (enemyType === 'hopper') ? 10 : (enemyType === 'yoroi') ? 60 : 5,
                     shootTimer: (enemyType === 'kinoko') ? 60 : 0, // ★追加: 初回発射までの時間
                     yoroiState: (enemyType === 'yoroi') ? 'stand' : null,
                     stateTimer: 0,
@@ -2004,337 +2026,401 @@ function gameOver() {
     }
     
     function update() {
-        if (gameState === 'VILLAGE') { updateVillage(); return; }
-        if (gameState !== 'PLAYING') return;
+    if (gameState === 'VILLAGE') { updateVillage(); return; }
+    if (gameState !== 'PLAYING') return;
 
-        // === ここから変更：ステージ切り替え判定 & ホワイトフェード処理 ===
-        let newBgImage = bgImage1;
-        let newStageNameText = "アスター平原";
+    // === ここから変更：ステージ切り替え判定 & ホワイトフェード処理 ===
+    let newBgImage = bgImage1;
+    let newStageNameText = "アスター平原";
 
-        if (distance >= getDistance('s9')) {
-            newBgImage = bgImage9; newStageNameText = "ロイズの館～入り口～";
-        } else if (distance >= getDistance('s8')) {
-            newBgImage = bgImage8; newStageNameText = "パライドタウン";
-        } else if (distance >= getDistance('s7')) {
-            newBgImage = bgImage7; newStageNameText = "ディングルの森";
-        } else if (distance >= getDistance('s5')) {
-            newBgImage = bgImage5; newStageNameText = "グリオン砂漠";
-        } else if (distance >= getDistance('s4')) {
-            newBgImage = bgImage4; newStageNameText = "レニリアの森";
-        } else if (distance >= getDistance('s3')) {
-            newBgImage = bgImage3; newStageNameText = "オロ雪原";
-        } else if (distance >= getDistance('s2')) {
-            newBgImage = bgImage2; newStageNameText = "ヴィリカ海岸";
+    if (distance >= getDistance('s9')) {
+        newBgImage = bgImage9; newStageNameText = "ロイズの館～入り口～";
+    } else if (distance >= getDistance('s8')) {
+        newBgImage = bgImage8; newStageNameText = "パライドタウン";
+    } else if (distance >= getDistance('s7')) {
+        newBgImage = bgImage7; newStageNameText = "ディングルの森";
+    } else if (distance >= getDistance('s5')) {
+        newBgImage = bgImage5; newStageNameText = "グリオン砂漠";
+    } else if (distance >= getDistance('s4')) {
+        newBgImage = bgImage4; newStageNameText = "レニリアの森";
+    } else if (distance >= getDistance('s3')) {
+        newBgImage = bgImage3; newStageNameText = "オロ雪原";
+    } else if (distance >= getDistance('s2')) {
+        newBgImage = bgImage2; newStageNameText = "ヴィリカ海岸";
+    }
+
+    // 新しいステージの境界に入ったらフェードアウトを開始
+    if (newBgImage !== targetBgImage && fadeState === 'none') {
+        targetBgImage = newBgImage;
+        nextStageName = newStageNameText;
+        fadeState = 'fadeout';
+    }
+
+    // フェードアニメーション計算
+    if (fadeState === 'fadeout') {
+        whiteFadeAlpha += 0.02;
+        if (whiteFadeAlpha >= 1) {
+            whiteFadeAlpha = 1;
+            currentBgImage = targetBgImage; // 画面が真っ白になった瞬間に背景を切り替え
+            stageNameEl.innerText = nextStageName + (isMultiplayer ? "(マルチ)" : "");
+            fadeState = 'fadein';
         }
-
-        // 新しいステージの境界に入ったらフェードアウトを開始
-        if (newBgImage !== targetBgImage && fadeState === 'none') {
-            targetBgImage = newBgImage;
-            nextStageName = newStageNameText;
-            fadeState = 'fadeout';
+    } else if (fadeState === 'fadein') {
+        whiteFadeAlpha -= 0.02;
+        if (whiteFadeAlpha <= 0) {
+            whiteFadeAlpha = 0;
+            fadeState = 'none';
         }
+    }
+    // === 変更ここまで ===
 
-        // フェードアニメーション計算
-        if (fadeState === 'fadeout') {
-            whiteFadeAlpha += 0.02;
-            if (whiteFadeAlpha >= 1) {
-                whiteFadeAlpha = 1;
-                currentBgImage = targetBgImage; // 画面が真っ白になった瞬間に背景を切り替え
-                stageNameEl.innerText = nextStageName + (isMultiplayer ? "(マルチ)" : "");
-                fadeState = 'fadein';
+    // ▼ 今回追加・変更した処理（ガード中の移動制限） ▼
+    if (keys.guard && player.isGrounded && player.counterTimer <= 0) {
+        player.isGuarding = true;
+        player.vx = 0; // ガード中は移動不可
+    } else {
+        player.isGuarding = false;
+        if (keys.left) { player.vx = -player.speed; playerFacingRight = false; } 
+        else if (keys.right) { player.vx = player.speed; playerFacingRight = true; } 
+        else { player.vx = 0; }
+    }
+
+    // ▼ 今回追加・変更した処理（タイマー更新と体幹ゲージ回復） ▼
+    if (player.guardTimer > 0) player.guardTimer--;
+    if (player.counterTimer > 0) player.counterTimer--;
+    if (postureGauge > 0 && !player.isGuarding && player.counterTimer <= 0) {
+        postureGauge -= 0.5; // 自然回復
+        if (postureGauge < 0) postureGauge = 0;
+        updateStatusUI();
+    }
+    // ▲ ここまで ▲
+
+    player.x += player.vx;
+    if (player.x < 0) player.x = 0;
+
+    if (distance >= getDistance('s5') && distance < getDistance('s7')) {
+        if (!isWindy && !windWarning) {
+            if (Math.random() < 0.005) { windWarning = true; windTimer = 60; }
+        } else if (windWarning) {
+            windTimer--; if (windTimer <= 0) { windWarning = false; isWindy = true; windTimer = 150; }
+        } else if (isWindy) {
+            windTimer--; player.x -= 4.0; if (player.x < 0) player.x = 0;
+            if (windTimer <= 0) { isWindy = false; }
+        }
+    }
+
+    player.vy += player.gravity; player.y += player.vy; player.isGrounded = false;
+
+    // 1. 敵の挙動更新（ジャンプと弾の発射）
+    enemies.forEach(e => {
+        if (e.isSquished) { e.squishTimer--; return; }
+        if (e.type === 'hopper') {
+            if (e.isGrounded) {
+                e.jumpTimer--; if (e.jumpTimer <= 0) { e.vy = -11; e.isGrounded = false; }
+            } else {
+                e.vy += 0.5; e.y += e.vy;
+                if (e.y >= e.spawnY - e.height) { e.y = e.spawnY - e.height; e.vy = 0; e.isGrounded = true; e.jumpTimer = 80; }
             }
-        } else if (fadeState === 'fadein') {
-            whiteFadeAlpha -= 0.02;
-            if (whiteFadeAlpha <= 0) {
-                whiteFadeAlpha = 0;
-                fadeState = 'none';
-            }
-        }
-        // === 変更ここまで ===
-
-        // ▼ 今回追加・変更した処理（ガード中の移動制限） ▼
-        if (keys.guard && player.isGrounded && player.counterTimer <= 0) {
-            player.isGuarding = true;
-            player.vx = 0; // ガード中は移動不可
-        } else {
-            player.isGuarding = false;
-            if (keys.left) { player.vx = -player.speed; playerFacingRight = false; } 
-            else if (keys.right) { player.vx = player.speed; playerFacingRight = true; } 
-            else { player.vx = 0; }
-        }
-
-        // ▼ 今回追加・変更した処理（タイマー更新と体幹ゲージ回復） ▼
-        if (player.guardTimer > 0) player.guardTimer--;
-        if (player.counterTimer > 0) player.counterTimer--;
-        if (postureGauge > 0 && !player.isGuarding && player.counterTimer <= 0) {
-            postureGauge -= 0.5; // 自然回復
-            if (postureGauge < 0) postureGauge = 0;
-            updateStatusUI();
-        }
-        // ▲ ここまで ▲
-
-        player.x += player.vx;
-        if (player.x < 0) player.x = 0;
-
-        if (distance >= getDistance('s5') && distance < getDistance('s7')) {
-            if (!isWindy && !windWarning) {
-                if (Math.random() < 0.005) { windWarning = true; windTimer = 60; }
-            } else if (windWarning) {
-                windTimer--; if (windTimer <= 0) { windWarning = false; isWindy = true; windTimer = 150; }
-            } else if (isWindy) {
-                windTimer--; player.x -= 4.0; if (player.x < 0) player.x = 0;
-                if (windTimer <= 0) { isWindy = false; }
-            }
-        }
-
-        player.vy += player.gravity; player.y += player.vy; player.isGrounded = false;
-
-        // 1. 敵の挙動更新（ジャンプと弾の発射）
-        enemies.forEach(e => {
-            if (e.isSquished) { e.squishTimer--; return; }
-            if (e.type === 'hopper') {
-                if (e.isGrounded) {
-                    e.jumpTimer--; if (e.jumpTimer <= 0) { e.vy = -11; e.isGrounded = false; }
-                } else {
-                    e.vy += 0.5; e.y += e.vy;
-                    if (e.y >= e.spawnY - e.height) { e.y = e.spawnY - e.height; e.vy = 0; e.isGrounded = true; e.jumpTimer = 80; }
+        } else if (e.type === 'kinoko') {
+            // プレイヤーとの距離を計算（X座標の差が800以内なら「見つけた」と判定）
+            const distToPlayerX = Math.abs((player.x + player.width / 2) - (e.x + e.width / 2));
+            if (distToPlayerX < 800) {
+                e.shootTimer--;
+                if (e.shootTimer <= 0) {
+                    e.shootTimer = 150; // 次の弾を撃つまでの間隔 (約2.5秒)
+                    // プレイヤーの方向に向けて弾を飛ばす
+                    const dx = (player.x + player.width / 2) - (e.x + e.width / 2);
+                    const dy = (player.y + player.height / 2) - (e.y + e.height / 2);
+                    const angle = Math.atan2(dy, dx);
+                    const speed = 4; // 弾のスピード
+                    enemyProjectiles.push({
+                        x: e.x + e.width / 2,
+                        y: e.y + e.height / 2,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        radius: 8
+                    });
                 }
-            } else if (e.type === 'kinoko') {
-                // プレイヤーとの距離を計算（X座標の差が800以内なら「見つけた」と判定）
-                const distToPlayerX = Math.abs((player.x + player.width / 2) - (e.x + e.width / 2));
-                if (distToPlayerX < 800) {
-                    e.shootTimer--;
-                    if (e.shootTimer <= 0) {
-                        e.shootTimer = 150; // 次の弾を撃つまでの間隔 (約2.5秒)
-                        // プレイヤーの方向に向けて弾を飛ばす
-                        const dx = (player.x + player.width / 2) - (e.x + e.width / 2);
-                        const dy = (player.y + player.height / 2) - (e.y + e.height / 2);
-                        const angle = Math.atan2(dy, dx);
-                        const speed = 4; // 弾のスピード
-                        enemyProjectiles.push({
-                            x: e.x + e.width / 2,
-                            y: e.y + e.height / 2,
-                            vx: Math.cos(angle) * speed,
-                            vy: Math.sin(angle) * speed,
-                            radius: 8
-                        });
-                    }
+            }
+        } else if (e.type === 'yoroi') {
+            const distX = (player.x + player.width / 2) - (e.x + e.width / 2);
+            const absDistX = Math.abs(distX);
+            
+            // 攻撃中以外は常にプレイヤーの方向を向く
+            if (e.yoroiState !== 'attack') {
+                e.yoroiFacingLeft = (distX < 0);
+            }
+
+            if (e.yoroiState === 'stand') {
+                // プレイヤーが近づいたら（距離300以内）構え状態へ
+                if (absDistX <= 300) {
+                    e.yoroiState = 'ready';
+                    e.stateTimer = 30; // 構え時間（0.5秒）
                 }
-            } else if (e.type === 'yoroi') {
-                const distX = (player.x + player.width / 2) - (e.x + e.width / 2);
-                const absDistX = Math.abs(distX);
+            } else if (e.yoroiState === 'ready') {
+                e.stateTimer--;
+                if (e.stateTimer <= 0) {
+                    e.yoroiState = 'attack';
+                    e.stateTimer = 40; // 攻撃時間
+                }
+            } else if (e.yoroiState === 'attack') {
+                e.stateTimer--;
                 
-                // 攻撃中以外は常にプレイヤーの方向を向く
-                if (e.yoroiState !== 'attack') {
-                    e.yoroiFacingLeft = (distX < 0);
-                }
-
-                if (e.yoroiState === 'stand') {
-                    // プレイヤーが近づいたら（距離300以内）構え状態へ
-                    if (absDistX <= 300) {
-                        e.yoroiState = 'ready';
-                        e.stateTimer = 30; // 構え時間（0.5秒）
-                    }
-                } else if (e.yoroiState === 'ready') {
-                    e.stateTimer--;
-                    if (e.stateTimer <= 0) {
-                        e.yoroiState = 'attack';
-                        e.stateTimer = 40; // 攻撃時間
-                    }
-                } else if (e.yoroiState === 'attack') {
-                    e.stateTimer--;
+                // 攻撃判定枠の生成 (向いている方向の前方120pxに攻撃判定)
+                const attackRangeX = 120;
+                let attackRect = {
+                    x: e.yoroiFacingLeft ? e.x - attackRangeX : e.x + e.width,
+                    y: e.y,
+                    width: attackRangeX,
+                    height: e.height
+                };
+                
+                // ▼ 今回追加・変更した処理（ジャストガード・通常ガード判定） ▼
+                if (player.x < attackRect.x + attackRect.width && player.x + player.width > attackRect.x &&
+                    player.y < attackRect.y + attackRect.height && player.y + player.height > attackRect.y) {
                     
-                    // 攻撃判定枠の生成 (向いている方向の前方120pxに攻撃判定)
-                    const attackRangeX = 120;
-                    let attackRect = {
-                        x: e.yoroiFacingLeft ? e.x - attackRangeX : e.x + e.width,
-                        y: e.y,
-                        width: attackRangeX,
-                        height: e.height
-                    };
-                    
-                    // ▼ 今回追加・変更した処理（ジャストガード・通常ガード判定） ▼
-                    if (player.x < attackRect.x + attackRect.width && player.x + player.width > attackRect.x &&
-                        player.y < attackRect.y + attackRect.height && player.y + player.height > attackRect.y) {
-                        
-                        if (player.counterTimer > 0) {
-                            // カウンター中（無敵）は何もしない
-                        } else if (player.isGuarding) {
-                            if (player.guardTimer > 0) {
-                                // ★ジャストガード成功（カウンター）★
-                                player.counterTimer = 40; 
-                                e.hp = 0;
-                                e.isSquished = true;
-                                e.squishTimer = 20;
-                                coins += 50; // ボーナスコイン
-                                earnedCoinsInRun += 50;
-                                updateStatusUI();
-                                
-                                if (isMultiplayer && currentPartyId && db) {
-                                    db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
-                                }
-                            } else {
-                                // ★通常ガード（体幹ゲージが溜まる）★
-                                postureGauge += 30;
-                                updateStatusUI();
-                                
-                                if (postureGauge >= MAX_POSTURE) {
-                                    gameOver(); // 体幹崩れ -> ゲームオーバー
-                                } else {
-                                    // ノックバックさせて連続ヒットを防ぐ
-                                    player.x += e.yoroiFacingLeft ? -25 : 25;
-                                    e.yoroiState = 'stand';
-                                    e.stateTimer = 0;
-                                }
+                    if (player.counterTimer > 0) {
+                        // カウンター中（無敵）は何もしない
+                    } else if (player.isGuarding) {
+                        if (player.guardTimer > 0) {
+                            // ★ジャストガード成功（カウンター）★
+                            player.counterTimer = 40; 
+                            const damage = 10;
+                            e.hp -= damage;
+                            // ダメージ数値を配列に追加（敵の頭上に表示）
+                            damageTexts.push({ x: e.x + e.width / 2, y: e.y, text: damage.toString(), timer: 30 });
+                            e.isSquished = true;
+                            e.squishTimer = 20;
+                            coins += 50; // ボーナスコイン
+                            earnedCoinsInRun += 50;
+                            updateStatusUI();
+                            
+                            if (isMultiplayer && currentPartyId && db) {
+                                db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
                             }
                         } else {
-                            gameOver(); // ガードしていなければゲームオーバー
+                            // ★通常ガード（体幹ゲージが溜まる）★
+                            postureGauge += 30;
+                            updateStatusUI();
+                            
+                            if (postureGauge >= MAX_POSTURE) {
+                                gameOver(); // 体幹崩れ -> ゲームオーバー
+                            } else {
+                                // ノックバックさせて連続ヒットを防ぐ
+                                player.x += e.yoroiFacingLeft ? -25 : 25;
+                                e.yoroiState = 'stand';
+                                e.stateTimer = 0;
+                            }
                         }
-                    }
-                    // ▲ ここまで ▲
-
-                    if (e.stateTimer <= 0) {
-                        e.yoroiState = 'stand'; // 攻撃が終わったら立ち状態へ戻る
+                    } else {
+                        gameOver(); // ガードしていなければゲームオーバー
                     }
                 }
-            }
-        });
+                // ▲ ここまで ▲
 
-        // 2. 弾の移動とプレイヤーへの当たり判定
-        enemyProjectiles.forEach(p => {
-            p.x += p.vx;
-            p.y += p.vy;
-            const hitMargin = 8;
-            if (p.x + p.radius > player.x + hitMargin && p.x - p.radius < player.x + player.width - hitMargin &&
-                p.y + p.radius > player.y + hitMargin && p.y - p.radius < player.y + player.height - hitMargin) {
+                if (e.stateTimer <= 0) {
+                    e.yoroiState = 'stand'; // 攻撃が終わったら立ち状態へ戻る
+                }
+            }
+        }
+    });
+
+    // 2. 弾の移動とプレイヤーへの当たり判定
+    enemyProjectiles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        const hitMargin = 8;
+        if (p.x + p.radius > player.x + hitMargin && p.x - p.radius < player.x + player.width - hitMargin &&
+            p.y + p.radius > player.y + hitMargin && p.y - p.radius < player.y + player.height - hitMargin) {
+            gameOver();
+        }
+    });
+
+    // 3. 敵との接触・踏みつけ判定
+    enemies.forEach(e => {
+        if (e.isSquished) return;
+        const hitboxMargin = 10; 
+        if (player.x + hitboxMargin < e.x + e.width && player.x + player.width - hitboxMargin > e.x &&
+            player.y + hitboxMargin < e.y + e.height && player.y + player.height - hitboxMargin > e.y) {
+
+            if (e.type === 'yoroi') {
                 gameOver();
+                return;
             }
-        });
-
-        // 3. 敵との接触・踏みつけ判定
-        enemies.forEach(e => {
-            if (e.isSquished) return;
-            const hitboxMargin = 10; 
-            if (player.x + hitboxMargin < e.x + e.width && player.x + player.width - hitboxMargin > e.x &&
-                player.y + hitboxMargin < e.y + e.height && player.y + player.height - hitboxMargin > e.y) {
-
-                if (e.type === 'yoroi') {
-                    gameOver();
-                    return;
-                }
-                
-                // プレイヤーが落下中で、敵の上部を踏んだ場合
-                if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
-                    e.hp--; // HPを減らす
-                    player.vy = player.jumpPower * 0.8; // プレイヤーはバウンドする
-                    player.isGrounded = false;
-                    
-                    if (e.hp <= 0) {
-                        e.isSquished = true; 
-                        e.squishTimer = 20; 
-                        // きのこマンなら20コイン、バッタは15、通常は8
-                        const coinValue = (e.type === 'kinoko') ? 20 : ((e.type === 'hopper') ? 15 : 8); 
-                        coins += coinValue;
-                        earnedCoinsInRun += coinValue;
-                        updateStatusUI();
-                        if (isMultiplayer && currentPartyId && db) {
-                            db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
-                        }
-                    }
-                } else { 
-                    gameOver(); 
-                }
-            }
-        });
-
-        platforms.forEach(p => {
-            const footOffset = 37; const marginX = 15;
-            if (player.x + marginX < p.x + p.width && player.x + player.width - marginX > p.x &&
-                player.y < p.y + p.height && player.y + player.height - footOffset > p.y) {
-                if (player.vy > 0) {
-                    player.isGrounded = true; player.vy = 0; player.y = p.y - player.height + footOffset;
-                } else if (player.vy < 0) { player.vy = 0; player.y = p.y + p.height; }
-            }
-        });
-
-        const scrollThreshold = canvas.width / 2;
-        if (player.x > scrollThreshold) {
-            const offset = player.x - scrollThreshold; player.x = scrollThreshold;
-            totalScrollX += offset;
-            let addedDist = offset * 0.05;
-            distance += addedDist; playerExp += addedDist;
-            distanceEl.innerText = Math.floor(distance);
             
-            checkLevelUp();
-            platforms.forEach(p => p.x -= offset); enemies.forEach(e => e.x -= offset);
-            icicles.forEach(i => i.x -= offset); boxes.forEach(b => b.x -= offset); cacti.forEach(c => c.x -= offset);
-            mapMaterials.forEach(m => m.x -= offset);
-            activeCollectEffects.forEach(e => e.x -= offset);
-            enemyProjectiles.forEach(p => p.x -= offset);
-            bgOffset += offset * 0.5;
+            // プレイヤーが落下中で、敵の上部を踏んだ場合
+            if (player.vy > 0 && player.y + player.height - player.vy <= e.y + 15) {
+                const damage = 10; // ★変更：踏みつけダメージを設定
+                e.hp -= damage; // ★変更：HPを減らす
+                // ★追加：ダメージ数値を配列に追加（敵の頭上に表示）
+                damageTexts.push({ x: e.x + e.width / 2, y: e.y, text: damage.toString(), timer: 30 });
+
+                player.vy = player.jumpPower * 0.8; // プレイヤーはバウンドする
+                player.isGrounded = false;
+                
+                if (e.hp <= 0) {
+                    e.isSquished = true; 
+                    e.squishTimer = 20; 
+                    // きのこマンなら20コイン、バッタは15、通常は8
+                    const coinValue = (e.type === 'kinoko') ? 20 : ((e.type === 'hopper') ? 15 : 8); 
+                    coins += coinValue;
+                    earnedCoinsInRun += coinValue;
+                    updateStatusUI();
+                    if (isMultiplayer && currentPartyId && db) {
+                        db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
+                    }
+                }
+            } else { 
+                gameOver(); 
+            }
+        }
+    });
+
+    platforms.forEach(p => {
+        const footOffset = 37; const marginX = 15;
+        if (player.x + marginX < p.x + p.width && player.x + player.width - marginX > p.x &&
+            player.y < p.y + p.height && player.y + player.height - footOffset > p.y) {
+            if (player.vy > 0) {
+                player.isGrounded = true; player.vy = 0; player.y = p.y - player.height + footOffset;
+            } else if (player.vy < 0) { player.vy = 0; player.y = p.y + p.height; }
+        }
+    });
+
+    const scrollThreshold = canvas.width / 2;
+    if (player.x > scrollThreshold) {
+        const offset = player.x - scrollThreshold; player.x = scrollThreshold;
+        totalScrollX += offset;
+        let addedDist = offset * 0.05;
+        distance += addedDist; playerExp += addedDist;
+        distanceEl.innerText = Math.floor(distance);
+        
+        checkLevelUp();
+        platforms.forEach(p => p.x -= offset); enemies.forEach(e => e.x -= offset);
+        icicles.forEach(i => i.x -= offset); boxes.forEach(b => b.x -= offset); cacti.forEach(c => c.x -= offset);
+        mapMaterials.forEach(m => m.x -= offset);
+        activeCollectEffects.forEach(e => e.x -= offset);
+        enemyProjectiles.forEach(p => p.x -= offset);
+        damageTexts.forEach(dt => dt.x -= offset); // ★追加: ダメージ表記のスクロール
+        activeMagics.forEach(m => m.x -= offset);  // ★追加: 魔法のスクロール
+        bgOffset += offset * 0.5;
+    }
+
+    if (platforms[0].x + platforms[0].width < -100) platforms.shift();
+
+    enemyProjectiles = enemyProjectiles.filter(p => p.x + p.radius >= -100 && p.x - p.radius <= canvas.width + 100 && p.y <= canvas.height + 100);
+    
+    enemies = enemies.filter(e => (e.x + e.width >= -100) && (!e.isSquished || e.squishTimer > 0));
+    icicles = icicles.filter(i => (i.x + i.width >= -100) && i.y < canvas.height);
+    boxes = boxes.filter(b => b.x + b.width >= -100);
+    cacti = cacti.filter(c => c.x + c.width >= -100);
+    mapMaterials = mapMaterials.filter(m => m.x + m.width >= -100);
+
+    cacti.forEach(c => {
+        const hitboxMargin = 15;
+        if (player.x + hitboxMargin < c.x + c.width && player.x + player.width - hitboxMargin > c.x &&
+            player.y + hitboxMargin < c.y + c.height && player.y + player.height - hitboxMargin > c.y) {
+            gameOver();
+        }
+    });
+
+    // つららの落下・当たり判定処理
+    icicles.forEach(icicle => {
+        // プレイヤーが近づいたら落下開始（X座標の距離が300px以内）
+        if (!icicle.isFalling && Math.abs((player.x + player.width / 2) - (icicle.x + icicle.width / 2)) < 300) {
+            icicle.isFalling = true;
         }
 
-        if (platforms[0].x + platforms[0].width < -100) platforms.shift();
+        // 落下中の移動処理
+        if (icicle.isFalling) {
+            icicle.vy += 0.6; // 加速度（落下の速さ）
+            icicle.y += icicle.vy;
+        }
 
-        enemyProjectiles = enemyProjectiles.filter(p => p.x + p.radius >= -100 && p.x - p.radius <= canvas.width + 100 && p.y <= canvas.height + 100);
+        // プレイヤーとの当たり判定
+        const hitMargin = 5;
+        if (player.x + hitMargin < icicle.x + icicle.width &&
+            player.x + player.width - hitMargin > icicle.x &&
+            player.y + hitMargin < icicle.y + icicle.height &&
+            player.y + player.height - hitMargin > icicle.y) {
+            gameOver();
+        }
+    });
+
+    boxes.forEach(b => {
+        const marginX = 15; const footOffset = 37; const standOffset = 20;
+        const pLeft = player.x + marginX; const pRight = player.x + player.width - marginX;
+        const pTop = player.y; const pBottom = player.y + player.height - footOffset + standOffset;
+
+        if (pLeft < b.x + b.width && pRight > b.x && pTop < b.y + b.height && pBottom > b.y) {
+            if (player.vy > 0 && pBottom - player.vy <= b.y + 25) {
+                player.isGrounded = true; player.vy = 0; player.y = b.y - player.height + footOffset - standOffset;
+            } else {
+                if (player.vx > 0) { player.x = b.x - player.width + marginX; } 
+                else if (player.vx < 0) { player.x = b.x + b.width - marginX; }
+            }
+        }
+    });
+
+    // ★ここから追加: ダメージ表記のアニメーションと削除
+    damageTexts.forEach(dt => {
+        dt.y -= 1; // 上に少しずつ移動
+        dt.timer--;
+    });
+    damageTexts = damageTexts.filter(dt => dt.timer > 0);
+
+    // ★ここから追加: 魔法のクールタイムUI更新
+    ['slot1', 'slot2'].forEach(slot => {
+        if (magicCooldowns[slot] > 0) {
+            magicCooldowns[slot]--;
+            const equippedMagic = equippedMagics[slot];
+            if (equippedMagic && magicData[equippedMagic]) {
+                const percent = (magicCooldowns[slot] / magicData[equippedMagic].cooldownFrames) * 100;
+                const cooldownEl = document.getElementById(`magic${slot.replace('slot', '')}-cooldown`);
+                if (cooldownEl) cooldownEl.style.height = `${percent}%`;
+            }
+        }
+    });
+
+    // ★ここから追加: 魔法の移動と敵への当たり判定
+    activeMagics.forEach((m, index) => {
+        m.x += m.vx; // 魔法を飛ばす
+        let hit = false;
         
-        enemies = enemies.filter(e => (e.x + e.width >= -100) && (!e.isSquished || e.squishTimer > 0));
-        icicles = icicles.filter(i => (i.x + i.width >= -100) && i.y < canvas.height);
-        boxes = boxes.filter(b => b.x + b.width >= -100);
-        cacti = cacti.filter(c => c.x + c.width >= -100);
-        mapMaterials = mapMaterials.filter(m => m.x + m.width >= -100);
-
-        cacti.forEach(c => {
-            const hitboxMargin = 15;
-            if (player.x + hitboxMargin < c.x + c.width && player.x + player.width - hitboxMargin > c.x &&
-                player.y + hitboxMargin < c.y + c.height && player.y + player.height - hitboxMargin > c.y) {
-                gameOver();
-            }
-        });
-
-        // つららの落下・当たり判定処理
-        icicles.forEach(icicle => {
-            // プレイヤーが近づいたら落下開始（X座標の距離が300px以内）
-            if (!icicle.isFalling && Math.abs((player.x + player.width / 2) - (icicle.x + icicle.width / 2)) < 300) {
-                icicle.isFalling = true;
-            }
-
-            // 落下中の移動処理
-            if (icicle.isFalling) {
-                icicle.vy += 0.6; // 加速度（落下の速さ）
-                icicle.y += icicle.vy;
-            }
-
-            // プレイヤーとの当たり判定
-            const hitMargin = 5;
-            if (player.x + hitMargin < icicle.x + icicle.width &&
-                player.x + player.width - hitMargin > icicle.x &&
-                player.y + hitMargin < icicle.y + icicle.height &&
-                player.y + player.height - hitMargin > icicle.y) {
-                gameOver();
-            }
-        });
-
-        boxes.forEach(b => {
-            const marginX = 15; const footOffset = 37; const standOffset = 20;
-            const pLeft = player.x + marginX; const pRight = player.x + player.width - marginX;
-            const pTop = player.y; const pBottom = player.y + player.height - footOffset + standOffset;
-
-            if (pLeft < b.x + b.width && pRight > b.x && pTop < b.y + b.height && pBottom > b.y) {
-                if (player.vy > 0 && pBottom - player.vy <= b.y + 25) {
-                    player.isGrounded = true; player.vy = 0; player.y = b.y - player.height + footOffset - standOffset;
-                } else {
-                    if (player.vx > 0) { player.x = b.x - player.width + marginX; } 
-                    else if (player.vx < 0) { player.x = b.x + b.width - marginX; }
+        enemies.forEach(e => {
+            if (e.isSquished) return;
+            // 魔法と敵の当たり判定
+            if (m.x < e.x + e.width && m.x + m.width > e.x && m.y < e.y + e.height && m.y + m.height > e.y) {
+                e.hp -= m.damage;
+                damageTexts.push({ x: e.x + e.width / 2, y: e.y, text: m.damage.toString(), timer: 30 });
+                hit = true;
+                
+                if (e.hp <= 0) {
+                    e.isSquished = true; 
+                    e.squishTimer = 20; 
+                    // 敵の種類に応じたコイン獲得
+                    const coinValue = (e.type === 'kinoko') ? 20 : ((e.type === 'hopper') ? 15 : ((e.type === 'yoroi') ? 50 : 8));
+                    coins += coinValue;
+                    earnedCoinsInRun += coinValue;
+                    updateStatusUI();
+                    if (isMultiplayer && currentPartyId && db) {
+                        db.ref(`parties/${currentPartyId}/enemiesDefeated/${e.id}`).set(true);
+                    }
                 }
             }
         });
         
-        generateMap();
+        // 敵に当たった、もしくは画面外に出たら魔法を消す
+        if (hit || m.x < -100 || m.x > canvas.width + 100) {
+            activeMagics.splice(index, 1);
+        }
+    });
+    // ★追加ここまで
+    
+    generateMap();
 
-        if (player.y > canvas.height) gameOver();
-        syncMyPosition();
-    }
+    if (player.y > canvas.height) gameOver();
+    syncMyPosition();
+}
 
     function draw() {
         if (gameState === 'VILLAGE') { drawVillage(); return; }
