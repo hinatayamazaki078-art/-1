@@ -438,9 +438,9 @@
         <button id="btn-open-shop" class="menu-btn" style="background-color: #9932CC;">ショップを見る</button>
     </div>
 
-    <!-- 衣装ショップアクション (未実装) -->
-    <div id="costume-shop-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
-        <button id="btn-open-costume-shop" class="menu-btn" style="background-color: #FF69B4;">衣装ショップを見る</button>
+    <!-- 魔法ショップアクション (未実装) -->
+    <div id="magic-shop-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
+        <button id="btn-open-magic-shop" class="menu-btn" style="background-color: #FF69B4;">魔法ショップを見る</button>
     </div>
 
     <!-- ソロ冒険の門アクション -->
@@ -793,7 +793,7 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
 
     // ショップUI
     const shopActionUI = document.getElementById('shop-action');
-    const costumeShopActionUI = document.getElementById('costume-shop-action');
+    const magicShopActionUI = document.getElementById('magic-shop-action');
     const shopModal = document.getElementById('shop-modal');
     const shopItemsContainer = document.getElementById('shop-items-container');
     const shopCoinDisplay = document.getElementById('shop-coin-display');
@@ -805,8 +805,8 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
     document.getElementById('btn-close-shop').addEventListener('click', () => shopModal.classList.add('hidden'));
     
     // ★★★ ここから追加：衣装ショップのボタンイベント ★★★
-    document.getElementById('btn-open-costume-shop').addEventListener('click', () => {
-        alert('衣装ショップは現在準備中です！');
+    document.getElementById('btn-open-magic-shop').addEventListener('click', () => {
+        alert('魔法ショップは現在準備中です！');
     });
     // ★★★ ここまで追加 ★★★
 
@@ -1165,7 +1165,7 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
 
     // ★★★ 追加：衣装ショップの設定 ★★★
     const costumeShopImg = new Image(); 
-    costumeShopImg.src = '衣装ショップ.png'; // 用意があれば
+    magicShopImg.src = '衣装ショップ.png'; // 用意があれば
     const COSTUME_SHOP_X = 1600; // 衣装ショップのX座標
     const COSTUME_SHOP_WIDTH = 250;
     const COSTUME_SHOP_HEIGHT = 200;
@@ -1266,7 +1266,7 @@ const MAX_POSTURE = 100;
         costumeShopActionUI.classList.add('hidden');
         btnReturnVillage.classList.add('hidden');
         isMultiplayer = false; 
-        isNearCostumeShop = false;
+        isNearMagicShop = false;
     }
 
     function initMap(isResume = false) {
@@ -1319,7 +1319,7 @@ const MAX_POSTURE = 100;
             gateActionUI.classList.add('hidden');
             multiGateActionUI.classList.add('hidden');
             shopActionUI.classList.add('hidden');
-            costumeShopActionUI.classList.add('hidden');
+            magicShopActionUI.classList.add('hidden');
             scoreDisplay.classList.remove('hidden'); 
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
@@ -1333,7 +1333,7 @@ const MAX_POSTURE = 100;
             gateActionUI.classList.add('hidden');
             multiGateActionUI.classList.add('hidden');
             shopActionUI.classList.add('hidden');
-            costumeShopActionUI.classList.add('hidden');
+            magicShopActionUI.classList.add('hidden');
             btnReturnVillage.classList.add('hidden');
             gamePad.classList.remove('hidden');
             stageDisplay.classList.remove('hidden');
@@ -1574,7 +1574,7 @@ function executeAdventure(isMulti) {
         gateActionUI.classList.add('hidden');
         multiGateActionUI.classList.add('hidden');
         shopActionUI.classList.add('hidden');
-        costumeShopActionUI.classList.add('hidden');
+        magicShopActionUI.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
         btnReturnVillage.classList.remove('hidden'); 
         stageNameEl.innerText = "アスター平原";
@@ -1649,7 +1649,7 @@ function gameOver() {
     gateActionUI.classList.add('hidden');
     multiGateActionUI.classList.add('hidden');
     shopActionUI.classList.add('hidden');
-    costumeShopActionUI.classList.add('hidden');
+    magicShopActionUI.classList.add('hidden');
     btnReturnVillage.classList.add('hidden'); 
     document.getElementById('status-ui').classList.add('hidden');
     
@@ -1714,10 +1714,10 @@ function gameOver() {
     }
 
     // ★★★ ここから追加：衣装ショップ判定 ★★★
-    if (playerCenterX >= COSTUME_SHOP_X - shopMargin && playerCenterX <= COSTUME_SHOP_X + COSTUME_SHOP_WIDTH + shopMargin) {
-        if (!isNearCostumeShop) { isNearCostumeShop = true; costumeShopActionUI.classList.remove('hidden'); }
+    if (playerCenterX >= MAGIC_SHOP_X - shopMargin && playerCenterX <= MAGIC_SHOP_X + MAGIC_SHOP_WIDTH + shopMargin) {
+        if (!isNearMagicShop) { isNearMagicShop = true; magicShopActionUI.classList.remove('hidden'); }
     } else {
-        if (isNearCostumeShop) { isNearCostumeShop = false; costumeShopActionUI.classList.add('hidden'); }
+        if (isNearMagicShop) { isNearMagicShop = false; magicShopActionUI.classList.add('hidden'); }
     }
     // ★★★ ここまで追加 ★★★
     
@@ -1783,29 +1783,28 @@ function gameOver() {
         ctx.arc(shopScreenX + SHOP_WIDTH / 2, shopY + SHOP_HEIGHT, 80, 0, Math.PI, true); ctx.fill();
     }
 
-    // ★★★ ここから追加：衣装ショップ描画 ★★★
-    const costumeShopScreenX = COSTUME_SHOP_X - cameraX;
-    if (costumeShopImg.complete && costumeShopImg.width > 0) {
-        ctx.drawImage(costumeShopImg, costumeShopScreenX, shopY, COSTUME_SHOP_WIDTH, COSTUME_SHOP_HEIGHT);
+    // ★★★ ここから追加：魔法ショップ描画 ★★★
+    const magicShopScreenX = MAGIC_SHOP_X - cameraX;
+    if (magicShopImg.complete && magicShopImg.width > 0) {
+        ctx.drawImage(magicShopImg, magicShopScreenX, shopY, MAGIC_SHOP_WIDTH, MAGIC_SHOP_HEIGHT);
     } else {
-        // 画像がない場合の仮の箱（ピンク色）
+        // 画像がない場合の仮の箱（ピンク色）※魔法っぽい紫系(#9370DB等)に変えても良いです
         ctx.fillStyle = '#FF69B4'; 
-        ctx.fillRect(costumeShopScreenX, shopY, COSTUME_SHOP_WIDTH, COSTUME_SHOP_HEIGHT);
+        ctx.fillRect(magicShopScreenX, shopY, MAGIC_SHOP_WIDTH, MAGIC_SHOP_HEIGHT);
     }
     ctx.fillStyle = '#FFFFFF'; 
     ctx.font = 'bold 20px sans-serif'; 
     ctx.textAlign = 'center';
-    ctx.fillText('衣装ショップ(準備中)', costumeShopScreenX + COSTUME_SHOP_WIDTH / 2, shopY - 10);
+    ctx.fillText('魔法ショップ(準備中)', magicShopScreenX + MAGIC_SHOP_WIDTH / 2, shopY - 10);
 
     // 接近時のハイライト表示
-    if (isNearCostumeShop) {
+    if (isNearMagicShop) {
         ctx.fillStyle = 'rgba(255, 105, 180, 0.3)'; 
         ctx.beginPath();
-        ctx.arc(costumeShopScreenX + COSTUME_SHOP_WIDTH / 2, shopY + COSTUME_SHOP_HEIGHT, 80, 0, Math.PI, true); 
+        ctx.arc(magicShopScreenX + MAGIC_SHOP_WIDTH / 2, shopY + MAGIC_SHOP_HEIGHT, 80, 0, Math.PI, true); 
         ctx.fill();
     }
     // ★★★ ここまで追加 ★★★
-
     // ソロ門描画
     const soloGateScreenX = SOLO_GATE_X - cameraX;
     ctx.fillStyle = '#4A2E18';
