@@ -485,6 +485,12 @@
             <div id="btn-right" class="action-btn">▶</div>
         </div>
         <div class="pad-group">
+            <div id="btn-magic1" class="action-btn" style="background-color: rgba(255, 69, 0, 0.6); font-size: 20px; position: relative; overflow: hidden;">魔1
+        <div id="magic1-cooldown" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: rgba(0,0,0,0.7);"></div>
+    </div>
+    <div id="btn-magic2" class="action-btn" style="background-color: rgba(255, 69, 0, 0.6); font-size: 20px; position: relative; overflow: hidden;">魔2
+        <div id="magic2-cooldown" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: rgba(0,0,0,0.7);"></div>
+    </div>
             <div id="btn-collect" class="action-btn" style="background-color: rgba(50, 205, 50, 0.5);">✋</div>
             <div id="btn-guard" class="action-btn" style="background-color: rgba(70, 130, 180, 0.5);">🛡️</div>
             <div id="btn-jump" class="action-btn">▲</div>
@@ -527,6 +533,16 @@
                 <!-- ここにアバター一覧が生成されます -->
             </div>
             <button id="btn-close-shop" class="menu-btn" style="background-color: #555;">閉じる</button>
+        </div>
+    </div>
+
+    <div id="magic-shop-modal" class="screen hidden" style="z-index: 70;">
+        <div class="modal-box" style="border-color: #FF69B4; max-width: 500px;">
+            <h2 style="color: #FF69B4; margin-bottom: 10px;">魔法ショップ</h2>
+            <p style="color: white; margin-bottom: 20px;">強力な魔法を習得しよう！</p>
+            <div id="magic-shop-items-container" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; overflow-y: auto; max-height: 50vh;">
+            </div>
+            <button id="btn-close-magic-shop" class="menu-btn" style="background-color: #555;">閉じる</button>
         </div>
     </div>
 
@@ -676,6 +692,19 @@ const counterImg = new Image(); counterImg.src = 'siカウンター.png';
     let savedDistance = 0;
     let mapSeed = 1;
     let currentPartyMapSeed = 1;
+    const magicData = {
+    'fireball': {
+        name: 'ファイアボール',
+        damage: 20,
+        cooldownFrames: 300, // 60FPS × 5秒 = 300フレーム
+        cost: { yumeyuri: 20, blueButterfly: 5, hikariFruit: 1, coins: 500 }
+    }
+};
+
+let ownedMagics = [];
+let equippedMagics = { slot1: null, slot2: null };
+let magicCooldowns = { slot1: 0, slot2: 0 };
+let activeMagics = [];
 
     function gameRandom() {
         let t = mapSeed += 0x6D2B79F5;
@@ -685,48 +714,60 @@ const counterImg = new Image(); counterImg.src = 'siカウンター.png';
     }
     
     function saveGame() {
-        const saveData = {
-            playerName: playerName,
-            playerLevel: playerLevel,
-            playerExp: playerExp,
-            currentLevelReq: currentLevelReq,
-            nextLevelTotalExp: nextLevelTotalExp,
-            maxStamina: maxStamina,
-            currentStamina: currentStamina,
-            distance: (gameState === 'PLAYING') ? distance : 0,
-            coins: coins,
-            ownedAvatars: ownedAvatars,
-            currentAvatar: currentAvatar,
-            inventory: myInventory
-        };
-        localStorage.setItem('actionGameSaveData', JSON.stringify(saveData));
-    }
+    const saveData = {
+        playerName: playerName,
+        playerLevel: playerLevel,
+        playerExp: playerExp,
+        currentLevelReq: currentLevelReq,
+        nextLevelTotalExp: nextLevelTotalExp,
+        maxStamina: maxStamina,
+        currentStamina: currentStamina,
+        distance: savedDistance, // または distance (進行状況に合わせて)
+        coins: coins,
+        ownedAvatars: ownedAvatars,
+        currentAvatar: currentAvatar,
+        inventory: myInventory,
+        
+        // ▼ ここから追加: 魔法の所持状況と装備スロットの保存 ▼
+        ownedMagics: ownedMagics,
+        equippedMagics: equippedMagics
+        // ▲ ここまで ▲
+    };
+    localStorage.setItem('actionGameSaveData', JSON.stringify(saveData));
+}
 
     function loadGame() {
-        const dataStr = localStorage.getItem('actionGameSaveData');
-        if (dataStr) {
-            try {
-                const data = JSON.parse(dataStr);
-                playerName = data.playerName || "プレイヤー";
-                playerLevel = data.playerLevel || 1;
-                playerExp = data.playerExp || 0;
-                currentLevelReq = data.currentLevelReq || 2000;
-                nextLevelTotalExp = data.nextLevelTotalExp || 2000;
-                maxStamina = data.maxStamina || 100;
-                currentStamina = data.currentStamina || 100;
-                savedDistance = data.distance || 0;
-                coins = data.coins || 0;
-                ownedAvatars = data.ownedAvatars || ['default'];
-                currentAvatar = data.currentAvatar || 'default';
-                // デフォルトの素材（今後新しい素材を追加したらここにも追記する）
-const defaultInventory = { yumeyuri: 0, blueButterfly: 0, hikariFruit: 0 };
-// 過去のセーブデータとデフォルト値をマージ（合成）する
-myInventory = { ...defaultInventory, ...(data.inventory || {}) };
-            } catch(e) {
-                console.error("セーブデータの読み込みに失敗", e);
-            }
+    const dataStr = localStorage.getItem('actionGameSaveData');
+    if (dataStr) {
+        try {
+            const data = JSON.parse(dataStr);
+            playerName = data.playerName || "プレイヤー";
+            playerLevel = data.playerLevel || 1;
+            playerExp = data.playerExp || 0;
+            currentLevelReq = data.currentLevelReq || 2000;
+            nextLevelTotalExp = data.nextLevelTotalExp || 2000;
+            maxStamina = data.maxStamina || 100;
+            currentStamina = data.currentStamina || 100;
+            savedDistance = data.distance || 0;
+            coins = data.coins || 0;
+            ownedAvatars = data.ownedAvatars || ['default'];
+            currentAvatar = data.currentAvatar || 'default';
+            
+            // デフォルトの素材（今後新しい素材を追加したらここにも追記する）
+            const defaultInventory = { yumeyuri: 0, blueButterfly: 0, hikariFruit: 0 };
+            // 過去のセーブデータとデフォルト値をマージ（合成）する
+            myInventory = { ...defaultInventory, ...(data.inventory || {}) };
+
+            // ▼ ここから追加: 魔法の所持状況と装備スロットの読み込み ▼
+            ownedMagics = data.ownedMagics || [];
+            equippedMagics = data.equippedMagics || { slot1: null, slot2: null };
+            // ▲ ここまで ▲
+
+        } catch(e) {
+            console.error("セーブデータの読み込みに失敗", e);
         }
     }
+}
     
     function syncMyPosition() {
         if (!db) return;
@@ -1642,6 +1683,34 @@ function executeAdventure(isMulti) {
         }, 2000);
     }
 
+    function castMagic(slot) {
+    if (gameState !== 'PLAYING') return;
+    const magicKey = equippedMagics[slot];
+    if (!magicKey || magicCooldowns[slot] > 0) return; // 未装備 or クールタイム中
+
+    if (magicKey === 'fireball') {
+        magicCooldowns[slot] = magicData.fireball.cooldownFrames;
+        
+        activeMagics.push({
+            type: 'fireball',
+            x: player.x + (playerFacingRight ? player.width : -60),
+            y: player.y + player.height / 2 - 30,
+            vx: playerFacingRight ? 10 : -10, // 飛んでいく速度
+            width: 60, height: 60,
+            damage: magicData.fireball.damage
+        });
+    }
+}
+
+setupMouseBtn('btn-magic1', 'magic1');
+setupMouseBtn('btn-magic2', 'magic2');
+
+// setupMouseBtn 関数内（または keys の処理）で 'magic1' が呼ばれたら castMagic('slot1') が実行されるように適宜紐づけてください。
+document.getElementById('btn-magic1').addEventListener('mousedown', (e) => { e.preventDefault(); castMagic('slot1'); });
+document.getElementById('btn-magic2').addEventListener('mousedown', (e) => { e.preventDefault(); castMagic('slot2'); });
+document.getElementById('btn-magic1').addEventListener('touchstart', (e) => { e.preventDefault(); castMagic('slot1'); });
+document.getElementById('btn-magic2').addEventListener('touchstart', (e) => { e.preventDefault(); castMagic('slot2'); });
+    
     function showTitle() {
         removeMyPosition();
         gameOverScreen.classList.add('hidden');
@@ -2640,6 +2709,42 @@ function gameOver() {
                 ctx.fillRect(m.x, m.y, m.width, m.height);
             }
         });
+
+        // ★ここから追加: 魔法の描画
+        if (typeof activeMagics !== 'undefined') {
+            activeMagics.forEach(m => {
+                ctx.save();
+                ctx.fillStyle = m.color || '#00FFFF'; // データに色が設定されていればそれを、無ければシアン
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = m.color || '#00FFFF';
+                ctx.beginPath();
+                ctx.arc(m.x + m.width / 2, m.y + m.height / 2, m.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        // ★ここから追加: ダメージ表記のポップアップ描画
+        if (typeof damageTexts !== 'undefined') {
+            ctx.save();
+            ctx.font = '900 24px Arial'; // 太く目立つフォント
+            ctx.textAlign = 'center';
+            damageTexts.forEach(dt => {
+                // 消える直前にフワッと透明になる処理
+                ctx.globalAlpha = Math.min(1, dt.timer / 20);
+                
+                // 縁取り
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 4;
+                ctx.strokeText(dt.text, dt.x, dt.y);
+                
+                // 白文字
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(dt.text, dt.x, dt.y);
+            });
+            ctx.restore();
+        }
+        // ★追加ここまで
         
         if (windWarning) {
             ctx.fillStyle = "rgba(255, 69, 0, 0.8)"; ctx.font = "bold 50px sans-serif"; ctx.textAlign = "center";
@@ -2779,7 +2884,80 @@ function showCollectEffect(x, y) {
     }, 1000);
 }
 
-// 毎フレーム、キャンバス上の描画位置を更新する関数
+const magicShopModal = document.getElementById('magic-shop-modal');
+const magicShopItemsContainer = document.getElementById('magic-shop-items-container');
+
+document.getElementById('btn-open-magic-shop').addEventListener('click', openMagicShop);
+document.getElementById('btn-close-magic-shop').addEventListener('click', () => magicShopModal.classList.add('hidden'));
+
+function openMagicShop() {
+    magicShopItemsContainer.innerHTML = '';
+    
+    for (let key in magicData) {
+        const magic = magicData[key];
+        const isOwned = ownedMagics.includes(key);
+        
+        const div = document.createElement('div');
+        div.style.background = 'rgba(255,255,255,0.1)';
+        div.style.padding = '15px';
+        div.style.borderRadius = '8px';
+        div.style.border = '1px solid #FF69B4';
+        div.style.textAlign = 'center';
+        
+        let btnHtml = '';
+        if (isOwned) {
+            btnHtml = `
+                <button onclick="equipMagic('${key}', 'slot1')" style="margin:2px; padding:5px; background:#ff4500; color:white;">スロット1装備</button>
+                <button onclick="equipMagic('${key}', 'slot2')" style="margin:2px; padding:5px; background:#ff4500; color:white;">スロット2装備</button>
+            `;
+        } else {
+            // 素材チェック
+            const canBuy = coins >= magic.cost.coins && 
+                           myInventory.yumeyuri >= magic.cost.yumeyuri && 
+                           myInventory.blueButterfly >= magic.cost.blueButterfly && 
+                           myInventory.hikariFruit >= magic.cost.hikariFruit;
+                           
+            const btnColor = canBuy ? '#FFD700' : 'gray';
+            btnHtml = `<button ${canBuy?'':'disabled'} onclick="buyMagic('${key}')" style="padding:8px; background:${btnColor}; color:black;">購入する</button>`;
+        }
+        
+        div.innerHTML = `
+            <div style="color:white; font-weight:bold; margin-bottom:10px;">${magic.name}</div>
+            <div style="font-size:12px; color:#ccc; margin-bottom:10px;">
+                ユメユリ:${myInventory.yumeyuri}/${magic.cost.yumeyuri}<br>
+                バタフライ:${myInventory.blueButterfly}/${magic.cost.blueButterfly}<br>
+                ヒカリ果実:${myInventory.hikariFruit}/${magic.cost.hikariFruit}<br>
+                コイン:${coins}/${magic.cost.coins}
+            </div>
+            ${btnHtml}
+        `;
+        magicShopItemsContainer.appendChild(div);
+    }
+    magicShopModal.classList.remove('hidden');
+}
+
+window.buyMagic = function(key) {
+    const magic = magicData[key];
+    coins -= magic.cost.coins;
+    myInventory.yumeyuri -= magic.cost.yumeyuri;
+    myInventory.blueButterfly -= magic.cost.blueButterfly;
+    myInventory.hikariFruit -= magic.cost.hikariFruit;
+    
+    ownedMagics.push(key);
+    saveGame();
+    updateStatusUI();
+    openMagicShop();
+};
+
+window.equipMagic = function(key, slot) {
+    equippedMagics[slot] = key;
+    saveGame();
+    // ボタンのテキストを魔法名に変更
+    document.getElementById(slot === 'slot1' ? 'btn-magic1' : 'btn-magic2').childNodes[0].nodeValue = magicData[key].name.substring(0, 2);
+    alert(`${magicData[key].name}を${slot}に装備しました！`);
+};
+    
+    // 毎フレーム、キャンバス上の描画位置を更新する関数
 function updateEffectsPosition() {
     const scaleX = canvas.clientWidth / canvas.width;
     const scaleY = canvas.clientHeight / canvas.height;
