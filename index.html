@@ -2386,7 +2386,7 @@ function gameOver() {
         bgOffset += offset * 0.5;
     }
 
-    if (platforms[0].x + platforms[0].width < -100) platforms.shift();
+    if (platforms.length > 0 && platforms[0].x + platforms[0].width < -100) platforms.shift();
 
     enemyProjectiles = enemyProjectiles.filter(p => p.x + p.radius >= -100 && p.x - p.radius <= canvas.width + 100 && p.y <= canvas.height + 100);
     
@@ -2462,10 +2462,10 @@ function gameOver() {
         }
     });
 
-    // ★ここから追加: 魔法の移動と敵への当たり判定
-    activeMagics.forEach((m, index) => {
+    // ★修正箇所: 魔法の移動と敵への当たり判定
+    activeMagics.forEach((m) => {
         m.x += m.vx; // 魔法を飛ばす
-        let hit = false;
+        m.hasHit = false; // 当たったかどうかのフラグ
         
         enemies.forEach(e => {
             if (e.isSquished) return;
@@ -2473,7 +2473,7 @@ function gameOver() {
             if (m.x < e.x + e.width && m.x + m.width > e.x && m.y < e.y + e.height && m.y + m.height > e.y) {
                 e.hp -= m.damage;
                 damageTexts.push({ x: e.x + e.width / 2, y: e.y, text: m.damage.toString(), timer: 30 });
-                hit = true;
+                m.hasHit = true; // 敵に当たったフラグを立てる
                 
                 if (e.hp <= 0) {
                     e.isSquished = true; 
@@ -2489,13 +2489,11 @@ function gameOver() {
                 }
             }
         });
-        
-        // 敵に当たった、もしくは画面外に出たら魔法を消す
-        if (hit || m.x < -100 || m.x > canvas.width + 100) {
-            activeMagics.splice(index, 1);
-        }
     });
-    // ★追加ここまで
+    
+    // 敵に当たった魔法、または画面外に出た魔法を filter で安全に削除する
+    activeMagics = activeMagics.filter(m => !m.hasHit && m.x >= -100 && m.x <= canvas.width + 100);
+    // ★追加・修正ここまで
     
     generateMap();
 
