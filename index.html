@@ -678,6 +678,11 @@
     const shopImg = new Image(); shopImg.src = 'アバター変更ショップ.png';
     const guardImg = new Image(); guardImg.src = 'si守り.png';
 const counterImg = new Image(); counterImg.src = 'siカウンター.png';
+    const fireballVideo = document.createElement('video');
+fireballVideo.src = 'Fire.webm'; // ※実際に用意したWebMファイルのパス
+fireballVideo.muted = true;
+fireballVideo.loop = true; 
+fireballVideo.play().catch(e => console.log("動画自動再生ブロック:", e));
 
     const avatars = {
         'default': { name: 'デフォルト', walk: playerImgWalk, jump: playerImgJump, cost: 0 },
