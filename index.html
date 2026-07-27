@@ -1320,23 +1320,30 @@ const collectEffectImg = document.getElementById('collect-effect');
 const MAX_POSTURE = 100;
 
     function initVillage() {
-        player.x = SOLO_GATE_X + (GATE_WIDTH / 2) - (player.width / 2);
-        player.y = canvas.height - 180;
-        player.vx = 0; player.vy = 0;
-        keys.left = false; keys.right = false;
-        playerFacingRight = true;
-        isNearSoloGate = false;
-        isNearMultiGate = false;
-        isNearShop = false;
-        gateActionUI.classList.add('hidden');
-        multiGateActionUI.classList.add('hidden');
-        shopActionUI.classList.add('hidden');
+    player.x = SOLO_GATE_X + (GATE_WIDTH / 2) - (player.width / 2);
+    player.y = canvas.height - 180;
+    player.vx = 0; player.vy = 0;
+    keys.left = false; keys.right = false;
+    playerFacingRight = true;
+    isNearSoloGate = false;
+    isNearMultiGate = false;
+    isNearShop = false;
+
+    // --- UIの非表示処理（安全対策つき） ---
+    if (typeof gateActionUI !== 'undefined' && gateActionUI) gateActionUI.classList.add('hidden');
+    if (typeof multiGateActionUI !== 'undefined' && multiGateActionUI) multiGateActionUI.classList.add('hidden');
+    if (typeof shopActionUI !== 'undefined' && shopActionUI) shopActionUI.classList.add('hidden');
+    
+    // ★ここを修正： costumeShopActionUI が定義されていなくてもエラーで止まらないようにする
+    if (typeof costumeShopActionUI !== 'undefined' && costumeShopActionUI) {
         costumeShopActionUI.classList.add('hidden');
-        btnReturnVillage.classList.add('hidden');
-        isMultiplayer = false; 
-        isNearMagicShop = false;
     }
 
+    if (typeof btnReturnVillage !== 'undefined' && btnReturnVillage) btnReturnVillage.classList.add('hidden');
+
+    isMultiplayer = false; 
+    isNearMagicShop = false;
+}
     function initMap(isResume = false) {
         platforms = []; enemies = []; icicles = []; boxes = []; cacti = [];
         enemyProjectiles = [];
