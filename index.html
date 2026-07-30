@@ -1152,7 +1152,7 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
     let isNearShop = false;
 
     const BASE_DISTANCES = {
-        s2: 1000, s3: 2000, s4: 3000, s5: 4000, s6: 5000, s7: 6000, s8: 7000, s9: 9000
+        s2: 1000, s3: 2000, s4: 3000, s5: 4000, s6: 5000, s7: 6000, s8: 7000, s9: 9000, s10: 10000, s11: 12000, s12: 13000
     };
 
     function getDistance(stageKey) {
@@ -1168,6 +1168,9 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
     const bgImage7 = new Image(); bgImage7.src = 'stage7.png';
     const bgImage8 = new Image(); bgImage8.src = 'stage8.png';
     const bgImage9 = new Image(); bgImage9.src = 'stage9.png';
+    const bgImage10 = new Image(); bgImage10.src = 'stage10.png'; // 追加
+    const bgImage11 = new Image(); bgImage11.src = 'stage11.png'; // 追加
+    const bgImage12 = new Image(); bgImage12.src = 'stage12.png'; // 追加
     const platformImg = new Image(); platformImg.src = 'platform.png';
     const boxImg = new Image(); boxImg.src = '木箱.png';
     let boxes = [];
@@ -1956,6 +1959,12 @@ function gameOver() {
         let newBgImage = bgImage1;
         let newStageNameText = "アスター平原";
 
+       if (distance >= getDistance('s12')) {
+            newBgImage = bgImage12; newStageNameText = "サングローブ地区";
+        } else if (distance >= getDistance('s11')) {
+            newBgImage = bgImage11; newStageNameText = "ロイズの館～出口～";
+        } else if (distance >= getDistance('s10')) {
+            newBgImage = bgImage10; newStageNameText = "ロイズの館";
         if (distance >= getDistance('s9')) {
             newBgImage = bgImage9; newStageNameText = "ロイズの館～入り口～";
         } else if (distance >= getDistance('s8')) {
