@@ -636,10 +636,12 @@
     const shopImg = new Image(); shopImg.src = 'アバター変更ショップ.png';
     const guardImg = new Image(); guardImg.src = 'si守り.png';
 const counterImg = new Image(); counterImg.src = 'siカウンター.png';
+    const newAvatarWalk = new Image(); newAvatarWalk.src = 'インコ.png';
 
     const avatars = {
         'default': { name: 'デフォルト', walk: playerImgWalk, jump: playerImgJump, cost: 0 },
         'sparrow': { name: 'スズメ', walk: sparrowWalk, jump: sparrowJump, cost: 500 }
+        'newAvatar': { name: 'インコ', walk: newAvatarWalk, jump: playerImgJump, cost: 800 }
     };
 
     let coins = 0;
