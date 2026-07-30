@@ -637,11 +637,14 @@
     const guardImg = new Image(); guardImg.src = 'si守り.png';
 const counterImg = new Image(); counterImg.src = 'siカウンター.png';
     const newAvatarWalk = new Image(); newAvatarWalk.src = 'インコ.png';
+    const crowWalk = new Image(); crowWalk.src = 'カラス.png';
 
     const avatars = {
         'default': { name: 'デフォルト', walk: playerImgWalk, jump: playerImgJump, cost: 0 },
         'sparrow': { name: 'スズメ', walk: sparrowWalk, jump: sparrowJump, cost: 500 }
         'newAvatar': { name: 'インコ', walk: newAvatarWalk, jump: playerImgJump, cost: 800 }
+    'crow': { name: 'カラス', walk: crowWalk, jump: playerImgJump, cost: 1000, reqYumeyuri: 20, reqBlueButterfly: 10 }
+};
     };
 
     let coins = 0;
@@ -996,56 +999,79 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
     }
 
     // ショップ機能関連の関数
-    function openShop() {
-        shopCoinDisplay.innerText = coins;
-        shopItemsContainer.innerHTML = '';
-        
-        for (let key in avatars) {
-            const av = avatars[key];
-            const isOwned = ownedAvatars.includes(key);
-            const isEquipped = (currentAvatar === key);
-            
-            const div = document.createElement('div');
-            div.style.background = 'rgba(255,255,255,0.1)';
-            div.style.padding = '15px';
-            div.style.borderRadius = '8px';
-            div.style.border = isEquipped ? '3px solid #32cd32' : '1px solid #aaa';
-            div.style.textAlign = 'center';
-            div.style.width = '130px';
-            
-            let btnHtml = '';
-            if (isEquipped) {
-                btnHtml = `<button disabled style="padding:8px; background:gray; color:white; border:none; border-radius:5px; width:100%;">装備中</button>`;
-            } else if (isOwned) {
-                btnHtml = `<button onclick="equipAvatar('${key}')" style="padding:8px; background:#32cd32; color:white; border:none; border-radius:5px; cursor:pointer; width:100%; font-weight:bold;">装備する</button>`;
-            } else {
-                const canBuy = coins >= av.cost;
-                const btnColor = canBuy ? '#FFD700' : 'gray';
-                btnHtml = `<button ${canBuy?'':'disabled'} onclick="buyAvatar('${key}')" style="padding:8px; background:${btnColor}; color:black; font-weight:bold; border:none; border-radius:5px; cursor:pointer; width:100%;">${av.cost} コイン</button>`;
-            }
-            
-            div.innerHTML = `
-                <img src="${av.walk.src}" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 10px;">
-                <div style="color:white; font-weight:bold; margin-bottom:10px;">${av.name}</div>
-                ${btnHtml}
-            `;
-            shopItemsContainer.appendChild(div);
-        }
-        shopModal.classList.remove('hidden');
-    }
-
-    window.buyAvatar = function(key) {
+    // --- 557行目付近の修正 ---
+function openShop() {
+    shopCoinDisplay.innerText = coins;
+    shopItemsContainer.innerHTML = '';
+    
+    for (let key in avatars) {
         const av = avatars[key];
-        if (coins >= av.cost && !ownedAvatars.includes(key)) {
-            coins -= av.cost;
-            ownedAvatars.push(key);
-            currentAvatar = key;
-            saveGame();
-            updateStatusUI();
-            openShop(); // 表示をリフレッシュ
-            syncMyPosition();
+        const isOwned = ownedAvatars.includes(key);
+        const isEquipped = (currentAvatar === key);
+        
+        const div = document.createElement('div');
+        div.style.background = 'rgba(255,255,255,0.1)';
+        div.style.padding = '15px';
+        div.style.borderRadius = '8px';
+        div.style.border = isEquipped ? '3px solid #32cd32' : '1px solid #aaa';
+        div.style.textAlign = 'center';
+        div.style.width = '130px';
+        
+        let btnHtml = '';
+        if (isEquipped) {
+            btnHtml = `<button disabled style="padding:8px; background:gray; color:white; border:none; border-radius:5px; width:100%;">装備中</button>`;
+        } else if (isOwned) {
+            btnHtml = `<button onclick="equipAvatar('${key}')" style="padding:8px; background:#32cd32; color:white; border:none; border-radius:5px; cursor:pointer; width:100%; font-weight:bold;">装備する</button>`;
+        } else {
+            // ▼ 変更箇所: コインと素材の所持条件をチェック
+            const reqYume = av.reqYumeyuri || 0;
+            const reqBlue = av.reqBlueButterfly || 0;
+            const canBuy = (coins >= av.cost) && (myInventory.yumeyuri >= reqYume) && (myInventory.blueButterfly >= reqBlue);
+            
+            const btnColor = canBuy ? '#FFD700' : 'gray';
+            
+            // ボタン内に表示するテキストを作成（必要素材がある場合は改行して追加表示）
+            let costText = `${av.cost} コイン`;
+            if (reqYume > 0) costText += `<br><span style="font-size:11px;">ﾕﾒﾕﾘ: ${reqYume}個</span>`;
+            if (reqBlue > 0) costText += `<br><span style="font-size:11px;">青蝶: ${reqBlue}個</span>`;
+
+            btnHtml = `<button ${canBuy?'':'disabled'} onclick="buyAvatar('${key}')" style="padding:8px; background:${btnColor}; color:black; font-weight:bold; border:none; border-radius:5px; cursor:pointer; width:100%;">${costText}</button>`;
         }
-    };
+        
+        div.innerHTML = `
+            <img src="${av.walk.src}" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 10px;">
+            <div style="color:white; font-weight:bold; margin-bottom:10px;">${av.name}</div>
+            ${btnHtml}
+        `;
+        shopItemsContainer.appendChild(div);
+    }
+    shopModal.classList.remove('hidden');
+}
+
+    // --- 586行目付近の修正 ---
+window.buyAvatar = function(key) {
+    const av = avatars[key];
+    
+    // ▼ 追加: 必要な素材数を取得（設定がない場合は0）
+    const reqYume = av.reqYumeyuri || 0;
+    const reqBlue = av.reqBlueButterfly || 0;
+
+    // ▼ 変更: コインだけでなく素材の所持数も条件に追加
+    if (coins >= av.cost && myInventory.yumeyuri >= reqYume && myInventory.blueButterfly >= reqBlue && !ownedAvatars.includes(key)) {
+        
+        // コインと素材を消費
+        coins -= av.cost;
+        myInventory.yumeyuri -= reqYume;
+        myInventory.blueButterfly -= reqBlue;
+        
+        ownedAvatars.push(key);
+        currentAvatar = key;
+        saveGame();
+        updateStatusUI();
+        openShop(); // 表示をリフレッシュ
+        syncMyPosition();
+    }
+};
 
     window.equipAvatar = function(key) {
         if (ownedAvatars.includes(key)) {
