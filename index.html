@@ -441,6 +441,7 @@
     <!-- ソロ冒険の門アクション -->
     <div id="gate-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
         <button id="btn-enter-gate" class="menu-btn">ソロ冒険に出発！</button>
+        <button id="btn-show-ranking" class="menu-btn" style="background-color: #ffd700; color: #000;">ランキング</button>
         <!-- 案内テキストの<p>タグを削除 -->
     </div>
 
@@ -505,6 +506,16 @@
         </div>
     </div>
 
+<div id="ranking-modal" class="screen hidden" style="z-index: 70;">
+        <div class="modal-box" style="border-color: #ffd700;">
+            <h2 style="color: #FFD700; margin-bottom: 10px;">🏆 ハイスコアランキング 🏆</h2>
+            <div id="ranking-list-container" style="min-height: 200px; max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+                <!-- ここにランキング一覧が生成されます -->
+            </div>
+            <button id="btn-close-ranking" class="menu-btn" style="background-color: #555;">閉じる</button>
+        </div>
+    </div>
+    
     <!-- パーティー参加リスト画面 -->
     <div id="party-list-screen" class="screen hidden" style="z-index: 50;">
         <div class="modal-box">
@@ -569,6 +580,7 @@
     let partyRef = null;
     let partyListener = null;
     let partyPositions = {};
+    let highScore = 0;
 
     try {
         if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
@@ -672,6 +684,7 @@ const counterImg = new Image(); counterImg.src = 'siカウンター.png';
             maxStamina: maxStamina,
             currentStamina: currentStamina,
             distance: (gameState === 'PLAYING') ? distance : 0,
+            highScore: highScore,
             coins: coins,
             ownedAvatars: ownedAvatars,
             currentAvatar: currentAvatar,
@@ -693,6 +706,7 @@ const counterImg = new Image(); counterImg.src = 'siカウンター.png';
                 maxStamina = data.maxStamina || 100;
                 currentStamina = data.currentStamina || 100;
                 savedDistance = data.distance || 0;
+                highScore = data.highScore || 0;
                 coins = data.coins || 0;
                 ownedAvatars = data.ownedAvatars || ['default'];
                 currentAvatar = data.currentAvatar || 'default';
@@ -705,6 +719,25 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
             }
         }
     }
+    
+    function updateRankingScore(currentScore) {
+    const finalScore = Math.floor(currentScore);
+    // ハイスコアが更新された場合のみ処理
+    if (finalScore > highScore) {
+        highScore = finalScore;
+        saveGame(); // ローカルセーブ更新
+
+        // Firebaseにデータを送信
+        if (db) {
+            db.ref('rankings/' + myPlayerId).set({
+                name: playerName,
+                level: playerLevel,
+                highScore: highScore,
+                updatedAt: Date.now()
+            });
+        }
+    }
+}
     
     function syncMyPosition() {
         if (!db) return;
@@ -1633,14 +1666,77 @@ function executeAdventure(isMulti) {
         gameState = 'TITLE';
     }
 
-    // === 修正・追加箇所 4 ===
-function gameOver() {
+    function showRanking() {
+    const modal = document.getElementById('ranking-modal');
+    const container = document.getElementById('ranking-list-container');
+    modal.classList.remove('hidden');
+    container.innerHTML = "<p style='color:white;'>ランキングを読み込み中...</p>";
+
+    if (!db) {
+        container.innerHTML = "<p style='color:white;'>通信エラー：ランキングを取得できません。</p>";
+        return;
+    }
+
+    // ハイスコアが高い順（Top 20）を取得
+    db.ref('rankings').orderByChild('highScore').limitToLast(20).once('value', (snapshot) => {
+        container.innerHTML = "";
+        const list = [];
+        snapshot.forEach(child => {
+            list.push({ id: child.key, ...child.val() });
+        });
+
+        // 降順（スコアが高い順）にソート
+        list.sort((a, b) => (b.highScore || 0) - (a.highScore || 0));
+
+        if (list.length === 0) {
+            container.innerHTML = "<p style='color:white;'>まだランキングデータがありません。</p>";
+            return;
+        }
+
+        list.forEach((data, index) => {
+            const rank = index + 1;
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.justify = 'space-between';
+            div.style.alignItems = 'center';
+            div.style.background = (data.id === myPlayerId) ? 'rgba(255, 215, 0, 0.25)' : 'rgba(255, 255, 255, 0.1)';
+            div.style.margin = '6px 0';
+            div.style.padding = '8px 12px';
+            div.style.borderRadius = '6px';
+            div.style.border = (data.id === myPlayerId) ? '1px solid #ffd700' : '1px solid #555';
+
+            let rankBadge = `${rank}位`;
+            if (rank === 1) rankBadge = "🥇 1位";
+            else if (rank === 2) rankBadge = "🥈 2位";
+            else if (rank === 3) rankBadge = "🥉 3位";
+
+            div.innerHTML = `
+                <div style="font-weight:bold; color:#FFD700; width:70px; text-align:left;">${rankBadge}</div>
+                <div style="color:white; flex-grow:1; text-align:left; margin-left:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    ${data.name || '名無し'} <span style="font-size:12px; color:#aaa;">(Lv.${data.level || 1})</span>
+                </div>
+                <div style="color:#FFD700; font-weight:bold; width:90px; text-align:right;">${data.highScore || 0}m</div>
+            `;
+            container.appendChild(div);
+        });
+    });
+}
+
+// イベントリスナーの登録
+document.getElementById('btn-show-ranking').addEventListener('click', showRanking);
+document.getElementById('btn-close-ranking').addEventListener('click', () => {
+    document.getElementById('ranking-modal').classList.add('hidden');
+});
+
+    function gameOver() {
     removeMyPosition();
     gameState = 'GAMEOVER';
     cancelAnimationFrame(animationId);
     bgm.pause();
 
     const currentScore = distance; 
+
+    updateRankingScore(currentScore);
     
     // ↓ 距離からコインを加算していた2行を削除して、セーブだけに修正します
     distance = 0;
