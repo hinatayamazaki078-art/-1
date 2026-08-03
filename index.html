@@ -719,7 +719,7 @@ const counterImg = new Image(); counterImg.src = 'siカウンター.png';
                 ownedAvatars = data.ownedAvatars || ['default'];
                 currentAvatar = data.currentAvatar || 'default';
                 // デフォルトの素材（今後新しい素材を追加したらここにも追記する）
-const defaultInventory = { yumeyuri: 0, blueButterfly: 0, hikariFruit: 0 };
+const defaultInventory = { yumeyuri: 0, blueButterfly: 0, hikariFruit: 0, nanahoshi: 0, yousei: 0, bastet: 0};
 // 過去のセーブデータとデフォルト値をマージ（合成）する
 myInventory = { ...defaultInventory, ...(data.inventory || {}) };
             } catch(e) {
@@ -972,6 +972,9 @@ myInventory = { ...defaultInventory, ...(data.inventory || {}) };
         yumeyuri: 0,
         blueButterfly: 0,
         hikariFruit: 0
+        nanahoshi: 0, // ←追記
+    yousei: 0,    // ←追記
+    bastet: 0     // ←追記
     };
 
     loadGame(); // ← myInventory が定義済みなので正常に読み込まれる
@@ -2021,6 +2024,24 @@ document.getElementById('btn-close-ranking').addEventListener('click', () => {
                 matType = 'yumeyuri'; // たまに (10%)
             }
 
+            } else if (distance > 3000 && distance <= 6000) {
+    let spawnRoll = gameRandom();
+    let matType = null;
+
+    if (spawnRoll < 0.005) {
+        matType = 'bastet'; // 超低確率 (0.5%)
+    } else if (spawnRoll < 0.035) {
+        matType = 'yousei'; // 低確率 (3%)
+    } else if (spawnRoll < 0.135) {
+        matType = 'nanahoshi'; // たまに (10%)
+    }
+
+    // 素材が選ばれたらマップに追加
+    if (matType) {
+        mapMaterials.push({ type: matType, x: platformX + gameRandom() * (platformWidth - 30), y: platformY - 40, width: 30, height: 30 });
+    }
+}
+
             if (matType) {
                 const materialOffset = 37; // 足場の見た目に合わせるためのオフセット
                 mapMaterials.push({
@@ -2643,6 +2664,9 @@ function update() {
             if (m.type === 'yumeyuri') img = yumeyuriImg;
             else if (m.type === 'blueButterfly') img = blueButterflyImg;
             else if (m.type === 'hikariFruit') img = hikariFruitImg;
+            else if (m.type === 'nanahoshi') img = nanahoshiImg;
+    else if (m.type === 'yousei') img = youseiImg;
+    else if (m.type === 'bastet') img = bastetImg;
 
             if (img.complete && img.width > 0) {
                 ctx.drawImage(img, m.x, m.y, m.width, m.height);
@@ -2680,6 +2704,9 @@ document.getElementById('btn-bag').addEventListener('click', () => {
         { id: 'yumeyuri', name: 'ユメユリ', img: yumeyuriImg.src, count: myInventory.yumeyuri },
         { id: 'blueButterfly', name: 'ブルーバタフライ', img: blueButterflyImg.src, count: myInventory.blueButterfly },
         { id: 'hikariFruit', name: 'ヒカリノ果実', img: hikariFruitImg.src, count: myInventory.hikariFruit }
+        { id: 'nanahoshi', name: 'ナナホシダケ', img: nanahoshiImg.src, count: myInventory.nanahoshi },
+        { id: 'yousei', name: 'ヨウセイダケ', img: youseiImg.src, count: myInventory.yousei },
+        { id: 'bastet', name: 'バステトの花', img: bastetImg.src, count: myInventory.bastet }
     ];
 
     const ownedItems = allItemsInfo.filter(item => item.count > 0);
