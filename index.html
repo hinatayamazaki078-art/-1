@@ -2011,55 +2011,46 @@ document.getElementById('btn-close-ranking').addEventListener('click', () => {
         const newX = lastPlatform.x + lastPlatform.width + gap;
         platforms.push({ x: newX, y: newY, width: width, height: canvas.height - newY });
 
-        // 0m〜3000mの間のみ素材の出現判定を行う
-        if (distance >= 0 && distance <= 3000) {
-            let spawnRoll = gameRandom();
-            let matType = null;
+        // === 修正部分：素材の出現判定 ===
+        let spawnRoll = gameRandom();
+        let matType = null;
 
+        if (distance >= 0 && distance <= 3000) {
             if (spawnRoll < 0.005) {
                 matType = 'hikariFruit'; // 超低確率 (0.5%)
             } else if (spawnRoll < 0.035) {
                 matType = 'blueButterfly'; // 低確率 (3%)
             } else if (spawnRoll < 0.135) {
                 matType = 'yumeyuri'; // たまに (10%)
-
-            } else if (distance > 3000 && distance <= 6000) {
-    let spawnRoll = gameRandom();
-    let matType = null;
-
-    if (spawnRoll < 0.005) {
-        matType = 'bastet'; // 超低確率 (0.5%)
-    } else if (spawnRoll < 0.035) {
-        matType = 'yousei'; // 低確率 (3%)
-    } else if (spawnRoll < 0.135) {
-        matType = 'nanahoshi'; // たまに (10%)
-    }
-    }
-            
-
-    // 素材が選ばれたらマップに追加
-    if (matType) {
-        mapMaterials.push({ type: matType, x: platformX + gameRandom() * (platformWidth - 30), y: platformY - 40, width: 30, height: 30 });
-    }
-}
-
-            if (matType) {
-                const materialOffset = 37; // 足場の見た目に合わせるためのオフセット
-                mapMaterials.push({
-                    type: matType,
-                    x: newX + width / 2 - (MATERIAL_SIZE / 2),
-                    y: newY - MATERIAL_SIZE + materialOffset, // オフセットを追加して足場に接地させる
-                    width: MATERIAL_SIZE,
-                    height: MATERIAL_SIZE
-                });
+            }
+        } else if (distance > 3000 && distance <= 6000) {
+            if (spawnRoll < 0.005) {
+                matType = 'bastet'; // 超低確率 (0.5%)
+            } else if (spawnRoll < 0.035) {
+                matType = 'yousei'; // 低確率 (3%)
+            } else if (spawnRoll < 0.135) {
+                matType = 'nanahoshi'; // たまに (10%)
             }
         }
 
-        // 敵の生成
+        // === 修正部分：素材が選ばれたらマップに追加 ===
+        if (matType) {
+            const materialOffset = 37; // 足場の見た目に合わせるためのオフセット
+            // ※ MATERIAL_SIZE がグローバル定数として定義されている前提です
+            mapMaterials.push({
+                type: matType,
+                x: newX + width / 2 - (MATERIAL_SIZE / 2),
+                y: newY - MATERIAL_SIZE + materialOffset, // オフセットを追加して足場に接地させる
+                width: MATERIAL_SIZE,
+                height: MATERIAL_SIZE
+            });
+        }
+
+        // === 敵・障害物の生成 ===
         if (gameRandom() < 0.5) { 
             let enemyType = 'normal';
             
-            // === ステージごとの出現敵判定 ===
+            // ステージごとの出現敵判定
             if (distance >= getDistance('s7')) {
                 let rand = gameRandom();
                 if (rand < 0.3) enemyType = 'kinoko'; // 30%できのこマン
@@ -2071,7 +2062,7 @@ document.getElementById('btn-close-ranking').addEventListener('click', () => {
                 enemyType = 'hopper';
             }
             
-            // 敵のサイズを種類ごとに調整 (きのこマンは少し大きめの70x65に設定)
+            // 敵のサイズを種類ごとに調整
             const eWidth = (enemyType === 'kinoko') ? 70 : 60;
             const eHeight = (enemyType === 'hopper') ? 50 : ((enemyType === 'kinoko') ? 65 : 40);
             const enemyOffset = 37; 
@@ -2080,9 +2071,14 @@ document.getElementById('btn-close-ranking').addEventListener('click', () => {
 
             enemies.push({
                 id: eId, 
-                type: enemyType, x: newX + width / 2, y: newY - eHeight + enemyOffset,
-                width: eWidth, height: eHeight, spawnY: newY + enemyOffset,
-                vy: 0, isGrounded: true, 
+                type: enemyType, 
+                x: newX + width / 2, 
+                y: newY - eHeight + enemyOffset,
+                width: eWidth, 
+                height: eHeight, 
+                spawnY: newY + enemyOffset,
+                vy: 0, 
+                isGrounded: true, 
                 jumpTimer: (enemyType === 'hopper') ? Math.floor(gameRandom() * 40) + 30 : 0, 
                 hp: (enemyType === 'kinoko') ? 2 : 1, // きのこマンは2回踏むためHP2
                 shootTimer: (enemyType === 'kinoko') ? 60 : 0, // 初回発射までの時間
