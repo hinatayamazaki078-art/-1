@@ -658,12 +658,16 @@
 const counterImg = new Image(); counterImg.src = 'siカウンター.png';
     const newAvatarWalk = new Image(); newAvatarWalk.src = 'インコ.png';
     const crowWalk = new Image(); crowWalk.src = 'カラス.png';
+    const hiyokoWalk = new Image(); hiyokoWalk.src = 'ヒヨコ.png';
+const niwatoriWalk = new Image(); niwatoriWalk.src = 'ニワトリ.png';
 
     const avatars = {
         'default': { name: 'デフォルト', walk: playerImgWalk, jump: playerImgJump, cost: 0 },
         'sparrow': { name: 'スズメ', walk: sparrowWalk, jump: sparrowJump, cost: 500 },
         'newAvatar': { name: 'インコ', walk: newAvatarWalk, jump: playerImgJump, cost: 800 },
-    'crow': { name: 'カラス', walk: crowWalk, jump: playerImgJump, cost: 1000, reqYumeyuri: 20, reqBlueButterfly: 10 }
+    'crow': { name: 'カラス', walk: crowWalk, jump: playerImgJump, cost: 1000, reqYumeyuri: 20, reqBlueButterfly: 10 },
+        'hiyoko': { name: 'ヒヨコ', walk: hiyokoWalk, jump: playerImgJump, cost: 1000, reqYumeyuri: 30, reqHikariFruit: 3 },
+    'niwatori': { name: 'ニワトリ', walk: niwatoriWalk, jump: playerImgJump, cost: 2000, reqBlueButterfly: 20, reqHikariFruit: 5 }
     };
 
     let coins = 0;
@@ -1069,7 +1073,8 @@ function openShop() {
             // ▼ 変更箇所: コインと素材の所持条件をチェック
             const reqYume = av.reqYumeyuri || 0;
             const reqBlue = av.reqBlueButterfly || 0;
-            const canBuy = (coins >= av.cost) && (myInventory.yumeyuri >= reqYume) && (myInventory.blueButterfly >= reqBlue);
+            const reqHikari = av.reqHikariFruit || 0;
+            const canBuy = (coins >= av.cost) && (myInventory.yumeyuri >= reqYume) && (myInventory.blueButterfly >= reqBlue) && (myInventory.hikariFruit >= reqHikari);
             
             const btnColor = canBuy ? '#FFD700' : 'gray';
             
@@ -1077,6 +1082,7 @@ function openShop() {
             let costText = `${av.cost} コイン`;
             if (reqYume > 0) costText += `<br><span style="font-size:11px;">ﾕﾒﾕﾘ: ${reqYume}個</span>`;
             if (reqBlue > 0) costText += `<br><span style="font-size:11px;">青蝶: ${reqBlue}個</span>`;
+            if (reqHikari > 0) costText += `<br><span style="font-size:11px;">光果: ${reqHikari}個</span>`;
 
             btnHtml = `<button ${canBuy?'':'disabled'} onclick="buyAvatar('${key}')" style="padding:8px; background:${btnColor}; color:black; font-weight:bold; border:none; border-radius:5px; cursor:pointer; width:100%;">${costText}</button>`;
         }
@@ -1098,14 +1104,16 @@ window.buyAvatar = function(key) {
     // ▼ 追加: 必要な素材数を取得（設定がない場合は0）
     const reqYume = av.reqYumeyuri || 0;
     const reqBlue = av.reqBlueButterfly || 0;
+    const reqHikari = av.reqHikariFruit || 0;
 
     // ▼ 変更: コインだけでなく素材の所持数も条件に追加
-    if (coins >= av.cost && myInventory.yumeyuri >= reqYume && myInventory.blueButterfly >= reqBlue && !ownedAvatars.includes(key)) {
+    if (coins >= av.cost && myInventory.yumeyuri >= reqYume && myInventory.blueButterfly >= reqBlue && myInventory.hikariFruit >= reqHikari && !ownedAvatars.includes(key)) {
         
         // コインと素材を消費
         coins -= av.cost;
         myInventory.yumeyuri -= reqYume;
         myInventory.blueButterfly -= reqBlue;
+        myInventory.hikariFruit -= reqHikari;
         
         ownedAvatars.push(key);
         currentAvatar = key;
