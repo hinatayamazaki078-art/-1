@@ -719,7 +719,7 @@ const counterImg = new Image(); counterImg.src = 'siカウンター.png';
                 ownedAvatars = data.ownedAvatars || ['default'];
                 currentAvatar = data.currentAvatar || 'default';
                 // デフォルトの素材（今後新しい素材を追加したらここにも追記する）
-const defaultInventory = { yumeyuri: 0, blueButterfly: 0, hikariFruit: 0, nanahoshi: 0, yousei: 0, bastet: 0};
+const defaultInventory = { yumeyuri: 0, blueButterfly: 0, hikariFruit: 0, nanahoshi: 0, yousei: 0, bastet: 0 };
 // 過去のセーブデータとデフォルト値をマージ（合成）する
 myInventory = { ...defaultInventory, ...(data.inventory || {}) };
             } catch(e) {
