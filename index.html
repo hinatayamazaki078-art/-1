@@ -571,7 +571,15 @@
 
     let db = null;
     let myPlayerRef = null;
-    const myPlayerId = 'user_' + Math.random().toString(36).substr(2, 9);
+    
+    // ▼▼▼ 変更箇所：IDをブラウザに保存・読み込みするように変更 ▼▼▼
+    let myPlayerId = localStorage.getItem('actionGamePlayerId');
+    if (!myPlayerId) {
+        myPlayerId = 'user_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('actionGamePlayerId', myPlayerId);
+    }
+    // ▲▲▲ 変更箇所ここまで ▲▲▲
+
     let otherPlayers = {};
 
     let isMultiplayer = false; 
