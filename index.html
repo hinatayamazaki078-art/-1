@@ -1286,6 +1286,11 @@ let fadeState = 'none';        // 'none', 'fadeout' (白くなる), 'fadein' (�
     const MATERIAL_SIZE = 40; // 敵より少し小さめ
     
     const bgm = new Audio('伝承の丘.mp3'); bgm.loop = true; bgm.volume = 0.5;
+    const newBgm = new Audio('新しいBGMのファイル名.mp3'); // ← 用意したファイル名に変更してください
+newBgm.loop = true;
+newBgm.volume = 0; // フェードインさせるため初期音量は0にしておく
+let isBgmChanged = false; // BGMが切り替わったかを判定するフラグ
+let fadeInterval = null;  // フェード処理のインターバル用変数
     const jumpSound = new Audio('jump.mp3'); jumpSound.volume = 0.4;
     const collectSound = new Audio('採集音.mp3'); // ※実際のファイル名に変更してください
 collectSound.volume = 0.5;
@@ -1314,6 +1319,36 @@ const collectEffectImg = document.getElementById('collect-effect');
     let postureGauge = 0; 
 const MAX_POSTURE = 100;
 
+    function crossfadeBGM() {
+    // 新規BGMの再生を開始（音量は0なのでまだ聞こえません）
+    newBgm.play().catch(err => console.warn("New BGM failed:", err));
+    
+    fadeInterval = setInterval(() => {
+        let fadeOutVol = bgm.volume - 0.05;
+        let fadeInVol = newBgm.volume + 0.05;
+
+        // 既存BGMのフェードアウト処理
+        if (fadeOutVol <= 0) {
+            bgm.volume = 0;
+            bgm.pause();
+        } else {
+            bgm.volume = fadeOutVol;
+        }
+
+        // 新規BGMのフェードイン処理 (既存のBGMと同じ最大音量0.5を想定)
+        if (fadeInVol >= 0.5) {
+            newBgm.volume = 0.5;
+        } else {
+            newBgm.volume = fadeInVol;
+        }
+
+        // 両方の音量変更が完了したらインターバルを停止
+        if (bgm.volume === 0 && newBgm.volume === 0.5) {
+            clearInterval(fadeInterval);
+        }
+    }, 200); // 0.2秒ごとに音量を変更（約2秒でクロスフェード完了）
+}
+    
     function initVillage() {
         player.x = SOLO_GATE_X + (GATE_WIDTH / 2) - (player.width / 2);
         player.y = canvas.height - 180;
@@ -1369,8 +1404,13 @@ const MAX_POSTURE = 100;
     function startGame() {
         const container = document.getElementById('game-container');
         requestFullscreenAndLock(container);
-        bgm.currentTime = 0; bgm.play().catch(() => {});
-
+        if (fadeInterval) clearInterval(fadeInterval); // 進行中のフェードがあれば止める
+    bgm.volume = 0.5; // 音量を元に戻す
+    newBgm.pause();
+    newBgm.currentTime = 0;
+    isBgmChanged = false; // フラグをリセット
+    
+    bgm.currentTime = 0; bgm.play().catch(() => {});
         titleScreen.classList.add('hidden');
         gameOverScreen.classList.add('hidden');
         document.getElementById('status-ui').classList.remove('hidden');
@@ -2117,6 +2157,12 @@ document.getElementById('btn-close-ranking').addEventListener('click', () => {
 function update() {
     if (gameState === 'VILLAGE') { updateVillage(); return; }
     if (gameState !== 'PLAYING') return;
+
+    // 3000m以上進んでおり、まだBGMが切り替わっていない場合に実行
+    if (distance >= 3000 && !isBgmChanged) {
+        isBgmChanged = true;
+        crossfadeBGM();
+    }
 
     // === ステージ切り替え判定 & ホワイトフェード処理 ===
     let newBgImage = bgImage1;
