@@ -1860,10 +1860,16 @@ document.getElementById('btn-close-ranking').addEventListener('click', () => {
 
         player.x += player.vx;
 
-        if (player.x < 0) player.x = 0;
         if (player.x >= VILLAGE_WIDTH - player.width) {
             player.x = VILLAGE_WIDTH - player.width;
             if (!isTransitioning) {
+                // ▼▼▼ BGMのクロスフェード処理を追加 ▼▼▼
+                if (!isBgmChanged) {
+                    crossfadeBGM();
+                    isBgmChanged = true; // 何度も実行されないようにフラグを立てる
+                }
+                // ▲▲▲ ここまで ▲▲▲
+                
                 goToHotSpring(); // 温泉街への移動関数を呼ぶ
             }
         }
