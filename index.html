@@ -552,6 +552,19 @@
 
     <!-- フェード演出用レイヤー -->
     <div id="fade-overlay" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:999; pointer-events:none; opacity:0; transition: opacity 2s ease-in-out;"></div>
+    <!-- 旅館アクション -->
+    <div id="ryokan-action" class="hidden" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 20; text-align: center;">
+        <button id="btn-enter-ryokan" class="menu-btn" style="background-color: #8B0000;">旅館に入る</button>
+    </div>
+
+    <!-- 旅館準備中画面 -->
+    <div id="ryokan-modal" class="screen hidden" style="z-index: 70;">
+        <div class="modal-box" style="border-color: #8B0000;">
+            <h2 style="color: #FFD700; margin-bottom: 10px;">お知らせ</h2>
+            <p style="color: white; font-size: 18px; margin-bottom: 20px;">ただいま準備中です。<br>オープンまでお待ちください！</p>
+            <button id="btn-close-ryokan" class="menu-btn" style="background-color: #555;">閉じる</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -1216,6 +1229,23 @@ window.buyAvatar = function(key) {
     const villageBg1 = new Image(); villageBg1.src = '村1.png';
     const villageBg2 = new Image(); villageBg2.src = '村2.png';
     const VILLAGE_WIDTH = 2560; 
+
+    // === 温泉街・旅館用の変数設定 ===
+    const ryokanImg = new Image(); ryokanImg.src = '旅館.jpg';
+    const HOTSPRING_WIDTH = 2560; // 温泉街の幅
+    const RYOKAN_X = 2000; // 温泉街の奥（右側）に配置
+    const RYOKAN_WIDTH = 400;
+    const RYOKAN_HEIGHT = 300;
+    let isNearRyokan = false;
+    let isTransitioning = false; // 画面遷移中の連続発動を防ぐフラグ
+
+    // === 旅館ボタンのイベントリスナー ===
+    document.getElementById('btn-enter-ryokan').addEventListener('click', () => {
+        document.getElementById('ryokan-modal').classList.remove('hidden');
+    });
+    document.getElementById('btn-close-ryokan').addEventListener('click', () => {
+        document.getElementById('ryokan-modal').classList.add('hidden');
+    });
     
     const GATE_WIDTH = 140;
     const GATE_HEIGHT = 180;
@@ -1831,7 +1861,12 @@ document.getElementById('btn-close-ranking').addEventListener('click', () => {
         player.x += player.vx;
 
         if (player.x < 0) player.x = 0;
-        if (player.x > VILLAGE_WIDTH - player.width) player.x = VILLAGE_WIDTH - player.width;
+        if (player.x >= VILLAGE_WIDTH - player.width) {
+            player.x = VILLAGE_WIDTH - player.width;
+            if (!isTransitioning) {
+                goToHotSpring(); // 温泉街への移動関数を呼ぶ
+            }
+        }
 
         const villageGroundY = canvas.height - 110;
         player.vy += player.gravity;
@@ -2041,6 +2076,129 @@ document.getElementById('btn-close-ranking').addEventListener('click', () => {
         }
     }
 
+// === 温泉街への移動（暗転演出） ===
+    function goToHotSpring() {
+        isTransitioning = true;
+        
+        // ゆっくり暗くする
+        fadeOverlay.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => { fadeOverlay.style.opacity = '1'; });
+        });
+
+        setTimeout(() => {
+            gameState = 'HOTSPRING';
+            player.x = 50; // 温泉街の左端に出現
+            isNearRyokan = false;
+            
+            gateActionUI.classList.add('hidden');
+            multiGateActionUI.classList.add('hidden');
+            shopActionUI.classList.add('hidden');
+            
+            stageNameEl.innerText = "温泉街";
+            stageDisplay.classList.remove('hidden');
+            btnReturnVillage.classList.remove('hidden'); // 村へ戻るボタンを表示
+            
+            // ゆっくり明るくする
+            fadeOverlay.style.opacity = '0';
+            setTimeout(() => { 
+                fadeOverlay.classList.add('hidden'); 
+                isTransitioning = false;
+            }, 2000);
+        }, 2000);
+    }
+
+    // === 温泉街の更新処理 ===
+    function updateHotSpring() {
+        if (keys.left) { player.vx = -player.speed; playerFacingRight = false; }
+        else if (keys.right) { player.vx = player.speed; playerFacingRight = true; }
+        else { player.vx = 0; }
+        
+        player.x += player.vx;
+        if (player.x < 0) { player.x = 0; }
+        if (player.x > HOTSPRING_WIDTH - player.width) player.x = HOTSPRING_WIDTH - player.width;
+        
+        const groundY = canvas.height - 110;
+        player.vy += player.gravity; player.y += player.vy;
+        
+        if (player.y + player.height > groundY) {
+            player.y = groundY - player.height; player.vy = 0; player.isGrounded = true;
+        } else { player.isGrounded = false; }
+        
+        cameraX = player.x + player.width / 2 - canvas.width / 2;
+        if (cameraX < 0) cameraX = 0;
+        if (cameraX > HOTSPRING_WIDTH - canvas.width) cameraX = HOTSPRING_WIDTH - canvas.width;
+        
+        // 旅館のアクセス判定
+        const playerCenterX = player.x + player.width / 2;
+        const ryokanMargin = 80;
+        if (playerCenterX >= RYOKAN_X - ryokanMargin && playerCenterX <= RYOKAN_X + RYOKAN_WIDTH + ryokanMargin) {
+            if (!isNearRyokan) { 
+                isNearRyokan = true; 
+                document.getElementById('ryokan-action').classList.remove('hidden'); 
+            }
+        } else {
+            if (isNearRyokan) { 
+                isNearRyokan = false; 
+                document.getElementById('ryokan-action').classList.add('hidden'); 
+            }
+        }
+        
+        syncMyPosition(); // マルチプレイでの位置同期
+    }
+
+    // === 温泉街の描画処理 ===
+    function drawHotSpring() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 暗い夜空を表現
+        ctx.fillStyle = '#0a101d'; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 温泉街の地面
+        const groundY = canvas.height - 110;
+        ctx.fillStyle = '#1b2230';
+        ctx.fillRect(0, groundY, canvas.width, 110);
+        
+        const ryokanScreenX = RYOKAN_X - cameraX;
+        const ryokanY = groundY - RYOKAN_HEIGHT;
+        
+        // 旅館画像の描画
+        if (ryokanImg.complete && ryokanImg.width > 0) {
+            ctx.drawImage(ryokanImg, ryokanScreenX, ryokanY, RYOKAN_WIDTH, RYOKAN_HEIGHT);
+        } else {
+            ctx.fillStyle = '#5c141d'; ctx.fillRect(ryokanScreenX, ryokanY, RYOKAN_WIDTH, RYOKAN_HEIGHT);
+        }
+        
+        // 旅館の看板エフェクト
+        ctx.fillStyle = '#FFD700'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('旅館', ryokanScreenX + RYOKAN_WIDTH / 2, ryokanY - 15);
+        if (isNearRyokan) {
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.2)'; ctx.beginPath();
+            ctx.arc(ryokanScreenX + RYOKAN_WIDTH / 2, ryokanY + RYOKAN_HEIGHT, 150, 0, Math.PI, true); ctx.fill();
+        }
+        
+        // プレイヤーの描画
+        const myAv = avatars[currentAvatar] || avatars['default'];
+        let currentImg = player.isGrounded ? myAv.walk : myAv.jump;
+        const drawX = player.x - cameraX;
+        
+        if (currentImg.complete && currentImg.width > 0) {
+            ctx.save();
+            if (playerFacingRight) {
+                ctx.drawImage(currentImg, drawX, player.y, player.width, player.height);
+            } else {
+                ctx.translate(drawX + player.width / 2, player.y + player.height / 2);
+                ctx.scale(-1, 1);
+                ctx.drawImage(currentImg, -player.width / 2, -player.height / 2, player.width, player.height);
+            }
+            ctx.restore();
+        }
+        
+        ctx.fillStyle = '#FFFF00'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(playerName + " Lv." + playerLevel, drawX + player.width / 2, player.y - 8);
+    }
+    
     function generateMap() {
     const lastPlatform = platforms[platforms.length - 1];
 
@@ -2883,19 +3041,30 @@ function updateEffectsPosition() {
 }
     
     function loop(timestamp) {
-        if (gameState === 'PLAYING' || gameState === 'VILLAGE') {
-            animationId = requestAnimationFrame(loop);
-            if (!timestamp) timestamp = performance.now();
-            if (!lastTime) lastTime = timestamp;
+    // ▼ 変更点1: ループを続ける条件に gameState === 'HOTSPRING' を追加します
+    if (gameState === 'PLAYING' || gameState === 'VILLAGE' || gameState === 'HOTSPRING') {
+        animationId = requestAnimationFrame(loop);
+        if (!timestamp) timestamp = performance.now();
+        if (!lastTime) lastTime = timestamp;
 
-            const elapsed = timestamp - lastTime;
-            if (elapsed >= frameInterval) {
-                lastTime = timestamp - (elapsed % frameInterval);
-                update();
-                draw();
+        const elapsed = timestamp - lastTime;
+        if (elapsed >= frameInterval) {
+            lastTime = timestamp - (elapsed % frameInterval);
+            
+            // ▼ 変更点2: 状態（gameState）に合わせて update と draw を切り替えます
+            if (gameState === 'VILLAGE') {
+                updateVillage();
+                drawVillage();
+            } else if (gameState === 'HOTSPRING') {
+                updateHotSpring(); // 温泉街の更新
+                drawHotSpring();   // 温泉街の描画
+            } else if (gameState === 'PLAYING') {
+                update(); // 通常ステージの更新
+                draw();   // 通常ステージの描画
             }
         }
     }
+}
 </script>
 </body>
 </html>
